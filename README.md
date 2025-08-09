@@ -10,6 +10,26 @@
 
 Echo isn't just another AI CLI - it's an **intelligent terminal** that thinks before it acts. With autonomous agents that analyze your prompts and optimize them automatically, Echo delivers better results with less effort.
 
+## 🆕 What's New in Latest Version
+
+### ✨ **Interactive Welcome Experience**
+- **Guided Setup**: Beautiful CLI interface that walks you through provider configuration
+- **Smart Detection**: Automatically detects existing configurations with ✅ indicators
+- **Connection Testing**: Real-time API key validation during setup
+- **Persistent Storage**: Never lose your configurations - they're saved permanently
+
+### ⚡ **Groq Provider - Ultra-Fast Inference**
+- **Lightning Speed**: Experience blazing-fast responses with Groq's optimized infrastructure
+- **Full Integration**: Complete Groq SDK implementation with streaming support
+- **Llama Models**: Access to Llama 3 70B, 8B, Mixtral 8x7B, and Gemma variants
+- **Production Ready**: Robust error handling and authentication
+
+### 🔧 **Configuration Persistence**
+- **Smart Storage**: Configurations persist between CLI sessions automatically  
+- **Flexible Updates**: Keep existing API keys or update them individually
+- **No Re-entry**: Set up once, use forever - no more repeated configuration
+- **Multi-Provider**: Seamlessly manage multiple AI providers simultaneously
+
 ## 🚀 Features
 
 - **🤖 Intelligent Agents**: Autonomous prompt optimization and output enhancement  
@@ -20,42 +40,81 @@ Echo isn't just another AI CLI - it's an **intelligent terminal** that thinks be
 - **🎯 Output Optimization**: Context-aware formatting and post-processing
 - **🔧 Smart Configuration**: Global and project-specific settings with validation
 - **🚀 Ultra-Fast**: Groq integration for lightning-speed responses
+- **🎪 Interactive Welcome**: Beautiful guided setup experience
+- **💾 Smart Persistence**: Configuration saved automatically, never re-enter API keys
+- **🔄 Seamless Updates**: Keep existing configs or update individual providers
 
 ## 📦 Installation
 
 ```bash
-# Global installation (recommended)
-npm install -g echo-ai-cli
+# Clone and build (development version)
+git clone https://github.com/your-username/echo-ai-cli.git
+cd echo-ai-cli
+npm install
+npm run build
 
-# Verify installation
-echo --version
+# Make executable (replace with your project path)
+chmod +x dist/cli.js
 ```
 
 ## 🏃‍♂️ Quick Start
 
-### 1. Setup Your First Provider
+### 1. Interactive Welcome Experience
+
+**NEW!** Echo now features a beautiful interactive welcome that guides you through setup:
 
 ```bash
-# Interactive setup wizard with agent support
-echo config setup
-
-# Or manually configure providers
-echo config set claude.key sk-ant-your-api-key-here
-echo config set groq.key gsk_your-groq-key-here
-echo config set meta.key your-meta-ai-key-here
+# Launch Echo's interactive welcome
+./dist/cli.js
+# or 
+echoai
 ```
 
-### 2. Let Echo's Agents Optimize Your Prompts
+This opens an interactive menu where you can:
+- 🚀 **First-time setup**: Guided provider configuration with connection testing
+- ✅ **Existing configs**: See providers marked as "Already configured"
+- 🔑 **API key management**: Keep existing keys or update them easily
+- 💬 **Direct access**: Jump into chat, file editing, or agent optimization
+
+### 2. Quick Provider Setup
+
+```bash
+# Interactive welcome handles setup, but you can also use:
+echoai config setup
+
+# Or manually configure (now with persistent storage!)
+echoai config set claude.key sk-ant-your-api-key-here
+echoai config set groq.key gsk_your-groq-key-here  # ⚡ Ultra-fast inference
+echoai config set meta.key your-meta-ai-key-here
+```
+
+### 3. Experience the Power
+
+```bash
+# Direct command with automatic optimization
+echoai "explain machine learning to me"
+
+# Ultra-fast responses with Groq
+echoai "quick code snippet" --provider groq
+
+# Interactive chat with agent optimization
+echoai  # → Select "💬 Start interactive chat session"
+```
+
+### 4. Let Echo's Agents Optimize Your Prompts
 
 ```bash
 # Automatic optimization and execution
-echo agents run "help me write a React component"
+echoai agents run "help me write a React component"
 
-# See how agents would optimize your prompt
-echo agents optimize "debug this code"
+# See how agents would optimize your prompt  
+echoai agents optimize "debug this code"
 
 # Direct execution (agents work behind the scenes)
-echo "explain how machine learning works"
+echoai "explain how machine learning works"
+
+# Interactive agent testing (from welcome menu)
+echoai  # → Select "🤖 Use intelligent agents for optimization"
 ```
 
 ## 🤖 Intelligent Agents System
@@ -80,16 +139,19 @@ Echo's breakthrough feature is its **autonomous agents** that analyze and optimi
 
 ```bash
 # List all available agents
-echo agents list
+echoai agents list
 
 # Optimize any prompt with agents
-echo agents optimize "write a Python script to analyze data"
+echoai agents optimize "write a Python script to analyze data"
 
-# Auto-optimize and execute (recommended)
-echo agents run "help me design a database schema" --level expert --examples
+# Auto-optimize and execute (recommended)  
+echoai agents run "help me design a database schema" --level expert --examples
 
 # View agent optimization details
-echo agents optimize "fix my code" --format detailed
+echoai agents optimize "fix my code" --format detailed
+
+# Interactive agent exploration (recommended for beginners)
+echoai  # → "🤖 Use intelligent agents for optimization" → "🧪 Test prompt optimization"
 ```
 
 ## 📚 Usage Examples
@@ -97,17 +159,20 @@ echo agents optimize "fix my code" --format detailed
 ### Multi-Provider Support
 
 ```bash
-# Ultra-fast responses with Groq
-echo "quick code snippet" --provider groq
+# Ultra-fast responses with Groq (⚡ NEW: Fully functional!)
+echoai "quick code snippet" --provider groq
 
 # Advanced reasoning with Claude
-echo "complex analysis task" --provider claude --model claude-3-opus
+echoai "complex analysis task" --provider claude --model claude-3-opus
 
-# Code generation with Meta AI
-echo "generate Python function" --provider meta --model code-llama-70b
+# Code generation with Meta AI  
+echoai "generate Python function" --provider meta --model code-llama-70b
 
 # Creative tasks with OpenAI
-echo "write a creative story" --provider openai --model gpt-4
+echoai "write a creative story" --provider openai --model gpt-4
+
+# Interactive provider selection (NEW!)
+echoai  # → Welcome shows "✨ Ready to go! You have X providers configured"
 ```
 
 ### Intelligent File Operations
@@ -148,21 +213,39 @@ echo agents optimize "build a machine learning pipeline" --format detailed
 
 Echo supports 5 major AI providers:
 
+**Recommended: Use Interactive Welcome**
+```bash
+echoai  # → Guided setup with connection testing and persistent storage
+```
+
+**Manual Configuration (Advanced)**
 ```bash
 # Claude (Anthropic) - Best for analysis and reasoning
-echo config set claude.key sk-ant-your-key
+echoai config set claude.key sk-ant-your-key
 
 # OpenAI - Excellent for creative and complex tasks  
-echo config set openai.key sk-your-key
+echoai config set openai.key sk-your-key
 
-# Groq - Ultra-fast inference with Llama models
-echo config set groq.key gsk_your-key
+# Groq - Ultra-fast inference (⚡ NOW FULLY WORKING!)
+echoai config set groq.key gsk_your-key
 
 # Meta AI - Powerful Llama and Code Llama models
-echo config set meta.key your-together-ai-key
+echoai config set meta.key your-together-ai-key
 
 # Gemini - Google's multimodal AI (coming soon)
-echo config set gemini.key your-key
+echoai config set gemini.key your-key
+```
+
+**Configuration Management (NEW!)**
+```bash
+# View all configured providers with masked API keys
+echoai  # → "⚙️ Manage providers and configuration" → "👀 View current config"
+
+# Update existing API key while keeping other settings  
+echoai  # → Select configured provider → "🔑 Update API key"
+
+# Check configuration status
+echoai  # → Welcome shows: "✨ Ready to go! You have X providers configured"
 ```
 
 ### Agent Preferences
