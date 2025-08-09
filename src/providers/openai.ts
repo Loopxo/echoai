@@ -50,7 +50,7 @@ export class OpenAIProvider implements AIProvider {
   }
 
   async *chat(messages: Message[], options: ChatOptions = {}): AsyncGenerator<string> {
-    const model = options.model || this.config.model || this.models[4]; // gpt-3.5-turbo default
+    const model = (options.model || this.config.model || this.models[4]) as any; // gpt-3.5-turbo default
     const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
@@ -97,7 +97,7 @@ export class OpenAIProvider implements AIProvider {
   }
 
   async complete(prompt: string, options: CompletionOptions = {}): Promise<string> {
-    const model = options.model || this.config.model || this.models[4];
+    const model = (options.model || this.config.model || this.models[4]) as any;
     const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
