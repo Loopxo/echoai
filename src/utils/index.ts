@@ -10,7 +10,13 @@ export function validateApiKey(provider: string, apiKey: string): boolean {
     case 'claude':
       return apiKey.startsWith('sk-ant-');
     case 'openai':
-      return apiKey.startsWith('sk-');
+      return apiKey.startsWith('sk-') && !apiKey.startsWith('sk-ant-') && !apiKey.startsWith('sk-or-');
+    case 'groq':
+      return apiKey.startsWith('gsk_');
+    case 'openrouter':
+      return apiKey.startsWith('sk-or-');
+    case 'meta':
+      return apiKey.length > 10; // Basic validation for Together AI keys
     case 'gemini':
       return apiKey.length > 10; // Basic validation
     default:

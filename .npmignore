@@ -1,0 +1,38 @@
+# Source files (only include compiled dist/)
+src/
+*.ts
+!*.d.ts
+tsconfig.json
+
+# Development files
+.env
+.env.local
+.env.*.local
+*.log
+.vscode/
+.idea/
+
+# Testing
+coverage/
+.nyc_output/
+*.test.js
+*.test.ts
+**/__tests__/
+vitest.config.ts
+
+# Build artifacts
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Development scripts and configs
+run-echo.sh
+debug-*.js
+test-*.js
+
+# Documentation source (keep README.md, LICENSE, CHANGELOG.md)
+CONTRIBUTING.md
