@@ -48,7 +48,7 @@ export class ClaudeProvider implements AIProvider {
   }
 
   async *chat(messages: Message[], options: ChatOptions = {}): AsyncGenerator<string> {
-    const model = options.model || this.config.model || this.models[1];
+    const model = (options.model || this.config.model || this.models[1]) as any;
     const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
@@ -99,7 +99,7 @@ export class ClaudeProvider implements AIProvider {
   }
 
   async complete(prompt: string, options: CompletionOptions = {}): Promise<string> {
-    const model = options.model || this.config.model || this.models[1];
+    const model = (options.model || this.config.model || this.models[1]) as any;
     const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
