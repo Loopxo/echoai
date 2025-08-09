@@ -51,6 +51,7 @@ async function setupProvider(): Promise<void> {
     { name: '🔍 Gemini (Google) - Strong reasoning capabilities', value: 'gemini' },
     { name: '⚡ Groq - Ultra-fast inference', value: 'groq' },
     { name: '🦙 Meta AI (Llama) - Open source models', value: 'meta' },
+    { name: '🌐 OpenRouter - 100+ models via unified API', value: 'openrouter' },
   ];
 
   // Mark already configured providers
@@ -575,6 +576,15 @@ function getModelChoices(provider: string): Array<{ name: string; value: string 
         { name: '🏆 Llama 3.1 70B (Recommended)', value: 'llama-3.1-70b-instruct' },
         { name: 'Llama 3.1 405B', value: 'llama-3.1-405b-instruct' },
         { name: 'Code Llama 70B', value: 'code-llama-70b-instruct' },
+      ];
+    case 'openrouter':
+      return [
+        { name: '🏆 Claude 3.5 Sonnet (Recommended)', value: 'anthropic/claude-3.5-sonnet' },
+        { name: '🤖 GPT-4 Turbo', value: 'openai/gpt-4-turbo' },
+        { name: '🦙 Llama 3.1 405B', value: 'meta-llama/llama-3.1-405b-instruct' },
+        { name: '🔍 Gemini Pro 1.5', value: 'google/gemini-pro-1.5' },
+        { name: '⚡ Mixtral 8x7B', value: 'mistralai/mixtral-8x7b-instruct' },
+        { name: '💻 Code Llama 70B', value: 'meta-llama/codellama-70b-instruct' },
       ];
     default:
       return [{ name: 'Default Model', value: 'default' }];
