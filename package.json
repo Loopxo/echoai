@@ -1,10 +1,10 @@
 {
-  "name": "ai-terminal-cli",
+  "name": "echo-ai-cli",
   "version": "0.1.0",
-  "description": "A unified command-line interface for multiple AI providers with VS Code integration",
+  "description": "Echo - A unified AI terminal with intelligent agents, multi-provider support, and advanced output optimization",
   "main": "dist/index.js",
   "bin": {
-    "ai": "dist/cli.js"
+    "echo": "dist/cli.js"
   },
   "type": "module",
   "engines": {
@@ -27,37 +27,44 @@
     "clean": "rm -rf dist coverage .nyc_output",
     "prepack": "npm run clean && npm run build",
     "prepublishOnly": "npm run test && npm run lint",
-    "postinstall": "node -e \"console.log('\\n🤖 AI Terminal CLI installed! Run: ai config setup\\n')\"",
+    "postinstall": "node -e \"console.log('\\n🔮 Echo AI CLI installed! Run: echo config setup\\n')\"",
     "release": "npm version patch && git push --follow-tags",
     "release:minor": "npm version minor && git push --follow-tags",
     "release:major": "npm version major && git push --follow-tags"
   },
   "keywords": [
+    "echo",
     "ai",
     "cli",
+    "agents",
     "claude",
     "gpt",
     "gemini",
+    "groq",
+    "meta",
+    "llama",
     "developer-tools",
     "vscode",
-    "automation"
+    "automation",
+    "optimization"
   ],
-  "author": "AI Terminal CLI Contributors",
+  "author": "Echo AI CLI Contributors",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/ai-terminal-cli.git"
+    "url": "git+https://github.com/your-username/echo-ai-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/ai-terminal-cli/issues"
+    "url": "https://github.com/your-username/echo-ai-cli/issues"
   },
-  "homepage": "https://github.com/your-username/ai-terminal-cli#readme",
+  "homepage": "https://github.com/your-username/echo-ai-cli#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
     "axios": "^1.6.0",
     "commander": "^11.1.0",
     "cosmiconfig": "^9.0.0",
     "dotenv": "^16.3.0",
+    "groq-sdk": "^0.7.0",
     "inquirer": "^9.2.0",
     "openai": "^4.20.0",
     "zod": "^3.22.0"
