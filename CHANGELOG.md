@@ -7,12 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- GitHub Actions CI/CD pipeline with multi-platform testing
-- Automated security audits and dependency checks
-- Release automation with NPM publishing
-- Environment variable configuration template
-- Professional development workflow documentation
+## [0.2.0] - 2024-12-09 - "Echo Intelligence"
+
+### 🔮 MAJOR REBRAND: AI Terminal CLI → Echo AI CLI
+
+**BREAKING CHANGES:**
+- Binary command changed from `ai` to `echo`
+- Package name changed from `ai-terminal-cli` to `echo-ai-cli`
+- Environment variables now use `ECHO_` prefix
+- Configuration files and commands updated throughout
+
+### ✨ NEW: Intelligent Agents System
+
+**Autonomous Agent Framework:**
+- **CodeOptimizer Agent**: Specialized for programming tasks with language detection
+- **PromptEnhancer Agent**: General-purpose prompt optimization and structuring
+- **EchoAgentManager**: Intelligent agent selection and orchestration system
+- **Confidence Scoring**: Agents provide confidence ratings for their optimizations
+- **Post-Processing**: Automated response enhancement and formatting
+
+**Agent Commands:**
+- `echo agents list` - View all available agents and capabilities
+- `echo agents optimize <prompt>` - Optimize prompts with agent intelligence
+- `echo agents run <prompt>` - Auto-optimize and execute with best provider selection
+
+### 🚀 NEW: Additional AI Providers
+
+**Groq Integration:**
+- Ultra-fast inference with Llama 3 models
+- Models: llama3-70b-8192, llama3-8b-8192, mixtral-8x7b-32768, gemma2-9b-it
+- Lightning-speed responses for quick queries
+
+**Meta AI Integration:**
+- Powerful Llama 3.1/3.2 models via Together AI
+- Code Llama specialized models for programming tasks
+- Models: llama-3.1-405b, llama-3.1-70b, code-llama-70b, and more
+
+### 🎯 Enhanced Features
+- **Smart Provider Routing**: Agents automatically suggest best provider for each task
+- **Context-Aware Optimization**: Agents analyze prompt complexity and domain
+- **User Preference Integration**: Customizable output formats, explanation levels
+- **Metadata Tracking**: Comprehensive optimization and usage analytics
+- **Extended Configuration**: Support for 5 AI providers with validation
 
 ## [0.1.0] - 2024-12-09
 

@@ -1,29 +1,34 @@
-# AI Terminal CLI
+# Echo AI CLI
 
-> A unified command-line interface for multiple AI providers with VS Code integration
+> 🔮 An intelligent AI terminal with autonomous agents, multi-provider support, and advanced output optimization
 
-[![NPM Version](https://img.shields.io/npm/v/ai-terminal-cli.svg)](https://npmjs.org/package/ai-terminal-cli)
+[![NPM Version](https://img.shields.io/npm/v/echo-ai-cli.svg)](https://npmjs.org/package/echo-ai-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://typescriptlang.org)
 
+## ✨ What Makes Echo Special
+
+Echo isn't just another AI CLI - it's an **intelligent terminal** that thinks before it acts. With autonomous agents that analyze your prompts and optimize them automatically, Echo delivers better results with less effort.
+
 ## 🚀 Features
 
-- **🤖 Multi-Provider Support**: Claude, OpenAI GPT, Google Gemini
-- **💬 Interactive Chat**: Real-time streaming conversations
-- **📝 File Editing**: AI-assisted code modifications with diff preview
-- **🔧 Smart Configuration**: Global and project-specific settings
-- **⚡ High Performance**: Optimized for developer workflows
-- **🎯 VS Code Integration**: Seamless file operations
-- **🔐 Secure**: Encrypted API key storage
+- **🤖 Intelligent Agents**: Autonomous prompt optimization and output enhancement  
+- **🌍 5 AI Providers**: Claude, OpenAI, Gemini, Groq, and Meta AI (Llama)
+- **⚡ Smart Routing**: Automatically suggest the best provider for your task
+- **💬 Interactive Chat**: Real-time streaming conversations with context awareness
+- **📝 Code Integration**: AI-assisted file editing with diff preview and backups
+- **🎯 Output Optimization**: Context-aware formatting and post-processing
+- **🔧 Smart Configuration**: Global and project-specific settings with validation
+- **🚀 Ultra-Fast**: Groq integration for lightning-speed responses
 
 ## 📦 Installation
 
 ```bash
 # Global installation (recommended)
-npm install -g ai-terminal-cli
+npm install -g echo-ai-cli
 
 # Verify installation
-ai --version
+echo --version
 ```
 
 ## 🏃‍♂️ Quick Start
@@ -31,345 +36,334 @@ ai --version
 ### 1. Setup Your First Provider
 
 ```bash
-# Interactive setup wizard
-ai config setup
+# Interactive setup wizard with agent support
+echo config setup
 
-# Or manually configure Claude
-ai config set claude.key sk-ant-your-api-key-here
-ai config set defaults.provider claude
+# Or manually configure providers
+echo config set claude.key sk-ant-your-api-key-here
+echo config set groq.key gsk_your-groq-key-here
+echo config set meta.key your-meta-ai-key-here
 ```
 
-### 2. Start Using AI
+### 2. Let Echo's Agents Optimize Your Prompts
 
 ```bash
-# Direct prompt
-ai "Explain how async/await works in JavaScript"
+# Automatic optimization and execution
+echo agents run "help me write a React component"
 
-# Interactive chat session
-ai chat
+# See how agents would optimize your prompt
+echo agents optimize "debug this code"
 
-# Edit files with AI
-ai edit src/app.js --task "add error handling to this function"
+# Direct execution (agents work behind the scenes)
+echo "explain how machine learning works"
+```
 
-# Include file context
-ai "optimize this code" --file src/utils.js src/helpers.js
+## 🤖 Intelligent Agents System
+
+Echo's breakthrough feature is its **autonomous agents** that analyze and optimize your prompts automatically:
+
+### Available Agents
+
+**🔧 CodeOptimizer Agent**
+- Optimizes prompts for programming tasks
+- Suggests best providers for code generation
+- Adds structure and best practices guidance
+- Supports all major programming languages
+
+**✨ PromptEnhancer Agent**
+- Enhances general queries for better responses
+- Adds context and output formatting
+- Incorporates expert role-playing
+- Customizes based on user preferences
+
+### Agent Commands
+
+```bash
+# List all available agents
+echo agents list
+
+# Optimize any prompt with agents
+echo agents optimize "write a Python script to analyze data"
+
+# Auto-optimize and execute (recommended)
+echo agents run "help me design a database schema" --level expert --examples
+
+# View agent optimization details
+echo agents optimize "fix my code" --format detailed
 ```
 
 ## 📚 Usage Examples
 
-### Basic Chat
+### Multi-Provider Support
 
 ```bash
-# One-shot query
-ai "What's the difference between let and const?"
+# Ultra-fast responses with Groq
+echo "quick code snippet" --provider groq
 
-# Interactive session with specific provider
-ai chat --provider openai --model gpt-4
+# Advanced reasoning with Claude
+echo "complex analysis task" --provider claude --model claude-3-opus
 
-# Stream responses in real-time
-ai "Write a React component" --stream
+# Code generation with Meta AI
+echo "generate Python function" --provider meta --model code-llama-70b
+
+# Creative tasks with OpenAI
+echo "write a creative story" --provider openai --model gpt-4
 ```
 
-### File Operations
+### Intelligent File Operations
 
 ```bash
-# Edit with task description
-ai edit src/components/Header.tsx --task "add TypeScript interfaces"
+# AI-assisted file editing with agent optimization
+echo edit src/components/Header.tsx --task "add TypeScript interfaces"
 
-# Preview changes before applying
-ai edit utils.js --task "add JSDoc comments" --preview
+# Agent-optimized code review
+echo agents run "review this code for security issues" --file auth.js --format detailed
 
-# Auto-apply without confirmation
-ai edit styles.css --task "convert to CSS Grid" --auto-apply
+# Multi-file context with smart optimization  
+echo "optimize this implementation" --file src/app.js --file src/utils.js --provider claude
 ```
 
-### Configuration Management
+### Advanced Agent Features
 
 ```bash
-# List current configuration
-ai config list
+# Customize agent behavior
+echo agents run "explain quantum computing" \\
+  --format structured \\
+  --level beginner \\
+  --examples \\
+  --provider claude
 
-# Set provider-specific settings
-ai config set openai.key sk-your-openai-key
-ai config set openai.model gpt-4-turbo-preview
-ai config set defaults.temperature 0.3
+# Let agents choose the best provider
+echo agents run "write performant database queries"
+# → Agents automatically suggest Meta AI with Code Llama
 
-# Test provider connection
-ai provider test claude
-ai provider test openai
-
-# List available models
-ai provider models claude
-```
-
-### Advanced Usage
-
-```bash
-# Multiple file context
-ai "review this implementation" \\
-  --file src/auth.js \\
-  --file tests/auth.test.js \\
-  --provider claude \\
-  --model claude-3-opus-20240229
-
-# Custom temperature and tokens
-ai "generate unit tests" \\
-  --temperature 0.2 \\
-  --max-tokens 2000 \\
-  --file src/calculator.js
+# Complex optimization with confidence scoring
+echo agents optimize "build a machine learning pipeline" --format detailed
+# → Shows confidence scores and optimization strategies
 ```
 
 ## ⚙️ Configuration
 
-### Configuration Files
+### Provider Setup
 
-The CLI uses a hierarchical configuration system:
+Echo supports 5 major AI providers:
 
-1. **Command line flags** (highest priority)
-2. **Environment variables** (`AI_CLAUDE_KEY`, `AI_OPENAI_KEY`)
-3. **Project config** (`.ai/config.json`)
-4. **Global config** (`~/.aiconfig/config.json`)
-5. **Defaults** (lowest priority)
+```bash
+# Claude (Anthropic) - Best for analysis and reasoning
+echo config set claude.key sk-ant-your-key
 
-### Example Configuration
+# OpenAI - Excellent for creative and complex tasks  
+echo config set openai.key sk-your-key
 
-```json
-{
-  "providers": {
-    "claude": {
-      "apiKey": "sk-ant-...",
-      "model": "claude-3-sonnet-20240229",
-      "temperature": 0.7,
-      "maxTokens": 4096
-    },
-    "openai": {
-      "apiKey": "sk-...",
-      "model": "gpt-4-turbo-preview",
-      "temperature": 0.7,
-      "maxTokens": 4096
-    }
-  },
-  "defaults": {
-    "provider": "claude",
-    "model": "claude-3-sonnet-20240229",
-    "temperature": 0.7,
-    "maxTokens": 4096
-  },
-  "integrations": {
-    "vscode": {
-      "enabled": true,
-      "autoSave": true,
-      "diffPreview": true
-    },
-    "git": {
-      "autoCommit": false
-    }
-  },
-  "features": {
-    "streaming": true,
-    "diffPreview": true,
-    "autoCommit": false
-  }
-}
+# Groq - Ultra-fast inference with Llama models
+echo config set groq.key gsk_your-key
+
+# Meta AI - Powerful Llama and Code Llama models
+echo config set meta.key your-together-ai-key
+
+# Gemini - Google's multimodal AI (coming soon)
+echo config set gemini.key your-key
 ```
 
-## 🔑 API Keys Setup
+### Agent Preferences
 
-### Claude (Anthropic)
-1. Visit [Anthropic Console](https://console.anthropic.com/)
-2. Create an API key
-3. Run: `ai config set claude.key sk-ant-your-key`
+```bash
+# Set default output preferences for agents
+echo config set defaults.outputFormat structured
+echo config set defaults.explanationLevel intermediate
+echo config set defaults.includeExamples true
 
-### OpenAI
-1. Visit [OpenAI API](https://platform.openai.com/api-keys)
-2. Create an API key
-3. Run: `ai config set openai.key sk-your-key`
-
-### Google Gemini
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create an API key
-3. Run: `ai config set gemini.key your-key`
+# Configure agent behavior
+echo config set agents.enableAutoOptimization true
+echo config set agents.preferredOptimizer CodeOptimizer
+```
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   CLI Interface │────│  Core Engine    │────│   AI Providers  │
-│   (Commander.js)│    │                 │    │   (API Layer)   │
+│   Echo CLI      │────│  Agent System   │────│   AI Providers  │
+│   (Commander)   │    │  (Optimization) │    │   (5 Providers) │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │              ┌─────────────────┐              │
-         │──────────────│  File Manager   │──────────────│
-         │              │  (VS Code Int.) │              │
+         │──────────────│  Smart Routing  │──────────────│
+         │              │  (Auto-Select)  │              │
          │              └─────────────────┘              │
          │                       │                       │
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Config Mgmt   │────│   Context Mgmt  │────│   Backup Sys    │
-│   (Cosmiconfig) │    │   (File/Project)│    │   (Auto-backup) │
+│   File Manager  │────│   Config Mgmt   │────│   Agent Store   │
+│   (VS Code Int) │    │   (Multi-tier)  │    │   (Extensible)  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 🧪 Development
+## 🤖 Agents Deep Dive
+
+### How Agents Work
+
+1. **Input Analysis**: Agents analyze your prompt for context, complexity, and intent
+2. **Optimization**: Apply domain-specific enhancements and structure
+3. **Provider Selection**: Suggest the best AI provider for your specific task
+4. **Execution**: Run the optimized prompt with optimal settings
+5. **Post-Processing**: Apply formatting and enhancement to the output
+
+### Agent Scoring System
+
+```bash
+echo agents optimize "write a sorting algorithm" --format detailed
+```
+
+Output includes:
+- **Confidence Score**: How well the agent understands your request (0-100%)
+- **Optimization Applied**: List of enhancements made to your prompt
+- **Provider Recommendation**: Best AI provider for this specific task
+- **Estimated Tokens**: Approximate cost/usage prediction
+
+### Extending with Custom Agents
+
+Echo's agent system is designed to be extensible. Each agent implements a simple interface:
+
+```typescript
+interface Agent {
+  name: string;
+  capabilities: AgentCapability[];
+  canHandle(context: AgentContext): boolean;
+  optimize(context: AgentContext): Promise<AgentResult>;
+  postProcess?(result: string, context: AgentContext): Promise<string>;
+}
+```
+
+## 📊 Provider Comparison
+
+| Provider | Strengths | Speed | Cost | Models |
+|----------|-----------|-------|------|--------|
+| **Claude** | Analysis, Code Review | Medium | $$$ | Opus, Sonnet, Haiku |
+| **OpenAI** | Creative, Complex Tasks | Medium | $$$ | GPT-4, GPT-3.5 |
+| **Groq** | Ultra-Fast Inference | ⚡ Fastest | $ | Llama 3, Mixtral |
+| **Meta AI** | Code, Open Models | Fast | $$ | Llama 3.1/3.2, Code Llama |
+| **Gemini** | Multimodal | Medium | $$ | Gemini Pro (Coming Soon) |
+
+*Echo's agents automatically recommend the best provider for each task*
+
+## 🛠️ Development
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn or pnpm
+- Node.js 18+
+- npm, yarn, or pnpm
 
 ### Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/ai-terminal-cli.git
-cd ai-terminal-cli
-
-# Install dependencies
+git clone https://github.com/your-username/echo-ai-cli.git
+cd echo-ai-cli
 npm install
-
-# Build the project
 npm run build
-
-# Link for local development
 npm link
 ```
+
+### Adding New Agents
+
+1. Create agent in `src/agents/specialized/`
+2. Implement the `Agent` interface
+3. Register in `EchoAgentManager`
+4. Add tests and documentation
 
 ### Development Scripts
 
 ```bash
-# Development mode with hot reload
-npm run dev
-
-# Run tests
-npm test
-npm run test:coverage
-
-# Linting and formatting
-npm run lint
-npm run lint:fix
-npm run format
-
-# Type checking
-npm run type-check
-
-# Build for production
-npm run build
-```
-
-### Project Structure
-
-```
-src/
-├── cli/                 # CLI commands and interface
-│   ├── chat.ts         # Interactive chat command
-│   ├── config.ts       # Configuration management
-│   ├── direct.ts       # Direct prompt handling
-│   ├── edit.ts         # File editing command
-│   └── provider.ts     # Provider management
-├── core/               # Core business logic
-│   └── provider-manager.ts
-├── providers/          # AI provider implementations
-│   ├── claude.ts       # Claude/Anthropic integration
-│   ├── openai.ts       # OpenAI GPT integration
-│   └── gemini.ts       # Google Gemini (placeholder)
-├── integrations/       # External service integrations
-│   └── file-manager.ts # File operations and VS Code
-├── config/            # Configuration management
-│   └── manager.ts     # Config loading and validation
-├── utils/             # Utility functions
-│   └── index.ts
-├── types/             # TypeScript definitions
-│   └── index.ts
-└── cli.ts             # Main CLI entry point
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run specific test file
-npm test -- src/providers/claude.test.ts
-
-# Watch mode
-npm test -- --watch
+npm run dev          # Development mode
+npm test             # Run tests
+npm run build        # Build for production
+npm run type-check   # TypeScript validation
+npm run lint         # Code linting
 ```
 
 ## 📖 API Reference
 
 ### Core Classes
 
-#### `ConfigManager`
-Manages application configuration with validation and persistence.
+- **EchoAgentManager**: Manages agent registration and optimization
+- **ConfigManager**: Handles multi-tier configuration
+- **ProviderManager**: Manages AI provider integration
+- **FileManager**: Provides file operations with backup
 
-#### `ProviderManager` 
-Handles AI provider registration, authentication, and switching.
+### Agent Types
 
-#### `FileManager`
-Provides file operations with backup and diff capabilities.
+- **AgentContext**: Input context for agent optimization
+- **AgentResult**: Optimized prompt with metadata and suggestions
+- **AgentCapability**: Defines what an agent can do
 
-### Provider Interface
+## 🌟 Examples & Tutorials
 
-```typescript
-interface AIProvider {
-  name: string;
-  models: string[];
-  authenticate(apiKey: string): Promise<boolean>;
-  chat(messages: Message[], options: ChatOptions): AsyncGenerator<string>;
-  complete(prompt: string, options: CompletionOptions): Promise<string>;
-  validateConfig(config: ProviderConfig): ConfigValidation;
-}
+### Code Generation
+
+```bash
+# Agent-optimized code generation
+echo agents run "create a REST API with authentication" \\
+  --provider meta \\
+  --model code-llama-70b \\
+  --level expert
+
+# Result: Agents add structure, best practices, and examples
+```
+
+### Data Analysis
+
+```bash
+# Smart provider selection for data tasks
+echo agents run "analyze this CSV for trends" \\
+  --file sales_data.csv \\
+  --format detailed
+
+# Result: Agents choose OpenAI/Claude and add analysis framework
+```
+
+### Creative Writing
+
+```bash
+# Creative tasks with optimal settings
+echo agents run "write a compelling product description" \\
+  --format creative \\
+  --examples
+
+# Result: Agents enhance prompt and suggest GPT-4
 ```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Echo's agent system is designed for community extension.
 
-### Development Workflow
+### Contribution Areas
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes with proper commit messages
-4. Add tests for new functionality
-5. Ensure all tests pass: `npm test`
-6. Run linting: `npm run lint`
-7. Submit a pull request
-
-### Commit Message Format
-
-We follow conventional commits:
-
-```
-feat: add new provider support
-fix: resolve authentication timeout
-docs: update API documentation
-test: add provider integration tests
-chore: update dependencies
-```
+- **New Agents**: Create specialized agents for different domains
+- **Provider Integration**: Add new AI providers
+- **Agent Capabilities**: Enhance existing agent intelligence
+- **Performance**: Optimize agent decision-making
+- **Documentation**: Improve guides and examples
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- [Anthropic](https://anthropic.com) for Claude AI
-- [OpenAI](https://openai.com) for GPT models
-- [Google](https://ai.google.dev) for Gemini AI
-- The open-source community for amazing tools and libraries
+- **Anthropic** for Claude AI and inspiring intelligent systems
+- **OpenAI** for pushing the boundaries of AI capabilities  
+- **Groq** for ultra-fast inference infrastructure
+- **Meta** for open-source Llama models
+- **The community** for feedback and contributions
 
-## 📞 Support
+## 📞 Support & Community
 
-- 📧 Email: support@ai-terminal-cli.com
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/ai-terminal-cli/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/your-username/ai-terminal-cli/discussions)
-- 📖 Documentation: [Full Documentation](https://docs.ai-terminal-cli.com)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/your-username/echo-ai-cli/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-username/echo-ai-cli/discussions)
+- 📚 **Docs**: [Full Documentation](https://docs.echo-ai-cli.com)
+- 🔮 **Agent Marketplace**: Coming soon!
 
 ---
 
 <div align="center">
-  <strong>Made with ❤️ by the AI Terminal CLI team</strong>
+  <strong>Echo - Where AI meets Intelligence</strong><br>
+  <em>Made with 🔮 by the Echo AI community</em>
 </div>
