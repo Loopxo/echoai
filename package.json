@@ -58,16 +58,20 @@
     "automation",
     "optimization"
   ],
-  "author": "Echo AI CLI Contributors",
+  "author": {
+    "name": "Vijeet Shah",
+    "email": "vijeet@vijeetshah.com",
+    "url": "https://vijeetshah.com"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/echo-ai-cli/echo-ai-cli.git"
+    "url": "git+https://github.com/vijeetshah/echo-ai-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/echo-ai-cli/echo-ai-cli/issues"
+    "url": "https://github.com/vijeetshah/echo-ai-cli/issues"
   },
-  "homepage": "https://github.com/echo-ai-cli/echo-ai-cli#readme",
+  "homepage": "https://github.com/vijeetshah/echo-ai-cli#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
     "axios": "^1.6.0",

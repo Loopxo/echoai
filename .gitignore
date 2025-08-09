@@ -54,6 +54,9 @@ coverage/
 .aiconfig/
 .ai/
 
+# Claude Code IDE files (should not be in repo)
+.claude/
+
 # Temporary files
 tmp/
 temp/

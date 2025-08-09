@@ -32,8 +32,8 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/your-username/ai-terminal-cli.git
-   cd ai-terminal-cli
+   git clone https://github.com/vijeetshah/echo-ai-cli.git
+   cd echo-ai-cli
    ```
 
 2. **Install dependencies**
@@ -414,7 +414,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 If you need help:
 
-- 💬 Join [GitHub Discussions](https://github.com/your-username/ai-terminal-cli/discussions)
+- 💬 Join [GitHub Discussions](https://github.com/vijeetshah/echo-ai-cli/discussions)
 - 📧 Email maintainers
 - 🐛 Open an issue for bugs
 - 📖 Check existing documentation

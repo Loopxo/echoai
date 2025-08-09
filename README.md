@@ -48,7 +48,7 @@ Echo isn't just another AI CLI - it's an **intelligent terminal** that thinks be
 
 ```bash
 # Clone and build (development version)
-git clone https://github.com/your-username/echo-ai-cli.git
+git clone https://github.com/vijeetshah/echo-ai-cli.git
 cd echo-ai-cli
 npm install
 npm run build
@@ -371,7 +371,7 @@ Get your OpenRouter API key at [openrouter.ai](https://openrouter.ai) and access
 ### Setup
 
 ```bash
-git clone https://github.com/your-username/echo-ai-cli.git
+git clone https://github.com/vijeetshah/echo-ai-cli.git
 cd echo-ai-cli
 npm install
 npm run build
@@ -464,7 +464,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **Anthropic** for Claude AI and inspiring intelligent systems
 - **OpenAI** for pushing the boundaries of AI capabilities  
 - **Groq** for ultra-fast inference infrastructure
 - **Meta** for open-source Llama models
@@ -472,8 +471,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Support & Community
 
-- 🐛 **Issues**: [GitHub Issues](https://github.com/your-username/echo-ai-cli/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-username/echo-ai-cli/discussions)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/vijeetshah/echo-ai-cli/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/vijeetshah/echo-ai-cli/discussions)
 - 📚 **Docs**: [Full Documentation](https://docs.echo-ai-cli.com)
 - 🔮 **Agent Marketplace**: Coming soon!
 
@@ -481,5 +480,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 <div align="center">
   <strong>Echo - Where AI meets Intelligence</strong><br>
-  <em>Made with 🔮 by the Echo AI community</em>
+  <em>Made with 🔮 by Vijeet Shah</em>
 </div>
