@@ -1,0 +1,67 @@
+{
+  "name": "ai-terminal-cli",
+  "version": "0.1.0",
+  "description": "A unified command-line interface for multiple AI providers with VS Code integration",
+  "main": "dist/index.js",
+  "bin": {
+    "ai": "dist/cli.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write src/**/*.ts",
+    "type-check": "tsc --noEmit",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "claude",
+    "gpt",
+    "gemini",
+    "developer-tools",
+    "vscode",
+    "automation"
+  ],
+  "author": "AI Terminal CLI Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/ai-terminal-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/ai-terminal-cli/issues"
+  },
+  "homepage": "https://github.com/your-username/ai-terminal-cli#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "axios": "^1.6.0",
+    "commander": "^11.1.0",
+    "cosmiconfig": "^9.0.0",
+    "dotenv": "^16.3.0",
+    "inquirer": "^9.2.0",
+    "openai": "^4.20.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.0",
+    "@types/node": "^20.8.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.2.0",
+    "vitest": "^0.34.0"
+  }
+}
