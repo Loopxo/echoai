@@ -21,7 +21,10 @@ export default async function showWelcome(): Promise<void> {
       console.log('🚀 Let\'s get you started! First, we need to configure an AI provider.\n');
       await setupProvider();
     } else {
-      console.log('✨ Ready to go! Your configured providers are ready.\n');
+      const providerCount = Object.keys(config.providers || {}).filter(
+        key => config.providers![key]?.apiKey
+      ).length;
+      console.log(`✨ Ready to go! You have ${providerCount} provider${providerCount > 1 ? 's' : ''} configured.\n`);
     }
 
     // Show main menu
@@ -36,20 +39,71 @@ export default async function showWelcome(): Promise<void> {
 }
 
 async function setupProvider(): Promise<void> {
+  // Load existing config to check for already configured providers
+  const existingConfig = await loadConfig().catch(() => ({ providers: {} }));
+  const configuredProviders = Object.keys(existingConfig.providers || {}).filter(
+    key => (existingConfig.providers as any)?.[key]?.apiKey
+  );
+
+  const allProviders = [
+    { name: '🤖 Claude (Anthropic) - Best for coding and analysis', value: 'claude' },
+    { name: '🧠 GPT (OpenAI) - Great all-around performance', value: 'openai' },
+    { name: '🔍 Gemini (Google) - Strong reasoning capabilities', value: 'gemini' },
+    { name: '⚡ Groq - Ultra-fast inference', value: 'groq' },
+    { name: '🦙 Meta AI (Llama) - Open source models', value: 'meta' },
+  ];
+
+  // Mark already configured providers
+  const providerChoices = allProviders.map(provider => {
+    const isConfigured = configuredProviders.includes(provider.value);
+    return {
+      ...provider,
+      name: isConfigured ? `${provider.name} ✅ (Already configured)` : provider.name
+    };
+  });
+
   const { provider } = await inquirer.prompt([
     {
       type: 'list',
       name: 'provider',
       message: 'Which AI provider would you like to configure?',
-      choices: [
-        { name: '🤖 Claude (Anthropic) - Best for coding and analysis', value: 'claude' },
-        { name: '🧠 GPT (OpenAI) - Great all-around performance', value: 'openai' },
-        { name: '🔍 Gemini (Google) - Strong reasoning capabilities', value: 'gemini' },
-        { name: '⚡ Groq - Ultra-fast inference', value: 'groq' },
-        { name: '🦙 Meta AI (Llama) - Open source models', value: 'meta' },
-      ],
+      choices: providerChoices,
     },
   ]);
+
+  // Check if provider is already configured
+  const isAlreadyConfigured = configuredProviders.includes(provider);
+  if (isAlreadyConfigured) {
+    const existingProvider = (existingConfig.providers as any)[provider];
+    const maskedKey = existingProvider.apiKey.substring(0, 8) + '***' + existingProvider.apiKey.slice(-4);
+    
+    console.log(`\n✅ ${provider.toUpperCase()} is already configured with API key: ${maskedKey}`);
+    
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'What would you like to do?',
+        choices: [
+          { name: '🔄 Use existing configuration', value: 'keep' },
+          { name: '🔑 Update API key', value: 'update' },
+          { name: '⚙️  Reconfigure completely', value: 'reconfigure' },
+          { name: '← Back to provider selection', value: 'back' },
+        ],
+      },
+    ]);
+
+    if (action === 'keep') {
+      console.log(`\n✅ Using existing ${provider.toUpperCase()} configuration!`);
+      return;
+    } else if (action === 'back') {
+      return setupProvider();
+    } else if (action === 'update') {
+      await updateApiKey(provider, existingConfig);
+      return;
+    }
+    // If 'reconfigure', continue with full setup below
+  }
 
   const { apiKey } = await inquirer.prompt([
     {
@@ -79,10 +133,23 @@ async function setupProvider(): Promise<void> {
 
   // Save configuration
   try {
-    const config = await loadConfig().catch(() => ({ providers: {} }));
-    config.providers = config.providers || {};
+    const config = await loadConfig().catch(() => ({
+      providers: {},
+      defaults: {
+        provider: 'claude',
+        model: 'claude-3-sonnet-20240229',
+        temperature: 0.7,
+        maxTokens: 4096,
+      },
+      integrations: {
+        vscode: { enabled: true, autoSave: true, diffPreview: true },
+        git: { autoCommit: false },
+      },
+      features: { autoCommit: false, diffPreview: true, streaming: true },
+    }));
     
-(config.providers as any)[provider] = {
+    config.providers = config.providers || {};
+    (config.providers as any)[provider] = {
       apiKey,
       model,
       temperature: 0.7,
@@ -104,6 +171,46 @@ async function setupProvider(): Promise<void> {
     }
   } catch (error) {
     console.error('❌ Failed to save configuration:', error);
+  }
+}
+
+async function updateApiKey(provider: string, config: any): Promise<void> {
+  const { newApiKey } = await inquirer.prompt([
+    {
+      type: 'password',
+      name: 'newApiKey',
+      message: `Enter new ${provider.toUpperCase()} API key:`,
+      validate: (input: string) => {
+        if (!input.trim()) {
+          return 'API key is required';
+        }
+        return true;
+      },
+    },
+  ]);
+
+  try {
+    // Update the API key while keeping other settings
+    (config.providers as any)[provider] = {
+      ...(config.providers as any)[provider],
+      apiKey: newApiKey,
+    };
+
+    await saveConfig(config);
+    console.log(`\n✅ ${provider.toUpperCase()} API key updated successfully!`);
+    
+    // Test the new connection
+    console.log('🔄 Testing new API key...');
+    const providerInstance = providerFactory.getProvider(provider, (config.providers as any)[provider]);
+    const isAuthenticated = await providerInstance.authenticate(newApiKey);
+    
+    if (isAuthenticated) {
+      console.log('✅ Connection test successful!\n');
+    } else {
+      console.log('⚠️  Connection test failed, but configuration saved. Check your API key.\n');
+    }
+  } catch (error) {
+    console.error('❌ Failed to update API key:', error);
   }
 }
 
@@ -159,6 +266,13 @@ async function startInteractiveChat(): Promise<void> {
     return showMainMenu();
   }
 
+  // Debug: Check if provider config exists
+  const providerConfig = config.providers?.[defaultProvider];
+  if (!providerConfig || !providerConfig.apiKey) {
+    console.log(`❌ Configuration missing for provider '${defaultProvider}'. Please reconfigure.`);
+    return showMainMenu();
+  }
+
   const agentManager = new EchoAgentManager();
   // Register available agents
   agentManager.registerAgent(new CodeOptimizerAgent());
@@ -196,10 +310,14 @@ async function startInteractiveChat(): Promise<void> {
       }
 
       // Get provider and send request
-      const provider = providerFactory.getProvider(
-        optimized.suggestedProvider || defaultProvider,
-        (config.providers as any)[optimized.suggestedProvider || defaultProvider]
-      );
+      const selectedProvider = optimized.suggestedProvider || defaultProvider;
+      const selectedProviderConfig = config.providers?.[selectedProvider];
+      
+      if (!selectedProviderConfig) {
+        throw new Error(`No configuration found for provider '${selectedProvider}'. Run: echo config setup`);
+      }
+      
+      const provider = providerFactory.getProvider(selectedProvider, selectedProviderConfig);
 
       console.log('\n💭 Thinking...\n');
       
@@ -348,8 +466,22 @@ async function showConfigMenu(): Promise<void> {
       try {
         const config = await loadConfig();
         console.log('\n📋 Current Configuration:\n');
-        console.log(JSON.stringify(config, null, 2));
-        console.log('');
+        
+        // Show providers in a user-friendly way
+        const providers = Object.keys(config.providers || {});
+        if (providers.length > 0) {
+          console.log('🔧 Configured Providers:');
+          providers.forEach(provider => {
+            const providerConfig = (config.providers as any)?.[provider];
+            if (providerConfig?.apiKey) {
+              const maskedKey = providerConfig.apiKey.substring(0, 8) + '***' + providerConfig.apiKey.slice(-4);
+              console.log(`  • ${provider.toUpperCase()}: ${providerConfig.model || 'default model'} (${maskedKey})`);
+            }
+          });
+          console.log('');
+        } else {
+          console.log('No providers configured yet.\n');
+        }
       } catch (error) {
         console.log('❌ No configuration found');
       }
