@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quality Assurance**: Full test suite, linting, and TypeScript validation
 
 #### 📦 **NPM Package Features**
-- **Global Installation**: `npm install -g echo-ai-cli`
+- **Global Installation**: `npm install -g echoai`
 - **Binary Commands**: `echoai` and `echo-ai` available system-wide
 - **Dependency Management**: All required packages included and optimized
 - **Cross-Platform**: Works on Windows, macOS, and Linux
@@ -55,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **BREAKING CHANGES:**
 - Binary command changed from `ai` to `echo`
-- Package name changed from `ai-terminal-cli` to `echo-ai-cli`
+- Package name changed from `ai-terminal-cli` to `echoai`
 - Environment variables now use `ECHO_` prefix
 - Configuration files and commands updated throughout
 
@@ -132,8 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Installation
 ```bash
-npm install -g ai-terminal-cli
-ai config setup
+npm install -g echoai
+echoai config setup
 ```
 
 ### Documentation

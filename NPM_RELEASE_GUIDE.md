@@ -3,7 +3,7 @@
 ## ✅ Pre-Release Checklist
 
 ### 1. **Package Readiness Verification**
-- [x] ✅ Package name: `echo-ai-cli`
+- [x] ✅ Package name: `echoai`
 - [x] ✅ Version: `1.0.0` (production ready)
 - [x] ✅ All tests passing (`npm run test`)
 - [x] ✅ Build successful (`npm run build`)
@@ -31,7 +31,7 @@
 ### Step 1: Check Package Name Availability
 ```bash
 # Check if name is available on NPM
-npm view echo-ai-cli
+npm view echoai
 
 # If taken, consider alternatives:
 # - @echo-ai/cli
@@ -109,7 +109,7 @@ npm install -g @your-username/echo-ai-cli
 ### Test Global Installation
 ```bash
 # Install globally
-npm install -g echo-ai-cli
+npm install -g echoai
 
 # Test commands
 echoai --version
@@ -121,7 +121,7 @@ echoai "hello world" --provider openrouter
 ```
 
 ### Verify Package Page
-- Visit: https://www.npmjs.com/package/echo-ai-cli
+- Visit: https://www.npmjs.com/package/echoai
 - Check metadata, description, keywords
 - Verify README display
 - Check download stats
@@ -131,7 +131,7 @@ echoai "hello world" --provider openrouter
 ### Update Documentation
 ```bash
 # Update README with NPM installation
-npm install -g echo-ai-cli
+npm install -g echoai
 ```
 
 ### Social Media Announcement
@@ -225,4 +225,4 @@ Echo AI CLI is production-ready with:
 npm publish
 ```
 
-This will make Echo AI CLI available to millions of developers worldwide! 🌍
+This will make echoai available to millions of developers worldwide! 🌍

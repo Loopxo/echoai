@@ -1,5 +1,5 @@
 {
-  "name": "echo-ai-cli",
+  "name": "echoai",
   "version": "1.0.0",
   "description": "🔮 Echo - Intelligent AI terminal with autonomous agents, 6 providers (Claude, GPT, Groq, OpenRouter, Meta, Gemini), and advanced output optimization",
   "main": "dist/index.js",

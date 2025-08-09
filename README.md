@@ -2,7 +2,7 @@
 
 > 🔮 An intelligent AI terminal with autonomous agents, multi-provider support, and advanced output optimization
 
-[![NPM Version](https://img.shields.io/npm/v/echo-ai-cli.svg)](https://npmjs.org/package/echo-ai-cli)
+[![NPM Version](https://img.shields.io/npm/v/echoai.svg)](https://npmjs.org/package/echoai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://typescriptlang.org)
 
@@ -47,7 +47,10 @@ Echo isn't just another AI CLI - it's an **intelligent terminal** that thinks be
 ## 📦 Installation
 
 ```bash
-# Clone and build (development version)
+# Install globally from NPM (recommended)
+npm install -g echoai
+
+# Or clone and build (development version)
 git clone https://github.com/vijeetshah/echo-ai-cli.git
 cd echo-ai-cli
 npm install
