@@ -4,6 +4,7 @@ import { OpenAIProvider } from './openai.js';
 import { GeminiProvider } from './gemini.js';
 import { GroqProvider } from './groq.js';
 import { MetaAIProvider } from './meta.js';
+import { OpenRouterProvider } from './openrouter.js';
 
 export class ProviderFactory {
   getProvider(name: string, config: ProviderConfig): AIProvider {
@@ -18,13 +19,15 @@ export class ProviderFactory {
         return new GroqProvider(config);
       case 'meta':
         return new MetaAIProvider(config);
+      case 'openrouter':
+        return new OpenRouterProvider(config);
       default:
         throw new Error(`Unknown provider: ${name}`);
     }
   }
 
   getAvailableProviders(): string[] {
-    return ['claude', 'openai', 'gemini', 'groq', 'meta'];
+    return ['claude', 'openai', 'gemini', 'groq', 'meta', 'openrouter'];
   }
 }
 
