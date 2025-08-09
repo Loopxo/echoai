@@ -2,7 +2,7 @@ import { cosmiconfig } from 'cosmiconfig';
 import { z } from 'zod';
 import { homedir } from 'os';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'fs';
 import { Config, ProviderConfig, VSCodeConfig, GitConfig } from '../types/index.js';
 
 const ProviderConfigSchema = z.object({
@@ -60,6 +60,15 @@ export class ConfigManager {
   private globalConfigPath = join(homedir(), '.aiconfig', 'config.json');
 
   async getConfig(): Promise<Config> {
+    // First try to load global config
+    const globalConfig = this.loadGlobalConfig();
+    
+    // If global config has providers, use it
+    if (globalConfig.providers && Object.keys(globalConfig.providers).length > 0) {
+      return globalConfig;
+    }
+    
+    // Otherwise, search for project-specific config
     const result = await this.explorer.search();
     
     if (result) {
@@ -70,17 +79,22 @@ export class ConfigManager {
       }
     }
 
-    return this.loadGlobalConfig();
+    return globalConfig; // Return global config even if empty
   }
 
   private loadGlobalConfig(): Config {
     try {
       if (existsSync(this.globalConfigPath)) {
-        const globalConfig = require(this.globalConfigPath);
-        return ConfigSchema.parse(globalConfig);
+        const content = readFileSync(this.globalConfigPath, 'utf-8');
+        const globalConfig = JSON.parse(content);
+        const parsed = ConfigSchema.parse(globalConfig);
+        return parsed;
       }
     } catch (error) {
       console.warn('Invalid global configuration, using defaults');
+      if (error instanceof Error) {
+        console.warn('Config error details:', error.message);
+      }
     }
 
     return this.getDefaultConfig();
