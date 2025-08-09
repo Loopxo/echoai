@@ -78,7 +78,7 @@ export class PromptEnhancerAgent implements Agent {
       metadata: {
         agentUsed: this.name,
         optimizationApplied: optimizations,
-        detectedDomain: this.detectDomain(input),
+        detectedDomain: this.detectDomain(input) || undefined,
         estimatedTokens: Math.ceil(optimizedPrompt.length / 4),
       },
     };
@@ -147,7 +147,7 @@ export class PromptEnhancerAgent implements Agent {
   private addExpertRole(prompt: string, domain: string | null): string {
     if (!domain) return prompt;
     
-    const roleMap = {
+    const roleMap: Record<string, string> = {
       'programming': 'You are a senior software engineer with expertise in multiple programming languages.',
       'data': 'You are a data scientist with expertise in analytics, machine learning, and statistical analysis.',
       'design': 'You are a UX/UI designer with expertise in user experience and interface design.',

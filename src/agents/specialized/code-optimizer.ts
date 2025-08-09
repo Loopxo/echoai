@@ -84,7 +84,7 @@ export class CodeOptimizerAgent implements Agent {
       metadata: {
         agentUsed: this.name,
         optimizationApplied: optimizations,
-        detectedLanguage: language,
+        detectedLanguage: language || undefined,
         estimatedTokens: Math.ceil(optimizedPrompt.length / 4),
       },
     };
@@ -161,7 +161,7 @@ Format your response with proper code blocks and clear explanations.`;
   }
 
   private getLanguageSpecificPrompt(language: string): string {
-    const languagePrompts = {
+    const languagePrompts: Record<string, string> = {
       'javascript': '\n\nUse modern ES6+ features and consider async/await patterns.',
       'typescript': '\n\nProvide proper TypeScript types and interfaces.',
       'python': '\n\nFollow PEP 8 style guide and use type hints where appropriate.',
@@ -193,7 +193,7 @@ Format your response with proper code blocks and clear explanations.`;
   }
 
   private suggestModelForCode(provider: string): string {
-    const modelMap = {
+    const modelMap: Record<string, string> = {
       'claude': 'claude-3-sonnet-20240229',
       'openai': 'gpt-4-turbo-preview',
       'meta': 'code-llama-70b-instruct',

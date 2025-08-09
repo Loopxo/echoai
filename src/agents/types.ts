@@ -33,6 +33,9 @@ export interface AgentResult {
     agentUsed: string;
     optimizationApplied: string[];
     estimatedTokens?: number;
+    detectedLanguage?: string;
+    detectedDomain?: string;
+    [key: string]: any;
   };
 }
 

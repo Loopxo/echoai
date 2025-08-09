@@ -57,7 +57,7 @@ export class MetaAIProvider implements AIProvider {
   }
 
   async *chat(messages: Message[], options: ChatOptions = {}): AsyncGenerator<string> {
-    const model = this.mapModelName(options.model || this.config.model || this.models[2]);
+    const model = this.mapModelName(options.model || this.config.model || this.models[2]!) as any;
     const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
@@ -104,7 +104,7 @@ export class MetaAIProvider implements AIProvider {
   }
 
   async complete(prompt: string, options: CompletionOptions = {}): Promise<string> {
-    const model = this.mapModelName(options.model || this.config.model || this.models[2]);
+    const model = this.mapModelName(options.model || this.config.model || this.models[2]!) as any;
     const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
