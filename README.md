@@ -33,7 +33,7 @@ Echo isn't just another AI CLI - it's an **intelligent terminal** that thinks be
 ## 🚀 Features
 
 - **🤖 Intelligent Agents**: Autonomous prompt optimization and output enhancement  
-- **🌍 5 AI Providers**: Claude, OpenAI, Gemini, Groq, and Meta AI (Llama)
+- **🌍 6 AI Providers**: Claude, OpenAI, Gemini, Groq, Meta AI, and OpenRouter (100+ models)
 - **⚡ Smart Routing**: Automatically suggest the best provider for your task
 - **💬 Interactive Chat**: Real-time streaming conversations with context awareness
 - **📝 Code Integration**: AI-assisted file editing with diff preview and backups
@@ -86,6 +86,7 @@ echoai config setup
 echoai config set claude.key sk-ant-your-api-key-here
 echoai config set groq.key gsk_your-groq-key-here  # ⚡ Ultra-fast inference
 echoai config set meta.key your-meta-ai-key-here
+echoai config set openrouter.key sk-or-your-key-here  # 🌐 100+ models via unified API
 ```
 
 ### 3. Experience the Power
@@ -171,6 +172,9 @@ echoai "generate Python function" --provider meta --model code-llama-70b
 # Creative tasks with OpenAI
 echoai "write a creative story" --provider openai --model gpt-4
 
+# 100+ models via OpenRouter (🌐 NEW: Cost-effective unified access!)
+echoai "explain quantum computing" --provider openrouter --model anthropic/claude-3.5-sonnet
+
 # Interactive provider selection (NEW!)
 echoai  # → Welcome shows "✨ Ready to go! You have X providers configured"
 ```
@@ -211,7 +215,7 @@ echo agents optimize "build a machine learning pipeline" --format detailed
 
 ### Provider Setup
 
-Echo supports 5 major AI providers:
+Echo supports 6 major AI providers:
 
 **Recommended: Use Interactive Welcome**
 ```bash
@@ -231,6 +235,9 @@ echoai config set groq.key gsk_your-key
 
 # Meta AI - Powerful Llama and Code Llama models
 echoai config set meta.key your-together-ai-key
+
+# OpenRouter - 100+ models via unified API (🌐 NEW!)
+echoai config set openrouter.key sk-or-your-key
 
 # Gemini - Google's multimodal AI (coming soon)
 echoai config set gemini.key your-key
@@ -324,9 +331,35 @@ interface Agent {
 | **OpenAI** | Creative, Complex Tasks | Medium | $$$ | GPT-4, GPT-3.5 |
 | **Groq** | Ultra-Fast Inference | ⚡ Fastest | $ | Llama 3, Mixtral |
 | **Meta AI** | Code, Open Models | Fast | $$ | Llama 3.1/3.2, Code Llama |
+| **OpenRouter** | 🌐 **Unified Access** | Varies | 💰 **Cheapest** | **100+ Models** |
 | **Gemini** | Multimodal | Medium | $$ | Gemini Pro (Coming Soon) |
 
 *Echo's agents automatically recommend the best provider for each task*
+
+### 🌐 OpenRouter: The Game Changer
+
+**NEW!** OpenRouter integration provides unprecedented access to AI models:
+
+#### **Why OpenRouter?**
+- **💰 Cost Efficiency**: Often 50-90% cheaper than direct provider APIs
+- **🎯 Model Variety**: 100+ models from 20+ providers with one API key
+- **⚡ Easy Comparison**: Test Claude, GPT, Llama, Gemini seamlessly
+- **🔄 Unified Interface**: Consistent experience across all models
+- **📊 Transparent Pricing**: Clear per-token costs for budget control
+
+#### **Popular Models Available**
+```bash
+# Premium models at lower costs
+echoai "complex task" --provider openrouter --model anthropic/claude-3.5-sonnet
+echoai "creative writing" --provider openrouter --model openai/gpt-4-turbo
+echoai "code generation" --provider openrouter --model meta-llama/codellama-70b-instruct
+
+# Explore cutting-edge models
+echoai "analysis task" --provider openrouter --model google/gemini-pro-1.5
+echoai "fast response" --provider openrouter --model mistralai/mixtral-8x7b-instruct
+```
+
+Get your OpenRouter API key at [openrouter.ai](https://openrouter.ai) and access the world's largest AI model marketplace!
 
 ## 🛠️ Development
 
