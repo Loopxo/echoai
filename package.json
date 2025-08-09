@@ -4,7 +4,8 @@
   "description": "Echo - A unified AI terminal with intelligent agents, multi-provider support, and advanced output optimization",
   "main": "dist/index.js",
   "bin": {
-    "echo": "dist/cli.js"
+    "echoai": "dist/cli.js",
+    "echo-ai": "dist/cli.js"
   },
   "type": "module",
   "engines": {

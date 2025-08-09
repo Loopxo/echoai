@@ -10,8 +10,8 @@ import { agentsCommand } from './cli/agents.js';
 const program = new Command();
 
 program
-  .name('echo')
-  .description('Echo - AI Terminal with intelligent agents and multi-provider support')
+  .name('echoai')
+  .description('🔮 Echo AI - Intelligent Terminal with Autonomous Agents')
   .version('0.2.0');
 
 program
@@ -24,7 +24,9 @@ program
   .option('-s, --stream', 'Stream response in real-time')
   .action(async (prompt, options) => {
     if (!prompt) {
-      program.help();
+      // Show interactive welcome experience
+      const { default: showWelcome } = await import('./cli/welcome.js');
+      await showWelcome();
       return;
     }
 

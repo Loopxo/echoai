@@ -2,6 +2,7 @@ import { Agent, AgentCapability, AgentContext, AgentResult } from '../types.js';
 
 export class CodeOptimizerAgent implements Agent {
   name = 'CodeOptimizer';
+  description = 'Optimizes prompts for code-related tasks including generation, debugging, and analysis';
   version = '1.0.0';
   capabilities: AgentCapability[] = [
     {

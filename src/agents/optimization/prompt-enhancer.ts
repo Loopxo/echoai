@@ -2,6 +2,7 @@ import { Agent, AgentCapability, AgentContext, AgentResult } from '../types.js';
 
 export class PromptEnhancerAgent implements Agent {
   name = 'PromptEnhancer';
+  description = 'Enhances prompts for better clarity, context, and structured responses across all domains';
   version = '1.0.0';
   capabilities: AgentCapability[] = [
     {
