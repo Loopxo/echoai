@@ -29,7 +29,7 @@ export class ProviderManager {
   private async loadProvider(name: string): Promise<void> {
     const config = await this.configManager.getProvider(name);
     if (!config) {
-      throw new Error(`No configuration found for provider '${name}'. Run: ai config setup`);
+      throw new Error(`No configuration found for provider '${name}'. Run: echo config setup`);
     }
 
     let provider: AIProvider;
@@ -48,6 +48,16 @@ export class ProviderManager {
       case 'gemini':
         const { GeminiProvider } = await import('../providers/gemini.js');
         provider = new GeminiProvider(config);
+        break;
+      
+      case 'groq':
+        const { GroqProvider } = await import('../providers/groq.js');
+        provider = new GroqProvider(config);
+        break;
+      
+      case 'meta':
+        const { MetaAIProvider } = await import('../providers/meta.js');
+        provider = new MetaAIProvider(config);
         break;
       
       default:

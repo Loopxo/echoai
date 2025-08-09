@@ -13,7 +13,7 @@ providerCommand
     const providerManager = new ProviderManager(configManager);
     
     const configuredProviders = await configManager.listProviders();
-    const availableProviders = ['claude', 'openai', 'gemini']; // Hardcoded for now
+    const availableProviders = ['claude', 'openai', 'gemini', 'groq', 'meta']; // All supported providers
     
     console.log('🔧 Available Providers:');
     for (const provider of availableProviders) {
@@ -23,9 +23,9 @@ providerCommand
     }
     
     if (configuredProviders.length > 0) {
-      console.log('\n💡 To test a provider: ai provider test <name>');
+      console.log('\n💡 To test a provider: echo provider test <name>');
     } else {
-      console.log('\n💡 To set up a provider: ai config setup');
+      console.log('\n💡 To set up a provider: echo config setup');
     }
   });
 
@@ -70,6 +70,6 @@ providerCommand
       
     } catch (error) {
       console.error(`❌ Error loading ${name}:`, error instanceof Error ? error.message : 'Unknown error');
-      console.log('💡 Make sure the provider is configured: ai config setup');
+      console.log('💡 Make sure the provider is configured: echo config setup');
     }
   });

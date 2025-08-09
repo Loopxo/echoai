@@ -92,6 +92,8 @@ configCommand
           { name: 'Claude (Anthropic)', value: 'claude' },
           { name: 'OpenAI (GPT)', value: 'openai' },
           { name: 'Google Gemini', value: 'gemini' },
+          { name: 'Groq (Fast Inference)', value: 'groq' },
+          { name: 'Meta AI (Llama)', value: 'meta' },
         ],
       },
       {
@@ -122,6 +124,20 @@ configCommand
               return [
                 'gemini-pro',
                 'gemini-pro-vision',
+              ];
+            case 'groq':
+              return [
+                'llama3-70b-8192',
+                'llama3-8b-8192',
+                'mixtral-8x7b-32768',
+                'gemma2-9b-it',
+              ];
+            case 'meta':
+              return [
+                'llama-3.1-70b-instruct',
+                'llama-3.1-8b-instruct',
+                'code-llama-70b-instruct',
+                'code-llama-34b-instruct',
               ];
             default:
               return ['default'];
@@ -182,5 +198,6 @@ configCommand
     });
 
     console.log('\n✅ Configuration saved successfully!');
-    console.log('💡 You can now use: ai "Hello, world!"');
+    console.log('🔮 You can now use: echo "Hello, world!"');
+    console.log('💡 Try: echo agents list - to see available intelligent agents');
   });
