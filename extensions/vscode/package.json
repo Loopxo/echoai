@@ -100,6 +100,30 @@
       {
         "command": "echo-ai.findSymbol",
         "title": "Find Symbol"
+      },
+      {
+        "command": "echo-ai.smartRefactor",
+        "title": "Smart Refactoring Wizard"
+      },
+      {
+        "command": "echo-ai.analyzeArchitecture",
+        "title": "Analyze Architecture"
+      },
+      {
+        "command": "echo-ai.refactorOpportunities",
+        "title": "Find Refactoring Opportunities"
+      },
+      {
+        "command": "echo-ai.aiRefactorRecommendations",
+        "title": "AI Refactoring Recommendations"
+      },
+      {
+        "command": "echo-ai.extractMethod",
+        "title": "Extract Method"
+      },
+      {
+        "command": "echo-ai.modernizeCode",
+        "title": "Modernize Code Syntax"
       }
     ],
     "keybindings": [
@@ -311,6 +335,36 @@
           "command": "echo-ai.optimizePerformance",
           "when": "editorTextFocus",
           "group": "echo-ai-performance"
+        },
+        {
+          "command": "echo-ai.smartRefactor",
+          "when": "editorTextFocus",
+          "group": "echo-ai-refactor"
+        },
+        {
+          "command": "echo-ai.analyzeArchitecture",
+          "when": "editorTextFocus",
+          "group": "echo-ai-refactor"
+        },
+        {
+          "command": "echo-ai.refactorOpportunities",
+          "when": "editorTextFocus",
+          "group": "echo-ai-refactor"
+        },
+        {
+          "command": "echo-ai.aiRefactorRecommendations",
+          "when": "editorTextFocus",
+          "group": "echo-ai-refactor"
+        },
+        {
+          "command": "echo-ai.extractMethod",
+          "when": "editorHasSelection",
+          "group": "echo-ai-refactor"
+        },
+        {
+          "command": "echo-ai.modernizeCode",
+          "when": "editorTextFocus",
+          "group": "echo-ai-refactor"
         }
       ]
     }

@@ -9,6 +9,9 @@ import { CodeAnalyzer } from './utils/CodeAnalyzer';
 import { CodebaseIndexer } from './services/CodebaseIndexer';
 import { IncrementalAnalyzer } from './services/IncrementalAnalyzer';
 import { PerformanceMonitor } from './services/PerformanceMonitor';
+import { RefactoringEngine } from './refactoring/RefactoringEngine';
+import { ArchitecturalRefactoring } from './refactoring/ArchitecturalRefactoring';
+import { SmartRefactoring } from './refactoring/SmartRefactoring';
 
 let echoProvider: EchoAIProvider;
 let completionProvider: CompletionProvider;
@@ -18,6 +21,9 @@ let realTimeAnalyzer: RealTimeAnalyzer;
 let codebaseIndexer: CodebaseIndexer;
 let incrementalAnalyzer: IncrementalAnalyzer;
 let performanceMonitor: PerformanceMonitor;
+let refactoringEngine: RefactoringEngine;
+let architecturalRefactoring: ArchitecturalRefactoring;
+let smartRefactoring: SmartRefactoring;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Echo AI extension is now active!');
@@ -33,6 +39,11 @@ export function activate(context: vscode.ExtensionContext) {
     performanceMonitor = new PerformanceMonitor();
     codebaseIndexer = new CodebaseIndexer();
     incrementalAnalyzer = new IncrementalAnalyzer(codebaseIndexer, echoProvider);
+    
+    // Phase 4: Advanced refactoring services
+    refactoringEngine = new RefactoringEngine(echoProvider, codebaseIndexer);
+    architecturalRefactoring = new ArchitecturalRefactoring(echoProvider, codebaseIndexer, refactoringEngine);
+    smartRefactoring = new SmartRefactoring(echoProvider, refactoringEngine, architecturalRefactoring);
 
     // Register inline completion provider for all languages
     const inlineCompletionProvider = vscode.languages.registerInlineCompletionItemProvider(
@@ -477,6 +488,228 @@ export function activate(context: vscode.ExtensionContext) {
     // Start performance monitoring
     performanceMonitor.startMonitoring();
 
+    // Phase 4: Advanced Refactoring Commands
+    const smartRefactorCommand = vscode.commands.registerCommand('echo-ai.smartRefactor', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+
+        try {
+            vscode.window.showInformationMessage('Starting smart refactoring session...');
+            const sessionId = await smartRefactoring.startSmartRefactoringSession(editor.document);
+            
+            // Show refactoring wizard
+            const panel = vscode.window.createWebviewPanel(
+                'echo-ai-refactoring-wizard',
+                'Echo AI - Smart Refactoring Wizard',
+                vscode.ViewColumn.Two,
+                { enableScripts: true, retainContextWhenHidden: true }
+            );
+
+            const steps = await smartRefactoring.getRefactoringWizardSteps(sessionId);
+            panel.webview.html = getRefactoringWizardWebviewContent(sessionId);
+
+            // Handle messages from webview
+            panel.webview.onDidReceiveMessage(async (message) => {
+                switch (message.command) {
+                    case 'executeStep':
+                        const stepResult = await smartRefactoring.executeWizardStep(sessionId, message.stepId, message.data);
+                        panel.webview.postMessage({ command: 'stepCompleted', step: stepResult });
+                        break;
+                    case 'getPreview':
+                        const preview = await smartRefactoring.generateRefactoringPreview(message.operation, editor.document);
+                        panel.webview.postMessage({ command: 'previewReady', preview });
+                        break;
+                }
+            });
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Smart refactoring failed: ${error}`);
+        }
+    });
+
+    const analyzeArchitectureCommand = vscode.commands.registerCommand('echo-ai.analyzeArchitecture', async () => {
+        try {
+            vscode.window.showInformationMessage('Analyzing project architecture...');
+            const analysis = await architecturalRefactoring.analyzeArchitecture();
+            const suggestions = await architecturalRefactoring.suggestArchitecturalRefactoring(analysis);
+
+            const panel = vscode.window.createWebviewPanel(
+                'echo-ai-architecture-analysis',
+                'Echo AI - Architecture Analysis',
+                vscode.ViewColumn.Two,
+                { enableScripts: true }
+            );
+
+            panel.webview.html = getArchitectureAnalysisWebviewContent(analysis);
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Architecture analysis failed: ${error}`);
+        }
+    });
+
+    const refactorOpportunitiesCommand = vscode.commands.registerCommand('echo-ai.refactorOpportunities', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+
+        try {
+            const opportunities = await refactoringEngine.analyzeRefactoringOpportunities(editor.document);
+            
+            if (opportunities.length === 0) {
+                vscode.window.showInformationMessage('No refactoring opportunities found in current file');
+                return;
+            }
+
+            const quickPickItems = opportunities.slice(0, 20).map(op => ({
+                label: op.name,
+                description: `${op.complexity} complexity, ${op.riskLevel} risk`,
+                detail: op.description,
+                operation: op
+            }));
+
+            const selected = await vscode.window.showQuickPick(quickPickItems, {
+                placeHolder: `Found ${opportunities.length} refactoring opportunities`
+            });
+
+            if (selected) {
+                const context = await refactoringEngine.buildRefactoringContext(editor.document);
+                vscode.window.showInformationMessage(`Executing: ${selected.operation.name}`);
+                const result = await refactoringEngine.executeRefactoring(selected.operation, context);
+
+                if (result.success && result.changes) {
+                    const applied = await vscode.workspace.applyEdit(result.changes);
+                    if (applied) {
+                        vscode.window.showInformationMessage(`Refactoring completed successfully! (Confidence: ${result.confidence}%)`);
+                    }
+                } else {
+                    vscode.window.showErrorMessage(`Refactoring failed: ${result.errors.join(', ')}`);
+                }
+            }
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Refactoring analysis failed: ${error}`);
+        }
+    });
+
+    const aiRefactorRecommendationsCommand = vscode.commands.registerCommand('echo-ai.aiRefactorRecommendations', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+
+        try {
+            vscode.window.showInformationMessage('Getting AI refactoring recommendations...');
+            const recommendations = await smartRefactoring.getAIRefactoringRecommendations(editor.document);
+
+            const panel = vscode.window.createWebviewPanel(
+                'echo-ai-refactor-recommendations',
+                'Echo AI - Refactoring Recommendations',
+                vscode.ViewColumn.Two,
+                { enableScripts: true }
+            );
+
+            panel.webview.html = getRefactoringRecommendationsWebviewContent(recommendations);
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`AI recommendations failed: ${error}`);
+        }
+    });
+
+    const extractMethodCommand = vscode.commands.registerCommand('echo-ai.extractMethod', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+
+        const selection = editor.selection;
+        if (selection.isEmpty) {
+            vscode.window.showInformationMessage('Please select code to extract into a method');
+            return;
+        }
+
+        try {
+            const operation = {
+                id: `extract_method_${Date.now()}`,
+                type: 'extract_method' as const,
+                name: 'Extract Method',
+                description: 'Extract selected code into a new method',
+                scope: 'function' as const,
+                complexity: 'medium' as const,
+                estimatedTime: 60000,
+                riskLevel: 'medium' as const,
+                prerequisites: [],
+                impacts: ['Improved code organization', 'Better reusability'],
+                preview: true
+            };
+
+            const context = await refactoringEngine.buildRefactoringContext(editor.document);
+            const result = await refactoringEngine.executeRefactoring(operation, context);
+
+            if (result.success && result.changes) {
+                const applied = await vscode.workspace.applyEdit(result.changes);
+                if (applied) {
+                    vscode.window.showInformationMessage('Method extracted successfully!');
+                }
+            } else {
+                vscode.window.showErrorMessage(`Method extraction failed: ${result.errors.join(', ')}`);
+            }
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Extract method failed: ${error}`);
+        }
+    });
+
+    const modernizeCodeCommand = vscode.commands.registerCommand('echo-ai.modernizeCode', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+
+        if (editor.document.languageId !== 'javascript' && editor.document.languageId !== 'typescript') {
+            vscode.window.showInformationMessage('Code modernization is currently supported for JavaScript and TypeScript files only');
+            return;
+        }
+
+        try {
+            const operation = {
+                id: `modernize_code_${Date.now()}`,
+                type: 'modernize_syntax' as const,
+                name: 'Modernize Code Syntax',
+                description: 'Update code to use modern JavaScript/TypeScript features',
+                scope: 'file' as const,
+                complexity: 'simple' as const,
+                estimatedTime: 30000,
+                riskLevel: 'low' as const,
+                prerequisites: [],
+                impacts: ['Modern syntax', 'Better performance', 'Improved readability'],
+                preview: true
+            };
+
+            const context = await refactoringEngine.buildRefactoringContext(editor.document);
+            const result = await refactoringEngine.executeRefactoring(operation, context);
+
+            if (result.success && result.changes) {
+                const applied = await vscode.workspace.applyEdit(result.changes);
+                if (applied) {
+                    vscode.window.showInformationMessage('Code modernized successfully!');
+                }
+            } else {
+                vscode.window.showErrorMessage(`Code modernization failed: ${result.errors.join(', ')}`);
+            }
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Code modernization failed: ${error}`);
+        }
+    });
+
     // Status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(zap) Echo AI";
@@ -506,6 +739,12 @@ export function activate(context: vscode.ExtensionContext) {
         clearAnalysisCacheCommand,
         optimizePerformanceCommand,
         findSymbolCommand,
+        smartRefactorCommand,
+        analyzeArchitectureCommand,
+        refactorOpportunitiesCommand,
+        aiRefactorRecommendationsCommand,
+        extractMethodCommand,
+        modernizeCodeCommand,
         statusBarItem
     );
 
@@ -1018,6 +1257,359 @@ function showPerformanceTips(): void {
         <p><em>Apply these tips to optimize Echo AI for your specific development environment and workflow.</em></p>
     </body>
     </html>`;
+}
+
+function getRefactoringWizardWebviewContent(sessionId?: string): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Refactoring Wizard</title>
+    <style>
+        body { font-family: var(--vscode-font-family); padding: 20px; color: var(--vscode-foreground); }
+        .wizard-container { max-width: 800px; margin: 0 auto; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; }
+        .step.active { background: var(--vscode-editor-selectionBackground); }
+        .step.completed { opacity: 0.7; border-color: var(--vscode-testing-iconPassed); }
+        .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .step-title { font-weight: bold; font-size: 16px; }
+        .step-status { padding: 4px 8px; border-radius: 3px; font-size: 12px; }
+        .step-status.pending { background: var(--vscode-statusBarItem-warningBackground); }
+        .step-status.active { background: var(--vscode-statusBarItem-prominentBackground); }
+        .step-status.completed { background: var(--vscode-testing-iconPassed); }
+        .progress-bar { width: 100%; height: 8px; background: var(--vscode-progressBar-background); border-radius: 4px; margin: 20px 0; }
+        .progress-fill { height: 100%; background: var(--vscode-progressBar-foreground); border-radius: 4px; transition: width 0.3s ease; }
+        .button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; margin: 5px; }
+        .button:hover { background: var(--vscode-button-hoverBackground); }
+        .button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+        .insights { margin: 20px 0; padding: 15px; background: var(--vscode-editor-inactiveSelectionBackground); border-radius: 5px; }
+        .insight { margin: 10px 0; padding: 8px; border-left: 4px solid var(--vscode-notificationsInfoIcon-foreground); }
+    </style>
+</head>
+<body>
+    <div class="wizard-container">
+        <h1>🧙‍♂️ Smart Refactoring Wizard</h1>
+        <p>AI-powered refactoring with step-by-step guidance</p>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%" id="progressBar"></div>
+        </div>
+
+        <div id="wizardSteps">
+            <div class="step active">
+                <div class="step-header">
+                    <div class="step-title">🔍 Code Analysis</div>
+                    <div class="step-status active">Active</div>
+                </div>
+                <p>Analyzing your code for refactoring opportunities...</p>
+                <button class="button" onclick="startAnalysis()">Start Analysis</button>
+            </div>
+        </div>
+
+        <div class="insights">
+            <h3>💡 AI Insights</h3>
+            <div id="aiInsights">
+                <div class="insight">Click "Start Analysis" to begin discovering refactoring opportunities</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        
+        function startAnalysis() {
+            vscode.postMessage({ command: 'executeStep', stepId: 'analysis', sessionId: '${sessionId || ''}' });
+        }
+        
+        function executeStep(stepId, data) {
+            vscode.postMessage({ command: 'executeStep', stepId, data, sessionId: '${sessionId || ''}' });
+        }
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.command) {
+                case 'stepCompleted':
+                    updateProgress(40);
+                    document.getElementById('aiInsights').innerHTML = 
+                        '<div class="insight">✅ Step completed: ' + message.step.name + '</div>';
+                    break;
+                case 'previewReady':
+                    updateProgress(60);
+                    break;
+            }
+        });
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+        }
+    </script>
+</body>
+</html>`;
+}
+
+function getArchitectureAnalysisWebviewContent(analysis?: any): string {
+    const currentPattern = analysis?.currentPattern || 'Unknown';
+    const issueCount = analysis?.issues?.length || 0;
+    const suggestionCount = analysis?.suggestions?.length || 0;
+    
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Analysis</title>
+    <style>
+        body { font-family: var(--vscode-font-family); padding: 20px; color: var(--vscode-foreground); }
+        .analysis-container { max-width: 1000px; margin: 0 auto; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .metric-card { padding: 15px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; text-align: center; }
+        .metric-value { font-size: 24px; font-weight: bold; color: var(--vscode-charts-blue); }
+        .metric-label { font-size: 12px; color: var(--vscode-descriptionForeground); margin-top: 5px; }
+        .section { margin: 30px 0; padding: 20px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; }
+        .issue { margin: 10px 0; padding: 10px; border-left: 4px solid var(--vscode-notificationsErrorIcon-foreground); background: var(--vscode-inputValidation-errorBackground); }
+        .issue.medium { border-left-color: var(--vscode-notificationsWarningIcon-foreground); }
+        .issue.low { border-left-color: var(--vscode-notificationsInfoIcon-foreground); }
+        .suggestion { margin: 10px 0; padding: 10px; border-left: 4px solid var(--vscode-testing-iconPassed); background: var(--vscode-editor-inactiveSelectionBackground); }
+        .pattern-badge { display: inline-block; padding: 4px 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); border-radius: 3px; font-size: 12px; }
+        .button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="analysis-container">
+        <h1>🏗️ Architecture Analysis</h1>
+        
+        <div class="section">
+            <h2>Current Architecture</h2>
+            <p>Detected Pattern: <span class="pattern-badge">${currentPattern}</span></p>
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-value">${analysis?.metrics?.coupling || 0}</div>
+                <div class="metric-label">Coupling Score</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${analysis?.metrics?.cohesion || 0}</div>
+                <div class="metric-label">Cohesion Score</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${analysis?.metrics?.complexity || 0}</div>
+                <div class="metric-label">Complexity</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${analysis?.metrics?.maintainability || 0}</div>
+                <div class="metric-label">Maintainability</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🚨 Issues Found (${issueCount})</h2>
+            <div id="issues">
+                ${analysis?.issues?.map((issue: any) => `
+                    <div class="issue ${issue.severity}">
+                        <strong>${issue.type.toUpperCase()}</strong> - ${issue.description}
+                        <br><small>Impact: ${issue.impact} | Effort: ${issue.effort}</small>
+                    </div>
+                `).join('') || '<p>No significant issues detected.</p>'}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💡 Improvement Suggestions (${suggestionCount})</h2>
+            <div id="suggestions">
+                ${analysis?.suggestions?.map((suggestion: any) => `
+                    <div class="suggestion">
+                        <strong>${suggestion.pattern?.name || 'Suggestion'}</strong> (${suggestion.confidence}% confidence)
+                        <br>${suggestion.pattern?.description || 'General improvement'}
+                        <br><small>Risk: ${suggestion.riskLevel} | Est. Time: ${Math.round((suggestion.estimatedTime || 0) / 60000)}min</small>
+                        <br><button class="button" onclick="applySuggestion('${suggestion.pattern?.name}')">Apply Suggestion</button>
+                    </div>
+                `).join('') || '<p>No suggestions available at this time.</p>'}
+            </div>
+        </div>
+
+        <div class="section">
+            <button class="button" onclick="refreshAnalysis()">🔄 Refresh Analysis</button>
+            <button class="button" onclick="exportReport()">📄 Export Report</button>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        
+        function refreshAnalysis() {
+            vscode.postMessage({ command: 'refreshArchitectureAnalysis' });
+        }
+        
+        function applySuggestion(patternName) {
+            vscode.postMessage({ command: 'applySuggestion', pattern: patternName });
+        }
+        
+        function exportReport() {
+            vscode.postMessage({ command: 'exportArchitectureReport' });
+        }
+    </script>
+</body>
+</html>`;
+}
+
+function getRefactoringRecommendationsWebviewContent(recommendations?: any[]): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Refactoring Recommendations</title>
+    <style>
+        body { font-family: var(--vscode-font-family); padding: 20px; color: var(--vscode-foreground); }
+        .recommendations-container { max-width: 1000px; margin: 0 auto; }
+        .recommendation { margin: 15px 0; padding: 15px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; }
+        .recommendation.high-confidence { border-left: 4px solid var(--vscode-testing-iconPassed); }
+        .recommendation.medium-confidence { border-left: 4px solid var(--vscode-notificationsWarningIcon-foreground); }
+        .recommendation.low-confidence { border-left: 4px solid var(--vscode-descriptionForeground); }
+        .recommendation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .recommendation-title { font-weight: bold; font-size: 16px; }
+        .confidence-badge { padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; }
+        .confidence-high { background: var(--vscode-testing-iconPassed); color: white; }
+        .confidence-medium { background: var(--vscode-notificationsWarningIcon-foreground); color: white; }
+        .confidence-low { background: var(--vscode-descriptionForeground); color: white; }
+        .recommendation-type { font-size: 12px; color: var(--vscode-descriptionForeground); text-transform: uppercase; margin-bottom: 5px; }
+        .recommendation-message { margin: 10px 0; line-height: 1.5; }
+        .tags { margin: 10px 0; }
+        .tag { display: inline-block; padding: 2px 6px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); border-radius: 3px; font-size: 11px; margin: 2px; }
+        .button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; margin: 5px 5px 5px 0; }
+        .button:hover { background: var(--vscode-button-hoverBackground); }
+        .button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { padding: 10px; text-align: center; border: 1px solid var(--vscode-panel-border); border-radius: 5px; }
+        .stat-value { font-size: 20px; font-weight: bold; color: var(--vscode-charts-blue); }
+        .stat-label { font-size: 12px; color: var(--vscode-descriptionForeground); }
+        .filter-bar { margin: 20px 0; padding: 15px; background: var(--vscode-editor-inactiveSelectionBackground); border-radius: 5px; }
+        .filter-button { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; margin: 2px; }
+        .filter-button.active { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+    </style>
+</head>
+<body>
+    <div class="recommendations-container">
+        <h1>🤖 AI Refactoring Recommendations</h1>
+        <p>Intelligent suggestions powered by AI analysis of your codebase</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">${recommendations?.length || 0}</div>
+                <div class="stat-label">Total Recommendations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${recommendations?.filter(r => r.confidence > 80).length || 0}</div>
+                <div class="stat-label">High Confidence</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${recommendations?.filter(r => r.actionable).length || 0}</div>
+                <div class="stat-label">Actionable</div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <strong>Filter by:</strong>
+            <button class="filter-button active" onclick="filterRecommendations('all')">All</button>
+            <button class="filter-button" onclick="filterRecommendations('opportunity')">Opportunities</button>
+            <button class="filter-button" onclick="filterRecommendations('suggestion')">Suggestions</button>
+            <button class="filter-button" onclick="filterRecommendations('warning')">Warnings</button>
+            <button class="filter-button" onclick="filterRecommendations('actionable')">Actionable Only</button>
+        </div>
+
+        <div id="recommendationsList">
+            ${recommendations?.map((rec, index) => {
+                const confidenceClass = rec.confidence > 80 ? 'high' : rec.confidence > 60 ? 'medium' : 'low';
+                return `
+                    <div class="recommendation ${confidenceClass}-confidence" data-type="${rec.type}" data-actionable="${rec.actionable}">
+                        <div class="recommendation-header">
+                            <div>
+                                <div class="recommendation-type">${rec.type.replace('_', ' ')}</div>
+                                <div class="recommendation-title">AI Insight #${index + 1}</div>
+                            </div>
+                            <div class="confidence-badge confidence-${confidenceClass}">${rec.confidence}% confidence</div>
+                        </div>
+                        <div class="recommendation-message">${rec.message}</div>
+                        <div class="tags">
+                            ${rec.relatedGoals?.map((goal: string) => `<span class="tag">${goal.replace('_', ' ')}</span>`).join('') || ''}
+                            ${rec.actionable ? '<span class="tag">Actionable</span>' : ''}
+                        </div>
+                        ${rec.actionable ? `
+                            <button class="button" onclick="applyRecommendation(${index})">Apply Recommendation</button>
+                            <button class="button secondary" onclick="previewRecommendation(${index})">Preview</button>
+                        ` : ''}
+                        <button class="button secondary" onclick="dismissRecommendation(${index})">Dismiss</button>
+                    </div>
+                `;
+            }).join('') || '<p>No recommendations available. Analyze your code to get AI-powered suggestions.</p>'}
+        </div>
+
+        <div style="margin: 30px 0; text-align: center;">
+            <button class="button" onclick="refreshRecommendations()">🔄 Refresh Recommendations</button>
+            <button class="button secondary" onclick="analyzeCurrentFile()">🔍 Analyze Current File</button>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        
+        function filterRecommendations(filter) {
+            const recommendations = document.querySelectorAll('.recommendation');
+            const buttons = document.querySelectorAll('.filter-button');
+            
+            // Update active button
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter recommendations
+            recommendations.forEach(rec => {
+                let show = true;
+                
+                switch (filter) {
+                    case 'opportunity':
+                        show = rec.dataset.type === 'opportunity';
+                        break;
+                    case 'suggestion':
+                        show = rec.dataset.type === 'suggestion';
+                        break;
+                    case 'warning':
+                        show = rec.dataset.type === 'warning';
+                        break;
+                    case 'actionable':
+                        show = rec.dataset.actionable === 'true';
+                        break;
+                    default:
+                        show = true;
+                }
+                
+                rec.style.display = show ? 'block' : 'none';
+            });
+        }
+        
+        function applyRecommendation(index) {
+            vscode.postMessage({ command: 'applyRecommendation', index });
+        }
+        
+        function previewRecommendation(index) {
+            vscode.postMessage({ command: 'previewRecommendation', index });
+        }
+        
+        function dismissRecommendation(index) {
+            vscode.postMessage({ command: 'dismissRecommendation', index });
+        }
+        
+        function refreshRecommendations() {
+            vscode.postMessage({ command: 'refreshRecommendations' });
+        }
+        
+        function analyzeCurrentFile() {
+            vscode.postMessage({ command: 'analyzeCurrentFile' });
+        }
+    </script>
+</body>
+</html>`;
 }
 
 function escapeHtml(unsafe: string): string {
