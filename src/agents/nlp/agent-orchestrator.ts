@@ -1,6 +1,7 @@
 import { AdvancedNLPIntentAnalyzer, Intent, IntentContext } from './intent-analyzer.js';
 import { ProviderManager } from '../core/provider-manager.js';
 import { Config } from '../config/index.js';
+import { StudioAgentRegistry, StudioAgentCapability } from '../studio-agent-registry.js';
 
 export interface AgentCapability {
     name: string;
@@ -43,13 +44,16 @@ export class AdvancedAgentOrchestrator {
     private intentAnalyzer: AdvancedNLPIntentAnalyzer;
     private providerManager: ProviderManager;
     private agents: Map<string, AgentCapability> = new Map();
+    private studioAgents: Map<string, StudioAgentCapability> = new Map();
     private executionHistory: AgentExecution[] = [];
     private contextualPrompts: ContextualPrompt[] = [];
+    private useStudioAgents: boolean = true;
 
     constructor(private config: Config) {
         this.intentAnalyzer = new AdvancedNLPIntentAnalyzer(config);
         this.providerManager = new ProviderManager(config);
         this.initializeAgents();
+        this.initializeStudioAgents();
     }
 
     private initializeAgents(): void {
@@ -167,6 +171,20 @@ export class AdvancedAgentOrchestrator {
         defaultAgents.forEach(agent => {
             this.agents.set(agent.name, agent);
         });
+
+        console.log(`✅ Initialized ${defaultAgents.length} default Echo agents`);
+    }
+
+    private initializeStudioAgents(): void {
+        const studioAgents = StudioAgentRegistry.getAllAgents();
+        
+        studioAgents.forEach(agent => {
+            this.studioAgents.set(agent.name, agent);
+        });
+
+        const stats = StudioAgentRegistry.getAgentStats();
+        console.log(`🎭 Initialized ${stats.totalAgents} studio agents across ${Object.keys(stats.departmentCounts).length} departments`);
+        console.log(`📊 Department breakdown: ${JSON.stringify(stats.departmentCounts, null, 2)}`);
     }
 
     async processRequest(input: string, context?: Partial<IntentContext>): Promise<AgentExecution> {
@@ -241,30 +259,49 @@ export class AdvancedAgentOrchestrator {
         }
     }
 
-    private selectAgent(intent: Intent): AgentCapability {
-        const eligibleAgents = Array.from(this.agents.values()).filter(agent => 
+    private selectAgent(intent: Intent): AgentCapability | StudioAgentCapability {
+        let eligibleAgents: (AgentCapability | StudioAgentCapability)[] = [];
+
+        // First try studio agents if enabled
+        if (this.useStudioAgents) {
+            const studioAgents = Array.from(this.studioAgents.values()).filter(agent => 
+                agent.isActive && 
+                agent.intents.includes(intent.name) &&
+                agent.contexts.includes(intent.context.domain as any) &&
+                agent.complexity.includes(intent.context.complexity as any)
+            );
+            eligibleAgents.push(...studioAgents);
+        }
+
+        // Add default agents as fallback
+        const defaultAgents = Array.from(this.agents.values()).filter(agent => 
             agent.isActive && 
             agent.intents.includes(intent.name) &&
             agent.contexts.includes(intent.context.domain) &&
             agent.complexity.includes(intent.context.complexity)
         );
+        eligibleAgents.push(...defaultAgents);
 
         if (eligibleAgents.length === 0) {
             // Fallback to general helper
             return this.agents.get('general_helper')!;
         }
 
-        // Sort by priority and confidence compatibility
+        // Sort by priority and confidence compatibility, prefer studio agents
         eligibleAgents.sort((a, b) => {
-            const aScore = a.priority + (intent.confidence * 10);
-            const bScore = b.priority + (intent.confidence * 10);
+            const aScore = a.priority + (intent.confidence * 10) + (this.isStudioAgent(a) ? 5 : 0);
+            const bScore = b.priority + (intent.confidence * 10) + (this.isStudioAgent(b) ? 5 : 0);
             return bScore - aScore;
         });
 
         return eligibleAgents[0];
     }
 
-    private async createContextualPrompt(input: string, intent: Intent, agent: AgentCapability): Promise<ContextualPrompt> {
+    private isStudioAgent(agent: AgentCapability | StudioAgentCapability): boolean {
+        return 'department' in agent;
+    }
+
+    private async createContextualPrompt(input: string, intent: Intent, agent: AgentCapability | StudioAgentCapability): Promise<ContextualPrompt> {
         const basePrompt = input;
         
         const contextEnhancements = [
@@ -321,7 +358,16 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
         return contextualPrompt;
     }
 
-    private async getAgentSpecificContext(agent: AgentCapability, intent: Intent): Promise<string | null> {
+    private async getAgentSpecificContext(agent: AgentCapability | StudioAgentCapability, intent: Intent): Promise<string | null> {
+        // For studio agents, use their comprehensive system prompt
+        if (this.isStudioAgent(agent)) {
+            const systemPrompt = StudioAgentRegistry.getAgentSystemPrompt(agent.name);
+            if (systemPrompt) {
+                return systemPrompt;
+            }
+        }
+
+        // Default Echo agents context
         switch (agent.name) {
             case 'code_generator':
                 return 'Focus on writing clean, efficient, and well-structured code with proper error handling and comments.';
@@ -349,7 +395,7 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
         }
     }
 
-    private async executeWithAgent(agent: AgentCapability, prompt: ContextualPrompt, intent: Intent): Promise<any> {
+    private async executeWithAgent(agent: AgentCapability | StudioAgentCapability, prompt: ContextualPrompt, intent: Intent): Promise<any> {
         const provider = this.providerManager.getProvider(this.config.provider || 'claude');
         
         // Select optimal model based on agent and complexity
@@ -384,7 +430,7 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
         }
     }
 
-    private getModelOptionsForAgent(agent: AgentCapability, intent: Intent): {
+    private getModelOptionsForAgent(agent: AgentCapability | StudioAgentCapability, intent: Intent): {
         model?: string;
         temperature: number;
         maxTokens: number;
@@ -416,6 +462,52 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
             
             case 'test_engineer':
                 return { ...baseOptions, temperature: 0.2, maxTokens: 2000 };
+            
+            // Studio agents optimized settings
+            case 'ai_engineer':
+                return { ...baseOptions, temperature: 0.2, maxTokens: 3500 };
+            case 'backend_architect':
+                return { ...baseOptions, temperature: 0.1, maxTokens: 3000 };
+            case 'devops_automator':
+                return { ...baseOptions, temperature: 0.1, maxTokens: 2500 };
+            case 'frontend_developer':
+                return { ...baseOptions, temperature: 0.3, maxTokens: 3000 };
+            case 'mobile_app_builder':
+                return { ...baseOptions, temperature: 0.2, maxTokens: 3000 };
+            case 'rapid_prototyper':
+                return { ...baseOptions, temperature: 0.4, maxTokens: 2500 };
+            case 'test_writer_fixer':
+                return { ...baseOptions, temperature: 0.2, maxTokens: 2000 };
+            case 'brand_guardian':
+                return { ...baseOptions, temperature: 0.4, maxTokens: 2500 };
+            case 'ui_designer':
+                return { ...baseOptions, temperature: 0.5, maxTokens: 2500 };
+            case 'ux_researcher':
+                return { ...baseOptions, temperature: 0.3, maxTokens: 2000 };
+            case 'visual_storyteller':
+                return { ...baseOptions, temperature: 0.6, maxTokens: 2500 };
+            case 'whimsy_injector':
+                return { ...baseOptions, temperature: 0.7, maxTokens: 2000 };
+            case 'growth_hacker':
+                return { ...baseOptions, temperature: 0.4, maxTokens: 3000 };
+            case 'content_creator':
+                return { ...baseOptions, temperature: 0.6, maxTokens: 2500 };
+            case 'sprint_prioritizer':
+                return { ...baseOptions, temperature: 0.2, maxTokens: 2500 };
+            case 'feedback_synthesizer':
+                return { ...baseOptions, temperature: 0.3, maxTokens: 2000 };
+            case 'trend_researcher':
+                return { ...baseOptions, temperature: 0.4, maxTokens: 3000 };
+            case 'api_tester':
+                return { ...baseOptions, temperature: 0.1, maxTokens: 2000 };
+            case 'performance_benchmarker':
+                return { ...baseOptions, temperature: 0.1, maxTokens: 2500 };
+            case 'workflow_optimizer':
+                return { ...baseOptions, temperature: 0.2, maxTokens: 2500 };
+            case 'analytics_reporter':
+                return { ...baseOptions, temperature: 0.3, maxTokens: 2500 };
+            case 'infrastructure_maintainer':
+                return { ...baseOptions, temperature: 0.1, maxTokens: 2500 };
             
             default:
                 return baseOptions;
@@ -505,6 +597,27 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
 
     listAgents(): AgentCapability[] {
         return Array.from(this.agents.values());
+    }
+
+    listStudioAgents(): StudioAgentCapability[] {
+        return Array.from(this.studioAgents.values());
+    }
+
+    listAllAgents(): (AgentCapability | StudioAgentCapability)[] {
+        return [...this.listAgents(), ...this.listStudioAgents()];
+    }
+
+    getAgentsByDepartment(department: StudioAgentCapability['department']): StudioAgentCapability[] {
+        return StudioAgentRegistry.getAgentsByDepartment(department);
+    }
+
+    getStudioAgentStats() {
+        return StudioAgentRegistry.getAgentStats();
+    }
+
+    toggleStudioAgents(enabled: boolean): void {
+        this.useStudioAgents = enabled;
+        console.log(`🎭 Studio agents ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     getExecutionHistory(limit = 100): AgentExecution[] {
