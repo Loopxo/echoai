@@ -15,6 +15,10 @@ import { SmartRefactoring } from './refactoring/SmartRefactoring';
 import { VulnerabilityScanner } from './security/VulnerabilityScanner';
 import { SecurityRemediationEngine } from './security/SecurityRemediationEngine';
 import { SecurityDashboard } from './security/SecurityDashboard';
+import { IDEConnection } from './providers/IDEConnection';
+import { MultiModelManager } from './providers/MultiModelManager';
+import { ContextManager } from './providers/ContextManager';
+import { MemoryManager } from './providers/MemoryManager';
 
 let echoProvider: EchoAIProvider;
 let completionProvider: CompletionProvider;
