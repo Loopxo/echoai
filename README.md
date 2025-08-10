@@ -51,7 +51,7 @@ Echo isn't just another AI CLI - it's an **intelligent terminal** that thinks be
 npm install -g echoai
 
 # Or clone and build (development version)
-git clone https://github.com/vijeetshah/echo-ai-cli.git
+git clone https://github.com/vijeet-shah/echo-ai-cli.git
 cd echo-ai-cli
 npm install
 npm run build
@@ -374,7 +374,7 @@ Get your OpenRouter API key at [openrouter.ai](https://openrouter.ai) and access
 ### Setup
 
 ```bash
-git clone https://github.com/vijeetshah/echo-ai-cli.git
+git clone https://github.com/vijeet-shah/echo-ai-cli.git
 cd echo-ai-cli
 npm install
 npm run build
@@ -474,8 +474,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Support & Community
 
-- 🐛 **Issues**: [GitHub Issues](https://github.com/vijeetshah/echo-ai-cli/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/vijeetshah/echo-ai-cli/discussions)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/vijeet-shah/echo-ai-cli/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/vijeet-shah/echo-ai-cli/discussions)
 - 📚 **Docs**: [Full Documentation](https://docs.echo-ai-cli.com)
 - 🔮 **Agent Marketplace**: Coming soon!
 

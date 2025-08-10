@@ -4,9 +4,27 @@ import { providerFactory } from '../providers/factory.js';
 import { EchoAgentManager } from '../agents/core/manager.js';
 import { CodeOptimizerAgent } from '../agents/specialized/code-optimizer.js';
 import { PromptEnhancerAgent } from '../agents/optimization/prompt-enhancer.js';
+import { getProjectContext, findRelevantFiles } from '../utils/project-context.js';
+import { parseFileOperationFromAI } from '../utils/file-operations.js';
+import { handleClaudeStyleEdit, parseEditInstructions } from '../utils/claude-style-editor.js';
+import { resetSession } from '../utils/session-state.js';
+import { analyzeRepository } from '../utils/repo-analyzer.js';
+import { initializeProject, parseProjectCreationRequest } from '../utils/project-initializer.js';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 export default async function showWelcome(): Promise<void> {
-  console.log('\n🔮 Welcome to Echo AI - Intelligent Terminal with Autonomous Agents');
+  // ASCII Art Logo
+  console.log(`
+████████╗ ██████╗██╗  ██╗ ██████╗ 
+██╔══════╝██╔════╝██║  ██║██╔═══██╗
+█████╗   ██║     ███████║██║   ██║
+██╔══╝   ██║     ██╔══██║██║   ██║
+███████╗ ╚██████╗██║  ██║╚██████╔╝
+╚══════╝  ╚═════╝╚═╝  ╚═╝ ╚═════╝ 
+`);
+  
+  console.log('Welcome to Echo AI - Intelligent Terminal with Autonomous Agents');
   console.log('═══════════════════════════════════════════════════════════════════\n');
 
   try {
@@ -340,48 +358,258 @@ async function startInteractiveChat(): Promise<void> {
 }
 
 async function startCodeEditing(): Promise<void> {
-  const { filePath } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'filePath',
-      message: 'Enter file path to analyze/edit (or press Enter to list current directory):',
-    },
-  ]);
-
-  if (!filePath.trim()) {
-    console.log('\n📁 Current directory files:');
-    try {
-      const { execSync } = await import('child_process');
-      const files = execSync('ls -la', { encoding: 'utf-8' });
-      console.log(files);
-    } catch (error) {
-      console.log('❌ Could not list files');
-    }
-    return showMainMenu();
-  }
-
-  const { action } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'What would you like to do with this file?',
-      choices: [
-        { name: '👀 Analyze and explain code', value: 'analyze' },
-        { name: '🔧 Suggest improvements', value: 'improve' },
-        { name: '🐛 Find potential bugs', value: 'debug' },
-        { name: '📖 Generate documentation', value: 'document' },
-        { name: '↩️  Back to main menu', value: 'back' },
-      ],
-    },
-  ]);
-
-  if (action === 'back') {
-    return showMainMenu();
-  }
-
-  console.log(`\n🔄 Processing file: ${filePath}\n`);
-  console.log('💡 Tip: This would integrate with the edit command for actual file operations\n');
+  // Reset session state when starting a new code editing session
+  resetSession();
   
+  // Get project context like Claude Code
+  const projectContext = getProjectContext();
+  
+  console.log(`\n📁 Working on: ${projectContext.projectName}`);
+  console.log(`📍 Location: ${projectContext.workingDirectory}`);
+  console.log(`🏗️  Project: ${projectContext.projectType}${projectContext.framework ? ` (${projectContext.framework})` : ''}`);
+  console.log(`📊 Files: ${projectContext.filesCount} ${projectContext.gitRepo ? '• Git Repository' : ''}\n`);
+
+  const config = await loadConfig();
+  const defaultProvider = getDefaultProvider(config);
+  
+  if (!defaultProvider) {
+    console.log('❌ No providers configured. Please set up a provider first.');
+    return showMainMenu();
+  }
+
+  const providerConfig = config.providers?.[defaultProvider];
+  if (!providerConfig || !providerConfig.apiKey) {
+    console.log(`❌ Configuration missing for provider '${defaultProvider}'. Please reconfigure.`);
+    return showMainMenu();
+  }
+
+  console.log('💡 Tip: I can analyze code, edit files, create entire projects, fix build issues, and more!');
+  console.log('💡 Commands: "exit" (return to menu) | "files" (show structure) | "analyze" (deep analysis)');
+  console.log('💡 Try: "create react todo app" or "analyze this repository"\n');
+
+  while (true) {
+    const { prompt } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'prompt',
+        message: `🔮 ${projectContext.projectName}:`,
+      },
+    ]);
+
+    if (prompt.toLowerCase() === 'exit') {
+      break;
+    }
+
+    if (prompt.toLowerCase() === 'files') {
+      console.log('\n📁 Project Structure Preview:');
+      try {
+        const { execSync } = await import('child_process');
+        const structure = execSync('find . -type f -name "*.ts" -o -name "*.js" -o -name "*.py" -o -name "*.rs" -o -name "*.go" -o -name "*.java" | head -20', { encoding: 'utf-8' });
+        console.log(structure || 'No common code files found in current directory.');
+      } catch (error) {
+        console.log('❌ Could not analyze project structure');
+      }
+      console.log('');
+      continue;
+    }
+
+    if (prompt.toLowerCase() === 'analyze') {
+      console.log('\n🔍 Performing deep repository analysis...');
+      try {
+        const analysis = await analyzeRepository(projectContext.workingDirectory, true);
+        
+        console.log('\n📊 Repository Analysis Results:');
+        console.log(`   📂 Project Type: ${analysis.projectType}`);
+        console.log(`   🔤 Primary Language: ${analysis.language}`);
+        console.log(`   📄 Total Files: ${analysis.totalFiles}`);
+        console.log(`   📏 Total Size: ${Math.round(analysis.totalSize / 1024)}KB`);
+        
+        if (analysis.dependencies.production.length > 0) {
+          console.log(`   📦 Dependencies: ${analysis.dependencies.production.length} production, ${analysis.dependencies.development.length} dev`);
+        }
+        
+        if (analysis.potentialIssues.length > 0) {
+          console.log('\n⚠️  Potential Issues:');
+          analysis.potentialIssues.forEach(issue => console.log(`   • ${issue}`));
+        }
+        
+        if (analysis.recommendations.length > 0) {
+          console.log('\n💡 Recommendations:');
+          analysis.recommendations.forEach(rec => console.log(`   • ${rec}`));
+        }
+        
+        console.log('\n📋 File Structure:');
+        console.log(`   📁 Source files: ${analysis.structure.source.length}`);
+        console.log(`   ⚙️  Config files: ${analysis.structure.config.length}`);
+        console.log(`   🧪 Test files: ${analysis.structure.tests.length}`);
+        console.log('');
+      } catch (error) {
+        console.log('❌ Could not perform deep analysis:', error);
+      }
+      continue;
+    }
+
+    if (!prompt.trim()) continue;
+
+    try {
+      // Check if this is a project creation request
+      const projectCreationRequest = parseProjectCreationRequest(prompt);
+      
+      if (projectCreationRequest.shouldCreateProject) {
+        console.log('\n🚀 Project creation detected!');
+        console.log(`   📂 Type: ${projectCreationRequest.projectType}`);
+        console.log(`   📝 Name: ${projectCreationRequest.projectName}`);
+        console.log(`   📍 Location: ${projectCreationRequest.location}`);
+        
+        try {
+          const initResult = await initializeProject(
+            projectCreationRequest.projectType!,
+            projectCreationRequest.projectName!,
+            projectCreationRequest.location!,
+            {
+              installDependencies: true,
+              analyzeAfterCreation: true
+            }
+          );
+          
+          if (initResult.success) {
+            console.log('\n🎉 Project created successfully!');
+            console.log('You can now explore the created files or ask me to make modifications.');
+          } else {
+            console.log('\n❌ Project creation failed:');
+            initResult.errors.forEach(error => console.log(`   • ${error}`));
+          }
+        } catch (error) {
+          console.error('❌ Project initialization error:', error);
+        }
+        
+        console.log('\n' + '─'.repeat(50) + '\n');
+        continue;
+      }
+      
+      // Find relevant files based on the prompt
+      console.log('🔍 Analyzing codebase...');
+      const relevantFiles = await findRelevantFiles(prompt, projectContext.workingDirectory);
+      
+      let contextualInfo = '';
+      if (relevantFiles.length > 0) {
+        console.log(`📄 Found ${relevantFiles.length} potentially relevant file${relevantFiles.length > 1 ? 's' : ''}:`);
+        relevantFiles.forEach((file, index) => {
+          const relativePath = file.replace(projectContext.workingDirectory, '.');
+          console.log(`   ${index + 1}. ${relativePath}`);
+        });
+        console.log('');
+
+        // Read content from most relevant files (limit to prevent token overflow)
+        for (const file of relevantFiles.slice(0, 3)) {
+          try {
+            const content = readFileSync(file, 'utf-8');
+            const relativePath = file.replace(projectContext.workingDirectory, '.');
+            contextualInfo += `\n\n--- File: ${relativePath} ---\n${content.slice(0, 2000)}${content.length > 2000 ? '\n...(truncated)' : ''}`;
+          } catch (error) {
+            // Skip files that can't be read
+          }
+        }
+      }
+
+      // Get provider and send request with context
+      const provider = providerFactory.getProvider(defaultProvider, providerConfig);
+
+      console.log('💭 Thinking...\n');
+      
+      const contextualPrompt = `Project Context:
+- Project: ${projectContext.projectName} (${projectContext.projectType})
+- Language/Framework: ${projectContext.language || 'Mixed'}${projectContext.framework ? ` with ${projectContext.framework}` : ''}
+- Working Directory: ${projectContext.workingDirectory}
+
+User Request: ${prompt}
+
+${contextualInfo ? `Relevant Code Context:${contextualInfo}` : 'No specific files found matching the request. Please provide general guidance for this project type.'}
+
+ADVANCED CAPABILITIES - Professional AI Code Editor:
+1. REPOSITORY ANALYSIS: I can analyze entire repositories, detect issues, and provide recommendations
+2. PROJECT CREATION: I can create complete projects (React apps, Node.js backends, etc.)
+3. MULTI-FILE EDITING: I can edit multiple files simultaneously with batch operations
+4. BUILD RESOLUTION: I can detect and fix build issues, dependency problems, and configuration errors
+
+FILE OPERATIONS:
+1. EXISTING files: Use "edit [filename]" - I'll show diffs and ask permission
+2. NEW files: Use "create [filename]" with complete code
+3. PROJECT CREATION: I can create entire project structures with "create [type] app"
+
+PROFESSIONAL WORKFLOW:
+- Repository-wide analysis and understanding
+- Intelligent file discovery and context building
+- Batch operations with preview and approval
+- Build and dependency management
+- Industry best practices and recommendations
+
+This system works like a professional AI code editor. Be specific about requirements and I'll handle complex operations professionally.`;
+
+      const messages = [{ role: 'user' as const, content: contextualPrompt }];
+      
+      let aiResponse = '';
+      for await (const chunk of provider.chat(messages, { stream: true })) {
+        process.stdout.write(chunk);
+        aiResponse += chunk;
+      }
+      
+      // Check if AI response contains file operations and execute them Claude Code style
+      const editAnalysis = parseEditInstructions(aiResponse);
+      const legacyOperations = parseFileOperationFromAI(aiResponse, projectContext.workingDirectory);
+      
+      if (editAnalysis.hasFileOperations || legacyOperations.length > 0) {
+        console.log('\n');
+        
+        if (editAnalysis.targetFile) {
+          // Claude Code style edit - for existing files
+          let targetPath = join(projectContext.workingDirectory, editAnalysis.targetFile);
+          
+          // If file not found in root, check if it exists in any of the relevant files found
+          if (!existsSync(targetPath) && relevantFiles.length > 0) {
+            const matchingFile = relevantFiles.find(file => 
+              file.endsWith('/' + editAnalysis.targetFile!) || file.endsWith(editAnalysis.targetFile!)
+            );
+            if (matchingFile) {
+              targetPath = matchingFile;
+            }
+          }
+          
+          try {
+            const editResult = await handleClaudeStyleEdit(
+              targetPath,
+              editAnalysis.instructions,
+              editAnalysis.newContent
+            );
+            
+            if (!editResult.approved) {
+              console.log('📝 Edit operation was cancelled by user');
+            }
+          } catch (error) {
+            console.error('❌ Error during file operation:', error instanceof Error ? error.message : 'Unknown error');
+          }
+        } else if (legacyOperations.length > 0) {
+          // Legacy file creation - for new files
+          console.log('🔧 Performing file operations...\n');
+          
+          for (const operation of legacyOperations) {
+            if (operation.success) {
+              console.log(`✅ ${operation.message}`);
+            } else {
+              console.log(`❌ ${operation.message}`);
+            }
+          }
+        }
+      }
+      
+      console.log('\n' + '─'.repeat(50) + '\n');
+
+    } catch (error) {
+      console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error');
+      console.log('');
+    }
+  }
+
   return showMainMenu();
 }
 

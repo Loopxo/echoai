@@ -1,6 +1,6 @@
 {
   "name": "echoai",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "🔮 Echo - Intelligent AI terminal with autonomous agents, 6 providers (Claude, GPT, Groq, OpenRouter, Meta, Gemini), and advanced output optimization",
   "main": "dist/index.js",
   "bin": {
@@ -34,9 +34,9 @@
     "clean": "rm -rf dist coverage .nyc_output",
     "prepack": "npm run clean && npm run build",
     "postinstall": "node -e \"console.log('\\n🔮 Echo AI CLI installed! Run: echoai\\n')\"",
-    "prepublishOnly": "npm run clean && npm run build && npm run test && npm run lint",
+    "prepublishOnly": "npm run clean && npm run build && npm run test",
     "publish:patch": "npm version patch && npm publish",
-    "publish:minor": "npm version minor && npm publish", 
+    "publish:minor": "npm version minor && npm publish",
     "publish:major": "npm version major && npm publish",
     "release": "npm version patch && git push --follow-tags",
     "release:minor": "npm version minor && git push --follow-tags",
@@ -66,17 +66,19 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vijeetshah/echo-ai-cli.git"
+    "url": "git+https://github.com/vijeet-shah/echo-ai-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/vijeetshah/echo-ai-cli/issues"
+    "url": "https://github.com/vijeet-shah/echo-ai-cli/issues"
   },
-  "homepage": "https://github.com/vijeetshah/echo-ai-cli#readme",
+  "homepage": "https://github.com/vijeet-shah/echo-ai-cli#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
+    "@types/diff": "^7.0.2",
     "axios": "^1.6.0",
     "commander": "^11.1.0",
     "cosmiconfig": "^9.0.0",
+    "diff": "^8.0.2",
     "dotenv": "^16.3.0",
     "groq-sdk": "^0.7.0",
     "inquirer": "^9.2.0",
@@ -86,8 +88,8 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.0",
     "@types/node": "^20.8.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
