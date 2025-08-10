@@ -13,6 +13,7 @@ export interface IndexedFile {
     dependencies: string[];
     symbols: SymbolInfo[];
     hash: string;
+    content?: string;
 }
 export interface SymbolInfo {
     name: string;

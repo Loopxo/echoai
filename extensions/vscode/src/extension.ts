@@ -12,6 +12,9 @@ import { PerformanceMonitor } from './services/PerformanceMonitor';
 import { RefactoringEngine } from './refactoring/RefactoringEngine';
 import { ArchitecturalRefactoring } from './refactoring/ArchitecturalRefactoring';
 import { SmartRefactoring } from './refactoring/SmartRefactoring';
+import { VulnerabilityScanner } from './security/VulnerabilityScanner';
+import { SecurityRemediationEngine } from './security/SecurityRemediationEngine';
+import { SecurityDashboard } from './security/SecurityDashboard';
 
 let echoProvider: EchoAIProvider;
 let completionProvider: CompletionProvider;
@@ -24,6 +27,9 @@ let performanceMonitor: PerformanceMonitor;
 let refactoringEngine: RefactoringEngine;
 let architecturalRefactoring: ArchitecturalRefactoring;
 let smartRefactoring: SmartRefactoring;
+let vulnerabilityScanner: VulnerabilityScanner;
+let securityRemediationEngine: SecurityRemediationEngine;
+let securityDashboard: SecurityDashboard;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Echo AI extension is now active!');
@@ -44,6 +50,11 @@ export function activate(context: vscode.ExtensionContext) {
     refactoringEngine = new RefactoringEngine(echoProvider, codebaseIndexer);
     architecturalRefactoring = new ArchitecturalRefactoring(echoProvider, codebaseIndexer, refactoringEngine);
     smartRefactoring = new SmartRefactoring(echoProvider, refactoringEngine, architecturalRefactoring);
+    
+    // Phase 5: Security vulnerability scanning services
+    vulnerabilityScanner = new VulnerabilityScanner(echoProvider, codebaseIndexer);
+    securityRemediationEngine = new SecurityRemediationEngine(echoProvider, vulnerabilityScanner);
+    securityDashboard = new SecurityDashboard(context, echoProvider, vulnerabilityScanner, securityRemediationEngine);
 
     // Register inline completion provider for all languages
     const inlineCompletionProvider = vscode.languages.registerInlineCompletionItemProvider(
@@ -710,6 +721,172 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Phase 5: Security Vulnerability Scanning Commands
+    const securityScanCommand = vscode.commands.registerCommand('echo-ai.securityScan', async () => {
+        try {
+            vscode.window.showInformationMessage('Starting comprehensive security scan...');
+            await securityDashboard.runSecurityScan({
+                fullScan: true,
+                aiEnhanced: true,
+                includeTests: false
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`Security scan failed: ${error}`);
+        }
+    });
+
+    const showSecurityDashboardCommand = vscode.commands.registerCommand('echo-ai.showSecurityDashboard', async () => {
+        try {
+            await securityDashboard.showSecurityDashboard();
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to show security dashboard: ${error}`);
+        }
+    });
+
+    const quickSecurityScanCommand = vscode.commands.registerCommand('echo-ai.quickSecurityScan', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+
+        try {
+            vscode.window.showInformationMessage('Running quick security scan on current file...');
+            // Implementation would scan just the current file
+            await securityDashboard.runSecurityScan({
+                fullScan: false,
+                aiEnhanced: true,
+                includeTests: false
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`Quick security scan failed: ${error}`);
+        }
+    });
+
+    const automatedRemediationCommand = vscode.commands.registerCommand('echo-ai.automatedRemediation', async () => {
+        try {
+            vscode.window.showInformationMessage('Starting automated security remediation...');
+            await securityDashboard.startAutomatedRemediation();
+        } catch (error) {
+            vscode.window.showErrorMessage(`Automated remediation failed: ${error}`);
+        }
+    });
+
+    const generateComplianceReportCommand = vscode.commands.registerCommand('echo-ai.generateComplianceReport', async () => {
+        const frameworks = ['OWASP', 'PCI-DSS', 'GDPR', 'HIPAA', 'SOC2'];
+        const selectedFramework = await vscode.window.showQuickPick(frameworks, {
+            placeHolder: 'Select compliance framework for report generation'
+        });
+
+        if (selectedFramework) {
+            try {
+                vscode.window.showInformationMessage(`Generating ${selectedFramework} compliance report...`);
+                const report = await securityDashboard.generateComplianceReport(selectedFramework as any);
+                
+                // Show report in webview or file
+                const action = await vscode.window.showInformationMessage(
+                    `${selectedFramework} compliance report generated. Score: ${report.score}/100`,
+                    'View Report',
+                    'Export Report'
+                );
+                
+                if (action === 'View Report') {
+                    await securityDashboard.showSecurityDashboard();
+                }
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to generate compliance report: ${error}`);
+            }
+        }
+    });
+
+    const fixHardcodedSecretsCommand = vscode.commands.registerCommand('echo-ai.fixHardcodedSecrets', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+
+        try {
+            // Scan current file for hardcoded secrets
+            const vulnerabilities = await vulnerabilityScanner.scanFile({
+                uri: editor.document.uri,
+                content: editor.document.getText(),
+                languageId: editor.document.languageId,
+                lastModified: Date.now(),
+                size: editor.document.getText().length,
+                symbols: [],
+                functions: [],
+                classes: [],
+                dependencies: [],
+                imports: [],
+                exports: [],
+                complexity: 0,
+                hash: ''
+            });
+
+            const secretVulns = vulnerabilities.filter(v => v.type === 'hardcoded_secret');
+            
+            if (secretVulns.length === 0) {
+                vscode.window.showInformationMessage('No hardcoded secrets detected in current file');
+                return;
+            }
+
+            const action = await vscode.window.showInformationMessage(
+                `Found ${secretVulns.length} hardcoded secrets. Fix them automatically?`,
+                'Fix All',
+                'Review First'
+            );
+
+            if (action === 'Fix All') {
+                for (const vuln of secretVulns) {
+                    await securityRemediationEngine.autoRemediateHardcodedSecrets(vuln);
+                }
+                vscode.window.showInformationMessage(`Fixed ${secretVulns.length} hardcoded secrets`);
+            }
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to fix hardcoded secrets: ${error}`);
+        }
+    });
+
+    const securityEducationCommand = vscode.commands.registerCommand('echo-ai.securityEducation', async () => {
+        const topics = [
+            'OWASP Top 10 Overview',
+            'SQL Injection Prevention',
+            'XSS Protection Techniques',
+            'Authentication Best Practices',
+            'Cryptography Guidelines',
+            'Secure Coding Standards'
+        ];
+
+        const selectedTopic = await vscode.window.showQuickPick(topics, {
+            placeHolder: 'Select a security topic to learn about'
+        });
+
+        if (selectedTopic) {
+            try {
+                const explanation = await echoProvider.getCompletion(
+                    `Provide a comprehensive explanation of "${selectedTopic}" for software developers. Include practical examples and best practices.`,
+                    '',
+                    'security',
+                    2000
+                );
+
+                const panel = vscode.window.createWebviewPanel(
+                    'echo-ai-security-education',
+                    `Security Education: ${selectedTopic}`,
+                    vscode.ViewColumn.Two,
+                    { enableScripts: true }
+                );
+
+                panel.webview.html = getSecurityEducationWebviewContent(selectedTopic, explanation);
+
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to load security education: ${error}`);
+            }
+        }
+    });
+
     // Status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(zap) Echo AI";
@@ -745,6 +922,13 @@ export function activate(context: vscode.ExtensionContext) {
         aiRefactorRecommendationsCommand,
         extractMethodCommand,
         modernizeCodeCommand,
+        securityScanCommand,
+        showSecurityDashboardCommand,
+        quickSecurityScanCommand,
+        automatedRemediationCommand,
+        generateComplianceReportCommand,
+        fixHardcodedSecretsCommand,
+        securityEducationCommand,
         statusBarItem
     );
 
@@ -778,6 +962,11 @@ export function deactivate() {
     
     if (codebaseIndexer) {
         codebaseIndexer.dispose();
+    }
+    
+    // Clean up Phase 5 components
+    if (securityDashboard) {
+        securityDashboard.dispose();
     }
 }
 
@@ -1607,6 +1796,66 @@ function getRefactoringRecommendationsWebviewContent(recommendations?: any[]): s
         function analyzeCurrentFile() {
             vscode.postMessage({ command: 'analyzeCurrentFile' });
         }
+    </script>
+</body>
+</html>`;
+}
+
+function getSecurityEducationWebviewContent(topic: string, content: string): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Education: ${topic}</title>
+    <style>
+        body { font-family: var(--vscode-font-family); padding: 20px; color: var(--vscode-foreground); background: var(--vscode-editor-background); line-height: 1.6; }
+        .education-header { border-bottom: 2px solid var(--vscode-panel-border); padding-bottom: 20px; margin-bottom: 30px; }
+        .education-title { font-size: 28px; font-weight: bold; color: var(--vscode-foreground); margin-bottom: 10px; }
+        .education-subtitle { color: var(--vscode-descriptionForeground); font-size: 16px; }
+        .content-section { margin: 30px 0; padding: 20px; background: var(--vscode-editor-selectionBackground); border-radius: 8px; }
+        .section-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: var(--vscode-foreground); }
+        .security-tip { background: var(--vscode-inputValidation-infoBackground); border-left: 4px solid var(--vscode-notificationsInfoIcon-foreground); padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0; }
+        .security-warning { background: var(--vscode-inputValidation-warningBackground); border-left: 4px solid var(--vscode-notificationsWarningIcon-foreground); padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0; }
+        .code-example { background: var(--vscode-textCodeBlock-background); border: 1px solid var(--vscode-panel-border); border-radius: 5px; padding: 15px; margin: 15px 0; font-family: var(--vscode-editor-font-family); overflow-x: auto; }
+        .reference-links { margin: 30px 0; padding: 20px; background: var(--vscode-editor-inactiveSelectionBackground); border-radius: 5px; }
+        .link-list { list-style: none; padding: 0; }
+        .link-list li { margin: 10px 0; }
+        .link-list a { color: var(--vscode-textLink-foreground); text-decoration: none; }
+        .link-list a:hover { text-decoration: underline; }
+        h1, h2, h3 { color: var(--vscode-foreground); }
+        p { margin: 15px 0; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="education-header">
+        <div class="education-title">🛡️ ${escapeHtml(topic)}</div>
+        <div class="education-subtitle">Security Education & Best Practices</div>
+    </div>
+
+    <div class="content-section">
+        <div class="section-title">Overview</div>
+        <div>${content.replace(/\n/g, '<br>').replace(/```([^`]+)```/g, '<div class="code-example">$1</div>')}</div>
+    </div>
+
+    <div class="security-tip">
+        <strong>💡 Pro Tip:</strong> Always stay updated with the latest security practices and regularly audit your code for potential vulnerabilities.
+    </div>
+
+    <div class="reference-links">
+        <div class="section-title">📚 Additional Resources</div>
+        <ul class="link-list">
+            <li><a href="https://owasp.org/" target="_blank">OWASP (Open Web Application Security Project)</a></li>
+            <li><a href="https://cwe.mitre.org/" target="_blank">Common Weakness Enumeration (CWE)</a></li>
+            <li><a href="https://nvd.nist.gov/" target="_blank">National Vulnerability Database</a></li>
+            <li><a href="https://cheatsheetseries.owasp.org/" target="_blank">OWASP Cheat Sheet Series</a></li>
+        </ul>
+    </div>
+
+    <script>
+        // Add any interactive features if needed
     </script>
 </body>
 </html>`;

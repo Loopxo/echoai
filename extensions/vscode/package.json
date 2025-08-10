@@ -124,6 +124,34 @@
       {
         "command": "echo-ai.modernizeCode",
         "title": "Modernize Code Syntax"
+      },
+      {
+        "command": "echo-ai.securityScan",
+        "title": "Run Security Scan"
+      },
+      {
+        "command": "echo-ai.showSecurityDashboard",
+        "title": "Show Security Dashboard"
+      },
+      {
+        "command": "echo-ai.quickSecurityScan",
+        "title": "Quick Security Scan"
+      },
+      {
+        "command": "echo-ai.automatedRemediation",
+        "title": "Automated Security Remediation"
+      },
+      {
+        "command": "echo-ai.generateComplianceReport",
+        "title": "Generate Compliance Report"
+      },
+      {
+        "command": "echo-ai.fixHardcodedSecrets",
+        "title": "Fix Hardcoded Secrets"
+      },
+      {
+        "command": "echo-ai.securityEducation",
+        "title": "Security Education"
       }
     ],
     "keybindings": [
@@ -365,6 +393,26 @@
           "command": "echo-ai.modernizeCode",
           "when": "editorTextFocus",
           "group": "echo-ai-refactor"
+        },
+        {
+          "command": "echo-ai.quickSecurityScan",
+          "when": "editorTextFocus",
+          "group": "echo-ai-security"
+        },
+        {
+          "command": "echo-ai.showSecurityDashboard",
+          "when": "editorTextFocus",
+          "group": "echo-ai-security"
+        },
+        {
+          "command": "echo-ai.fixHardcodedSecrets",
+          "when": "editorTextFocus",
+          "group": "echo-ai-security"
+        },
+        {
+          "command": "echo-ai.securityEducation",
+          "when": "editorTextFocus",
+          "group": "echo-ai-security"
         }
       ]
     }

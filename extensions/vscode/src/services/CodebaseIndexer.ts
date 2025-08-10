@@ -16,6 +16,7 @@ export interface IndexedFile {
     dependencies: string[];
     symbols: SymbolInfo[];
     hash: string;
+    content?: string; // Optional content for security scanning
 }
 
 export interface SymbolInfo {
