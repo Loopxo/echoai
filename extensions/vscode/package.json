@@ -1,0 +1,161 @@
+{
+  "name": "echo-ai-vscode",
+  "displayName": "Echo AI - Intelligent Code Assistant",
+  "description": "Professional AI-powered code completion, analysis, and generation with multi-provider support",
+  "version": "1.0.0",
+  "publisher": "vijeet-shah",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Snippets",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "ai",
+    "code completion",
+    "intellisense",
+    "assistant",
+    "typescript",
+    "javascript",
+    "python",
+    "multi-provider"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "echo-ai.complete",
+        "title": "Complete with Echo AI"
+      },
+      {
+        "command": "echo-ai.explain",
+        "title": "Explain Code"
+      },
+      {
+        "command": "echo-ai.refactor",
+        "title": "Refactor Code"
+      },
+      {
+        "command": "echo-ai.generateTests",
+        "title": "Generate Tests"
+      },
+      {
+        "command": "echo-ai.fixErrors",
+        "title": "Fix Syntax Errors"
+      },
+      {
+        "command": "echo-ai.configure",
+        "title": "Configure Echo AI"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "echo-ai.complete",
+        "key": "ctrl+space",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "echo-ai.explain",
+        "key": "ctrl+shift+e",
+        "when": "editorHasSelection"
+      }
+    ],
+    "configuration": {
+      "title": "Echo AI",
+      "properties": {
+        "echoAI.provider": {
+          "type": "string",
+          "default": "claude",
+          "enum": ["claude", "openai", "groq", "openrouter", "gemini", "meta"],
+          "description": "Default AI provider for completions"
+        },
+        "echoAI.model": {
+          "type": "string",
+          "default": "claude-3-5-sonnet-20241022",
+          "description": "Model to use for completions"
+        },
+        "echoAI.completionDelay": {
+          "type": "number",
+          "default": 500,
+          "description": "Delay in milliseconds before triggering completion"
+        },
+        "echoAI.enableInlineCompletion": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time inline completions"
+        },
+        "echoAI.enableErrorDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time syntax error detection"
+        },
+        "echoAI.maxContextSize": {
+          "type": "number",
+          "default": 4000,
+          "description": "Maximum context size for AI requests"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "echo-ai.explain",
+          "when": "editorHasSelection",
+          "group": "echo-ai"
+        },
+        {
+          "command": "echo-ai.refactor",
+          "when": "editorHasSelection",
+          "group": "echo-ai"
+        },
+        {
+          "command": "echo-ai.generateTests",
+          "when": "editorTextFocus",
+          "group": "echo-ai"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "eslint": "^8.47.0",
+    "typescript": "^5.1.6",
+    "@vscode/test-electron": "^2.3.4",
+    "@vscode/vsce": "^2.21.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "@anthropic-ai/sdk": "^0.24.0",
+    "openai": "^4.20.0",
+    "groq-sdk": "^0.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vijeet-shah/echo-ai-cli.git",
+    "directory": "extensions/vscode"
+  },
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#0066CC",
+    "theme": "dark"
+  }
+}
