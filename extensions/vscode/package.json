@@ -72,6 +72,34 @@
       {
         "command": "echo-ai.toggleAnalysisType",
         "title": "Toggle Analysis Type"
+      },
+      {
+        "command": "echo-ai.indexWorkspace",
+        "title": "Index Workspace"
+      },
+      {
+        "command": "echo-ai.analyzeWorkspace",
+        "title": "Analyze Workspace"
+      },
+      {
+        "command": "echo-ai.showPerformanceReport",
+        "title": "Show Performance Report"
+      },
+      {
+        "command": "echo-ai.showCodebaseStats",
+        "title": "Show Codebase Statistics"
+      },
+      {
+        "command": "echo-ai.clearAnalysisCache",
+        "title": "Clear Analysis Cache"
+      },
+      {
+        "command": "echo-ai.optimizePerformance",
+        "title": "Optimize Performance"
+      },
+      {
+        "command": "echo-ai.findSymbol",
+        "title": "Find Symbol"
       }
     ],
     "keybindings": [
@@ -174,6 +202,71 @@
           "minimum": 5,
           "maximum": 50,
           "description": "Cyclomatic complexity threshold for warnings"
+        },
+        "echoAI.indexing.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic codebase indexing"
+        },
+        "echoAI.indexing.excludePatterns": {
+          "type": "array",
+          "default": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/coverage/**"],
+          "items": {
+            "type": "string"
+          },
+          "description": "File patterns to exclude from indexing"
+        },
+        "echoAI.indexing.maxFileSize": {
+          "type": "number",
+          "default": 500000,
+          "minimum": 50000,
+          "maximum": 2000000,
+          "description": "Maximum file size (in bytes) to index"
+        },
+        "echoAI.indexing.chunkSize": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Number of files to process in each indexing batch"
+        },
+        "echoAI.incremental.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable incremental analysis with dependency tracking"
+        },
+        "echoAI.incremental.maxConcurrentAnalyses": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum number of concurrent file analyses"
+        },
+        "echoAI.incremental.batchSize": {
+          "type": "number",
+          "default": 10,
+          "minimum": 5,
+          "maximum": 50,
+          "description": "Number of files to analyze in each batch"
+        },
+        "echoAI.performance.enableMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable performance monitoring and alerts"
+        },
+        "echoAI.performance.monitoringInterval": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 5000,
+          "maximum": 60000,
+          "description": "Performance monitoring interval in milliseconds"
+        },
+        "echoAI.performance.memoryThreshold": {
+          "type": "number",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 2000,
+          "description": "Memory usage threshold (MB) for performance warnings"
         }
       }
     },
@@ -203,6 +296,21 @@
           "command": "echo-ai.toggleAnalysisType",
           "when": "editorTextFocus",
           "group": "echo-ai-analysis"
+        },
+        {
+          "command": "echo-ai.findSymbol",
+          "when": "editorTextFocus",
+          "group": "echo-ai-analysis"
+        },
+        {
+          "command": "echo-ai.showCodebaseStats",
+          "when": "editorTextFocus",
+          "group": "echo-ai-performance"
+        },
+        {
+          "command": "echo-ai.optimizePerformance",
+          "when": "editorTextFocus",
+          "group": "echo-ai-performance"
         }
       ]
     }

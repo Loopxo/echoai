@@ -43,11 +43,17 @@ const AdvancedDiagnosticsProvider_1 = require("./providers/AdvancedDiagnosticsPr
 const RealTimeAnalyzer_1 = require("./providers/RealTimeAnalyzer");
 const ConfigurationManager_1 = require("./utils/ConfigurationManager");
 const CodeAnalyzer_1 = require("./utils/CodeAnalyzer");
+const CodebaseIndexer_1 = require("./services/CodebaseIndexer");
+const IncrementalAnalyzer_1 = require("./services/IncrementalAnalyzer");
+const PerformanceMonitor_1 = require("./services/PerformanceMonitor");
 let echoProvider;
 let completionProvider;
 let errorProvider;
 let advancedDiagnosticsProvider;
 let realTimeAnalyzer;
+let codebaseIndexer;
+let incrementalAnalyzer;
+let performanceMonitor;
 function activate(context) {
     console.log('Echo AI extension is now active!');
     // Initialize core components
@@ -56,6 +62,10 @@ function activate(context) {
     completionProvider = new CompletionProvider_1.CompletionProvider(echoProvider);
     errorProvider = new ErrorDetectionProvider_1.ErrorDetectionProvider(echoProvider);
     advancedDiagnosticsProvider = new AdvancedDiagnosticsProvider_1.AdvancedDiagnosticsProvider(echoProvider);
+    // Phase 3: Performance optimization services
+    performanceMonitor = new PerformanceMonitor_1.PerformanceMonitor();
+    codebaseIndexer = new CodebaseIndexer_1.CodebaseIndexer();
+    incrementalAnalyzer = new IncrementalAnalyzer_1.IncrementalAnalyzer(codebaseIndexer, echoProvider);
     // Register inline completion provider for all languages
     const inlineCompletionProvider = vscode.languages.registerInlineCompletionItemProvider({ scheme: 'file' }, {
         provideInlineCompletionItems: async (document, position, context, token) => {
@@ -297,6 +307,99 @@ function activate(context) {
             realTimeAnalyzer.toggleAnalysisType(selectedType.value, !isEnabled);
         }
     });
+    // Phase 3: Performance Optimization Commands
+    const indexWorkspaceCommand = vscode.commands.registerCommand('echo-ai.indexWorkspace', async () => {
+        try {
+            vscode.window.showInformationMessage('Starting codebase indexing...');
+            const stats = await codebaseIndexer.indexWorkspace();
+            vscode.window.showInformationMessage(`Indexing complete! ${stats.indexedFiles} files indexed in ${(stats.indexingTime / 1000).toFixed(2)}s`);
+        }
+        catch (error) {
+            vscode.window.showErrorMessage(`Indexing failed: ${error}`);
+        }
+    });
+    const analyzeWorkspaceCommand = vscode.commands.registerCommand('echo-ai.analyzeWorkspace', async () => {
+        try {
+            vscode.window.showInformationMessage('Starting workspace analysis...');
+            await incrementalAnalyzer.analyzeWorkspace();
+        }
+        catch (error) {
+            vscode.window.showErrorMessage(`Workspace analysis failed: ${error}`);
+        }
+    });
+    const showPerformanceReportCommand = vscode.commands.registerCommand('echo-ai.showPerformanceReport', async () => {
+        performanceMonitor.showPerformanceReport();
+    });
+    const showCodebaseStatsCommand = vscode.commands.registerCommand('echo-ai.showCodebaseStats', async () => {
+        const stats = codebaseIndexer.getStats();
+        const queueStatus = incrementalAnalyzer.getQueueStatus();
+        const performanceMetrics = incrementalAnalyzer.getPerformanceMetrics();
+        const panel = vscode.window.createWebviewPanel('echo-ai-codebase-stats', 'Echo AI - Codebase Statistics', vscode.ViewColumn.Two, { enableScripts: true });
+        panel.webview.html = getCodebaseStatsWebviewContent(stats, queueStatus, performanceMetrics);
+    });
+    const clearAnalysisCacheCommand = vscode.commands.registerCommand('echo-ai.clearAnalysisCache', async () => {
+        incrementalAnalyzer.clearCache();
+        performanceMonitor.clearAlerts();
+        vscode.window.showInformationMessage('Analysis cache cleared successfully');
+    });
+    const optimizePerformanceCommand = vscode.commands.registerCommand('echo-ai.optimizePerformance', async () => {
+        const options = [
+            { label: 'Clear All Caches', action: 'clearCaches' },
+            { label: 'Refresh Codebase Index', action: 'refreshIndex' },
+            { label: 'Reduce Analysis Scope', action: 'reduceScope' },
+            { label: 'Show Performance Tips', action: 'showTips' }
+        ];
+        const selected = await vscode.window.showQuickPick(options, {
+            placeHolder: 'Select optimization action'
+        });
+        if (!selected)
+            return;
+        switch (selected.action) {
+            case 'clearCaches':
+                incrementalAnalyzer.clearCache();
+                performanceMonitor.clearAlerts();
+                vscode.window.showInformationMessage('All caches cleared');
+                break;
+            case 'refreshIndex':
+                await codebaseIndexer.refreshIndex();
+                vscode.window.showInformationMessage('Codebase index refreshed');
+                break;
+            case 'reduceScope':
+                await vscode.commands.executeCommand('echo-ai.toggleAnalysisType');
+                break;
+            case 'showTips':
+                showPerformanceTips();
+                break;
+        }
+    });
+    const findSymbolCommand = vscode.commands.registerCommand('echo-ai.findSymbol', async () => {
+        const symbolName = await vscode.window.showInputBox({
+            prompt: 'Enter symbol name to find',
+            placeHolder: 'function, class, or variable name'
+        });
+        if (!symbolName)
+            return;
+        const symbols = codebaseIndexer.findSymbol(symbolName);
+        if (symbols.length === 0) {
+            vscode.window.showInformationMessage(`No symbols found matching "${symbolName}"`);
+            return;
+        }
+        const quickPickItems = symbols.slice(0, 50).map(symbol => ({
+            label: symbol.name,
+            description: `${symbol.kind} in ${symbol.scope}`,
+            detail: `Line ${symbol.line}`,
+            symbol
+        }));
+        const selected = await vscode.window.showQuickPick(quickPickItems, {
+            placeHolder: `Found ${symbols.length} symbols matching "${symbolName}"`
+        });
+        if (selected) {
+            // Navigate to symbol - this would need to be implemented based on the file structure
+            vscode.window.showInformationMessage(`Found ${selected.symbol.name} at line ${selected.symbol.line} in ${selected.symbol.scope}`);
+        }
+    });
+    // Start performance monitoring
+    performanceMonitor.startMonitoring();
     // Status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(zap) Echo AI";
@@ -304,7 +407,7 @@ function activate(context) {
     statusBarItem.command = 'echo-ai.configure';
     statusBarItem.show();
     // Add all subscriptions
-    context.subscriptions.push(inlineCompletionProvider, completionItemProvider, codeActionProvider, explainCommand, refactorCommand, generateTestsCommand, fixErrorsCommand, configureCommand, forceAnalysisCommand, autoFixAdvancedCommand, explainAdvancedIssueCommand, showSecurityRecommendationsCommand, toggleAnalysisTypeCommand, statusBarItem);
+    context.subscriptions.push(inlineCompletionProvider, completionItemProvider, codeActionProvider, explainCommand, refactorCommand, generateTestsCommand, fixErrorsCommand, configureCommand, forceAnalysisCommand, autoFixAdvancedCommand, explainAdvancedIssueCommand, showSecurityRecommendationsCommand, toggleAnalysisTypeCommand, indexWorkspaceCommand, analyzeWorkspaceCommand, showPerformanceReportCommand, showCodebaseStatsCommand, clearAnalysisCacheCommand, optimizePerformanceCommand, findSymbolCommand, statusBarItem);
     // Show welcome message
     vscode.window.showInformationMessage('Echo AI is now active! Use Ctrl+Space for completions or right-click for AI features.', 'Configure').then(selection => {
         if (selection === 'Configure') {
@@ -317,6 +420,16 @@ function deactivate() {
     // Clean up Phase 2 components
     if (realTimeAnalyzer) {
         realTimeAnalyzer.dispose();
+    }
+    // Clean up Phase 3 components
+    if (performanceMonitor) {
+        performanceMonitor.dispose();
+    }
+    if (incrementalAnalyzer) {
+        incrementalAnalyzer.dispose();
+    }
+    if (codebaseIndexer) {
+        codebaseIndexer.dispose();
     }
 }
 function getExplanationWebviewContent(explanation, code) {
@@ -504,6 +617,284 @@ function getSecurityRecommendationsWebviewContent(recommendations, diagnostics) 
         </ul>
         
         <p><em>Security analysis by Echo AI</em></p>
+    </body>
+    </html>`;
+}
+function getCodebaseStatsWebviewContent(stats, queueStatus, performanceMetrics) {
+    const languageDistribution = Array.from(stats.languageDistribution.entries())
+        .map(([lang, count]) => ({ lang, count }))
+        .sort((a, b) => b.count - a.count);
+    return `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Echo AI - Codebase Statistics</title>
+        <style>
+            body {
+                font-family: var(--vscode-font-family);
+                font-size: var(--vscode-font-size);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+                padding: 20px;
+                line-height: 1.6;
+            }
+            
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 16px;
+                margin: 20px 0;
+            }
+            
+            .stat-card {
+                background-color: var(--vscode-editor-selectionBackground);
+                border-radius: 8px;
+                padding: 16px;
+                border-left: 4px solid var(--vscode-textBlockQuote-border);
+            }
+            
+            .stat-value {
+                font-size: 1.5em;
+                font-weight: bold;
+                color: var(--vscode-textPreformat-foreground);
+            }
+            
+            .language-bar {
+                background-color: var(--vscode-progressBar-background);
+                height: 20px;
+                border-radius: 10px;
+                overflow: hidden;
+                margin: 8px 0;
+            }
+            
+            .language-fill {
+                height: 100%;
+                background-color: var(--vscode-progressBar-background);
+                transition: width 0.3s ease;
+            }
+            
+            h2 {
+                color: var(--vscode-textPreformat-foreground);
+                border-bottom: 1px solid var(--vscode-textSeparator-foreground);
+                padding-bottom: 8px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>📊 Codebase Statistics</h1>
+        <p><em>Generated: ${new Date().toLocaleString()}</em></p>
+        
+        <h2>Overview</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Files</h3>
+                <div class="stat-value">${stats.totalFiles.toLocaleString()}</div>
+                <p>Files in codebase</p>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Indexed Files</h3>
+                <div class="stat-value">${stats.indexedFiles.toLocaleString()}</div>
+                <p>Successfully analyzed</p>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Total Lines</h3>
+                <div class="stat-value">${stats.totalLines.toLocaleString()}</div>
+                <p>Estimated lines of code</p>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Average Complexity</h3>
+                <div class="stat-value">${stats.averageComplexity.toFixed(1)}</div>
+                <p>Cyclomatic complexity</p>
+            </div>
+        </div>
+        
+        <h2>Language Distribution</h2>
+        ${languageDistribution.slice(0, 10).map(item => {
+        const percentage = (item.count / stats.totalFiles * 100).toFixed(1);
+        return `
+                <div style="margin: 12px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>${item.lang}</span>
+                        <span>${item.count} files (${percentage}%)</span>
+                    </div>
+                    <div class="language-bar">
+                        <div class="language-fill" style="width: ${percentage}%; background-color: hsl(${(languageDistribution.indexOf(item) * 60) % 360}, 70%, 60%);"></div>
+                    </div>
+                </div>
+            `;
+    }).join('')}
+        
+        <h2>Analysis Queue Status</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Queue Size</h3>
+                <div class="stat-value">${queueStatus.size}</div>
+                <p>Files pending analysis</p>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Active Analyses</h3>
+                <div class="stat-value">${queueStatus.activeCount}</div>
+                <p>Currently processing</p>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Cache Hit Rate</h3>
+                <div class="stat-value">${(performanceMetrics.cacheHitRate * 100).toFixed(1)}%</div>
+                <p>Analysis cache efficiency</p>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Avg Analysis Time</h3>
+                <div class="stat-value">${Math.round(performanceMetrics.averageAnalysisTime)}ms</div>
+                <p>Per file analysis</p>
+            </div>
+        </div>
+        
+        <h2>Largest Files</h2>
+        <div style="margin: 20px 0;">
+            ${stats.largestFiles.slice(0, 5).map((file) => `
+                <div class="stat-card" style="margin: 8px 0;">
+                    <strong>${file.uri.fsPath.split('/').pop()}</strong>
+                    <p>Size: ${(file.size / 1024).toFixed(1)} KB | Language: ${file.languageId} | Functions: ${file.functions.length}</p>
+                </div>
+            `).join('')}
+        </div>
+        
+        <p><em>Statistics help optimize Echo AI performance for your specific codebase</em></p>
+    </body>
+    </html>`;
+}
+function showPerformanceTips() {
+    const panel = vscode.window.createWebviewPanel('echo-ai-performance-tips', 'Echo AI - Performance Tips', vscode.ViewColumn.Two, { enableScripts: true });
+    panel.webview.html = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Echo AI - Performance Tips</title>
+        <style>
+            body {
+                font-family: var(--vscode-font-family);
+                font-size: var(--vscode-font-size);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+                padding: 20px;
+                line-height: 1.6;
+            }
+            
+            .tip-card {
+                background-color: var(--vscode-editor-selectionBackground);
+                border-radius: 8px;
+                padding: 16px;
+                margin: 16px 0;
+                border-left: 4px solid var(--vscode-textBlockQuote-border);
+            }
+            
+            .tip-priority-high { border-left-color: var(--vscode-inputValidation-errorBorder); }
+            .tip-priority-medium { border-left-color: var(--vscode-inputValidation-warningBorder); }
+            .tip-priority-low { border-left-color: var(--vscode-inputValidation-infoBorder); }
+            
+            h2 {
+                color: var(--vscode-textPreformat-foreground);
+                border-bottom: 1px solid var(--vscode-textSeparator-foreground);
+                padding-bottom: 8px;
+            }
+            
+            code {
+                background-color: var(--vscode-textCodeBlock-background);
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: var(--vscode-editor-font-family);
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🚀 Echo AI Performance Optimization Tips</h1>
+        
+        <h2>High Priority Optimizations</h2>
+        
+        <div class="tip-card tip-priority-high">
+            <h3>🎯 Reduce Analysis Scope</h3>
+            <p>Disable analysis types you don't need:</p>
+            <ul>
+                <li>Use <code>Echo AI: Toggle Analysis Type</code> command</li>
+                <li>Disable performance analysis for small projects</li>
+                <li>Turn off maintainability analysis for prototypes</li>
+            </ul>
+        </div>
+        
+        <div class="tip-card tip-priority-high">
+            <h3>⚡ Increase Analysis Delays</h3>
+            <p>Adjust settings for better performance:</p>
+            <ul>
+                <li><code>echoAI.analysis.analysisDelay</code>: Increase to 3000ms+ for large files</li>
+                <li><code>echoAI.completionDelay</code>: Increase to 1000ms+ for slower systems</li>
+            </ul>
+        </div>
+        
+        <h2>Medium Priority Optimizations</h2>
+        
+        <div class="tip-card tip-priority-medium">
+            <h3>🗂️ File Size Management</h3>
+            <p>Optimize which files get analyzed:</p>
+            <ul>
+                <li>Split very large files into smaller modules</li>
+                <li>Use <code>echoAI.analysis.maxFileSize</code> to skip huge files</li>
+                <li>Focus analysis on actively developed code</li>
+            </ul>
+        </div>
+        
+        <div class="tip-card tip-priority-medium">
+            <h3>🎛️ Cache Management</h3>
+            <p>Optimize cache performance:</p>
+            <ul>
+                <li>Clear cache regularly with <code>Echo AI: Clear Analysis Cache</code></li>
+                <li>Monitor cache hit rates in performance reports</li>
+                <li>Restart VS Code if memory usage gets too high</li>
+            </ul>
+        </div>
+        
+        <h2>Low Priority Optimizations</h2>
+        
+        <div class="tip-card tip-priority-low">
+            <h3>🔧 System-Level Optimizations</h3>
+            <p>Improve overall system performance:</p>
+            <ul>
+                <li>Close unnecessary browser tabs and applications</li>
+                <li>Increase system RAM if possible (8GB+ recommended)</li>
+                <li>Use SSD storage for better file I/O performance</li>
+            </ul>
+        </div>
+        
+        <div class="tip-card tip-priority-low">
+            <h3>📊 Monitoring Best Practices</h3>
+            <p>Keep track of performance:</p>
+            <ul>
+                <li>Check <code>Echo AI: Show Performance Report</code> weekly</li>
+                <li>Monitor the performance status bar indicator</li>
+                <li>Review codebase statistics after major changes</li>
+            </ul>
+        </div>
+        
+        <h2>Advanced Tips</h2>
+        
+        <div class="tip-card tip-priority-medium">
+            <h3>🧠 Smart Analysis Scheduling</h3>
+            <p>The incremental analyzer automatically:</p>
+            <ul>
+                <li>Prioritizes recently changed files</li>
+                <li>Analyzes dependencies in optimal order</li>
+                <li>Adapts delays based on system performance</li>
+                <li>Caches results to avoid redundant work</li>
+            </ul>
+        </div>
+        
+        <p><em>Apply these tips to optimize Echo AI for your specific development environment and workflow.</em></p>
     </body>
     </html>`;
 }
