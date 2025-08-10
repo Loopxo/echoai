@@ -52,6 +52,26 @@
       {
         "command": "echo-ai.configure",
         "title": "Configure Echo AI"
+      },
+      {
+        "command": "echo-ai.forceAnalysis",
+        "title": "Force Advanced Analysis"
+      },
+      {
+        "command": "echo-ai.autoFixAdvanced",
+        "title": "Auto-fix Advanced Issues"
+      },
+      {
+        "command": "echo-ai.explainAdvancedIssue",
+        "title": "Explain Advanced Issue"
+      },
+      {
+        "command": "echo-ai.showSecurityRecommendations",
+        "title": "Show Security Recommendations"
+      },
+      {
+        "command": "echo-ai.toggleAnalysisType",
+        "title": "Toggle Analysis Type"
       }
     ],
     "keybindings": [
@@ -99,6 +119,61 @@
           "type": "number",
           "default": 4000,
           "description": "Maximum context size for AI requests"
+        },
+        "echoAI.analysis.enabledTypes": {
+          "type": "array",
+          "default": ["syntax", "semantic", "logic", "security", "performance"],
+          "items": {
+            "type": "string",
+            "enum": ["syntax", "semantic", "logic", "security", "performance", "maintainability"]
+          },
+          "description": "Types of analysis to perform"
+        },
+        "echoAI.analysis.realTimeEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time analysis as you type"
+        },
+        "echoAI.analysis.analysisDelay": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "Delay in milliseconds before running analysis"
+        },
+        "echoAI.analysis.maxFileSize": {
+          "type": "number",
+          "default": 200000,
+          "minimum": 10000,
+          "maximum": 1000000,
+          "description": "Maximum file size (in characters) to analyze"
+        },
+        "echoAI.security.enableHardcodedSecretDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Detect hardcoded passwords, API keys, and secrets"
+        },
+        "echoAI.security.enableXSSDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Detect potential XSS vulnerabilities"
+        },
+        "echoAI.security.enableSQLInjectionDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Detect potential SQL injection vulnerabilities"
+        },
+        "echoAI.performance.enableComplexityAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Analyze code complexity and suggest optimizations"
+        },
+        "echoAI.performance.complexityThreshold": {
+          "type": "number",
+          "default": 10,
+          "minimum": 5,
+          "maximum": 50,
+          "description": "Cyclomatic complexity threshold for warnings"
         }
       }
     },
@@ -118,6 +193,16 @@
           "command": "echo-ai.generateTests",
           "when": "editorTextFocus",
           "group": "echo-ai"
+        },
+        {
+          "command": "echo-ai.forceAnalysis",
+          "when": "editorTextFocus",
+          "group": "echo-ai-analysis"
+        },
+        {
+          "command": "echo-ai.toggleAnalysisType",
+          "when": "editorTextFocus",
+          "group": "echo-ai-analysis"
         }
       ]
     }

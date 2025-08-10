@@ -39,11 +39,15 @@ const vscode = __importStar(require("vscode"));
 const EchoAIProvider_1 = require("./providers/EchoAIProvider");
 const CompletionProvider_1 = require("./providers/CompletionProvider");
 const ErrorDetectionProvider_1 = require("./providers/ErrorDetectionProvider");
+const AdvancedDiagnosticsProvider_1 = require("./providers/AdvancedDiagnosticsProvider");
+const RealTimeAnalyzer_1 = require("./providers/RealTimeAnalyzer");
 const ConfigurationManager_1 = require("./utils/ConfigurationManager");
 const CodeAnalyzer_1 = require("./utils/CodeAnalyzer");
 let echoProvider;
 let completionProvider;
 let errorProvider;
+let advancedDiagnosticsProvider;
+let realTimeAnalyzer;
 function activate(context) {
     console.log('Echo AI extension is now active!');
     // Initialize core components
@@ -51,6 +55,7 @@ function activate(context) {
     echoProvider = new EchoAIProvider_1.EchoAIProvider(configManager);
     completionProvider = new CompletionProvider_1.CompletionProvider(echoProvider);
     errorProvider = new ErrorDetectionProvider_1.ErrorDetectionProvider(echoProvider);
+    advancedDiagnosticsProvider = new AdvancedDiagnosticsProvider_1.AdvancedDiagnosticsProvider(echoProvider);
     // Register inline completion provider for all languages
     const inlineCompletionProvider = vscode.languages.registerInlineCompletionItemProvider({ scheme: 'file' }, {
         provideInlineCompletionItems: async (document, position, context, token) => {
@@ -82,16 +87,18 @@ function activate(context) {
     // Register diagnostic provider for error detection
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('echo-ai');
     context.subscriptions.push(diagnosticCollection);
-    const errorDetectionProvider = vscode.workspace.onDidChangeTextDocument(async (event) => {
-        if (!configManager.get('enableErrorDetection', true)) {
-            return;
-        }
-        try {
-            const diagnostics = await errorProvider.provideDiagnostics(event.document);
-            diagnosticCollection.set(event.document.uri, diagnostics);
-        }
-        catch (error) {
-            console.error('Echo AI error detection error:', error);
+    // Initialize real-time analyzer with enhanced capabilities
+    realTimeAnalyzer = new RealTimeAnalyzer_1.RealTimeAnalyzer(echoProvider, diagnosticCollection);
+    // Register code action provider for advanced diagnostics
+    const codeActionProvider = vscode.languages.registerCodeActionsProvider({ scheme: 'file' }, {
+        provideCodeActions: async (document, range, context) => {
+            try {
+                return await advancedDiagnosticsProvider.provideAdvancedCodeActions(document, range, [...context.diagnostics]);
+            }
+            catch (error) {
+                console.error('Advanced code actions error:', error);
+                return [];
+            }
         }
     });
     // Register commands
@@ -208,6 +215,88 @@ function activate(context) {
             }
         }
     });
+    // Phase 2: Advanced Analysis Commands
+    const forceAnalysisCommand = vscode.commands.registerCommand('echo-ai.forceAnalysis', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor');
+            return;
+        }
+        try {
+            vscode.window.showInformationMessage('Running advanced analysis...');
+            await realTimeAnalyzer.forceAnalysis(editor.document);
+            vscode.window.showInformationMessage('Advanced analysis completed');
+        }
+        catch (error) {
+            vscode.window.showErrorMessage(`Analysis failed: ${error}`);
+        }
+    });
+    const autoFixAdvancedCommand = vscode.commands.registerCommand('echo-ai.autoFixAdvanced', async (diagnostics, documentUri) => {
+        try {
+            const document = await vscode.workspace.openTextDocument(documentUri);
+            vscode.window.showInformationMessage('Applying advanced fixes...');
+            // Get fixes for advanced issues
+            const fixes = await echoProvider.fixErrors(document.getText(), diagnostics, document.languageId);
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(documentUri, new vscode.Range(0, 0, document.lineCount, 0), fixes);
+            const applied = await vscode.workspace.applyEdit(edit);
+            if (applied) {
+                vscode.window.showInformationMessage('Advanced fixes applied successfully!');
+            }
+        }
+        catch (error) {
+            vscode.window.showErrorMessage(`Auto-fix failed: ${error}`);
+        }
+    });
+    const explainAdvancedIssueCommand = vscode.commands.registerCommand('echo-ai.explainAdvancedIssue', async (diagnostic) => {
+        try {
+            const explanation = await echoProvider.explainCode(`Issue: ${diagnostic.message}\nCode: ${diagnostic.code}\nSeverity: ${diagnostic.severity}`, 'analysis');
+            const panel = vscode.window.createWebviewPanel('echo-ai-issue-explanation', 'Echo AI - Issue Explanation', vscode.ViewColumn.Two, { enableScripts: true });
+            panel.webview.html = getIssueExplanationWebviewContent(explanation, diagnostic);
+        }
+        catch (error) {
+            vscode.window.showErrorMessage(`Explanation failed: ${error}`);
+        }
+    });
+    const showSecurityRecommendationsCommand = vscode.commands.registerCommand('echo-ai.showSecurityRecommendations', async (diagnostics) => {
+        try {
+            const securityIssues = diagnostics.map(d => d.message).join('\n');
+            const recommendations = await echoProvider.getCompletion(`Provide security recommendations for these issues:\n${securityIssues}`, '', 'security', 1000);
+            const panel = vscode.window.createWebviewPanel('echo-ai-security', 'Echo AI - Security Recommendations', vscode.ViewColumn.Two, { enableScripts: true });
+            panel.webview.html = getSecurityRecommendationsWebviewContent(recommendations, diagnostics);
+        }
+        catch (error) {
+            vscode.window.showErrorMessage(`Security analysis failed: ${error}`);
+        }
+    });
+    const toggleAnalysisTypeCommand = vscode.commands.registerCommand('echo-ai.toggleAnalysisType', async () => {
+        const analysisTypes = [
+            { label: 'Syntax Analysis', value: 'syntax' },
+            { label: 'Semantic Analysis', value: 'semantic' },
+            { label: 'Logic Analysis', value: 'logic' },
+            { label: 'Security Analysis', value: 'security' },
+            { label: 'Performance Analysis', value: 'performance' }
+        ];
+        const selectedType = await vscode.window.showQuickPick(analysisTypes, {
+            placeHolder: 'Select analysis type to toggle'
+        });
+        if (selectedType) {
+            const config = vscode.workspace.getConfiguration('echoAI.analysis');
+            const currentTypes = config.get('enabledTypes', ['syntax', 'semantic', 'logic', 'security', 'performance']);
+            const isEnabled = currentTypes.includes(selectedType.value);
+            let newTypes;
+            if (isEnabled) {
+                newTypes = currentTypes.filter(t => t !== selectedType.value);
+                vscode.window.showInformationMessage(`${selectedType.label} disabled`);
+            }
+            else {
+                newTypes = [...currentTypes, selectedType.value];
+                vscode.window.showInformationMessage(`${selectedType.label} enabled`);
+            }
+            await config.update('enabledTypes', newTypes, vscode.ConfigurationTarget.Global);
+            realTimeAnalyzer.toggleAnalysisType(selectedType.value, !isEnabled);
+        }
+    });
     // Status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(zap) Echo AI";
@@ -215,7 +304,7 @@ function activate(context) {
     statusBarItem.command = 'echo-ai.configure';
     statusBarItem.show();
     // Add all subscriptions
-    context.subscriptions.push(inlineCompletionProvider, completionItemProvider, errorDetectionProvider, explainCommand, refactorCommand, generateTestsCommand, fixErrorsCommand, configureCommand, statusBarItem);
+    context.subscriptions.push(inlineCompletionProvider, completionItemProvider, codeActionProvider, explainCommand, refactorCommand, generateTestsCommand, fixErrorsCommand, configureCommand, forceAnalysisCommand, autoFixAdvancedCommand, explainAdvancedIssueCommand, showSecurityRecommendationsCommand, toggleAnalysisTypeCommand, statusBarItem);
     // Show welcome message
     vscode.window.showInformationMessage('Echo AI is now active! Use Ctrl+Space for completions or right-click for AI features.', 'Configure').then(selection => {
         if (selection === 'Configure') {
@@ -225,6 +314,10 @@ function activate(context) {
 }
 function deactivate() {
     console.log('Echo AI extension is now deactivated');
+    // Clean up Phase 2 components
+    if (realTimeAnalyzer) {
+        realTimeAnalyzer.dispose();
+    }
 }
 function getExplanationWebviewContent(explanation, code) {
     return `<!DOCTYPE html>
@@ -277,6 +370,140 @@ function getExplanationWebviewContent(explanation, code) {
         <div class="explanation">${explanation.replace(/\n/g, '<br>')}</div>
         
         <p><em>Generated by Echo AI</em></p>
+    </body>
+    </html>`;
+}
+function getIssueExplanationWebviewContent(explanation, diagnostic) {
+    return `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Echo AI - Issue Explanation</title>
+        <style>
+            body {
+                font-family: var(--vscode-font-family);
+                font-size: var(--vscode-font-size);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+                padding: 20px;
+                line-height: 1.6;
+            }
+            
+            .issue-block {
+                background-color: var(--vscode-inputValidation-errorBackground);
+                border-left: 4px solid var(--vscode-inputValidation-errorBorder);
+                padding: 16px;
+                margin: 16px 0;
+                border-radius: 4px;
+            }
+            
+            .explanation {
+                margin: 20px 0;
+                padding: 16px;
+                background-color: var(--vscode-editor-selectionBackground);
+                border-radius: 4px;
+            }
+            
+            .severity-error { color: var(--vscode-errorForeground); }
+            .severity-warning { color: var(--vscode-warningForeground); }
+            .severity-info { color: var(--vscode-infoForeground); }
+            
+            h2 {
+                color: var(--vscode-textPreformat-foreground);
+                border-bottom: 1px solid var(--vscode-textSeparator-foreground);
+                padding-bottom: 8px;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>🔍 Advanced Issue Analysis</h2>
+        
+        <h3>Issue Details:</h3>
+        <div class="issue-block">
+            <p><strong>Message:</strong> ${escapeHtml(diagnostic.message)}</p>
+            <p><strong>Type:</strong> ${diagnostic.code}</p>
+            <p><strong>Severity:</strong> <span class="severity-${diagnostic.severity === 0 ? 'error' : diagnostic.severity === 1 ? 'warning' : 'info'}">${diagnostic.severity === 0 ? 'Error' : diagnostic.severity === 1 ? 'Warning' : 'Info'}</span></p>
+        </div>
+        
+        <h3>AI Analysis & Explanation:</h3>
+        <div class="explanation">${explanation.replace(/\n/g, '<br>')}</div>
+        
+        <p><em>Advanced analysis by Echo AI</em></p>
+    </body>
+    </html>`;
+}
+function getSecurityRecommendationsWebviewContent(recommendations, diagnostics) {
+    return `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Echo AI - Security Recommendations</title>
+        <style>
+            body {
+                font-family: var(--vscode-font-family);
+                font-size: var(--vscode-font-size);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+                padding: 20px;
+                line-height: 1.6;
+            }
+            
+            .security-issue {
+                background-color: var(--vscode-inputValidation-warningBackground);
+                border-left: 4px solid var(--vscode-inputValidation-warningBorder);
+                padding: 12px;
+                margin: 8px 0;
+                border-radius: 4px;
+            }
+            
+            .recommendations {
+                margin: 20px 0;
+                padding: 16px;
+                background-color: var(--vscode-textCodeBlock-background);
+                border-radius: 4px;
+            }
+            
+            .security-warning {
+                color: var(--vscode-warningForeground);
+                font-weight: bold;
+            }
+            
+            h2 {
+                color: var(--vscode-textPreformat-foreground);
+                border-bottom: 1px solid var(--vscode-textSeparator-foreground);
+                padding-bottom: 8px;
+            }
+            
+            ul {
+                margin: 10px 0;
+                padding-left: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>🛡️ Security Analysis & Recommendations</h2>
+        
+        <h3>Security Issues Found:</h3>
+        ${diagnostics.map(d => `<div class="security-issue">
+            <span class="security-warning">⚠️</span> ${escapeHtml(d.message)}
+        </div>`).join('')}
+        
+        <h3>AI Security Recommendations:</h3>
+        <div class="recommendations">${recommendations.replace(/\n/g, '<br>')}</div>
+        
+        <h3>General Security Best Practices:</h3>
+        <ul>
+            <li>Always validate and sanitize user input</li>
+            <li>Use environment variables for sensitive data</li>
+            <li>Keep dependencies up to date</li>
+            <li>Implement proper authentication and authorization</li>
+            <li>Use HTTPS for all communications</li>
+            <li>Follow the principle of least privilege</li>
+        </ul>
+        
+        <p><em>Security analysis by Echo AI</em></p>
     </body>
     </html>`;
 }
