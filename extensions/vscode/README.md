@@ -1,14 +1,13 @@
-<div align="center">
-  <img src="icon.png" alt="Echo AI Logo" width="120" height="120">
-  
-  # Echo AI - VS Code Extension
-  
-  🎭 **The Ultimate AI Development Studio for VS Code**
-  
-  Transform your development workflow with 35+ specialized AI agents, quantum-level code understanding, and predictive intelligence - all integrated directly into VS Code.
-</div>
+![Echo AI Logo](icon.png)
 
-## ✨ Key Features
+# Echo AI - VS Code Extension
+
+**The Ultimate AI Development Studio for VS Code**
+
+Transform your development workflow with 35+ specialized AI agents, quantum-level code understanding, and predictive intelligence — all integrated directly into VS Code.
+
+
+## Key Features
 
 ### 🚀 **Real-Time Code Completion**
 - **Intelligent Inline Completions**: Context-aware suggestions as you type
@@ -175,17 +174,17 @@ npm run package
 - Check extension logs in Output panel
 
 ### Support
-- **Issues**: [GitHub Issues](https://github.com/vijeet-shah/echo-ai-cli/issues)
-- **Documentation**: [Echo AI Docs](https://github.com/vijeet-shah/echo-ai-cli/README.md)
+- **Issues**: [GitHub Issues](https://github.com/vijeet-shah/echoai/issues)
+- **Documentation**: [Echo AI Docs](https://github.com/vijeet-shah/echoai/blob/main/README.md)
 - **Community**: Join our discussions on GitHub
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](../../CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](https://github.com/vijeet-shah/echoai/blob/main/CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-MIT License - see [LICENSE](../../LICENSE) for details.
+MIT License - see [LICENSE](https://github.com/vijeet-shah/echoai/blob/main/LICENSE) for details.
 
 ## 🙏 Acknowledgments
 

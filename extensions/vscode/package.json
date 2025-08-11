@@ -1,6 +1,6 @@
 {
   "name": "echo-ai-vscode",
-  "displayName": "Echo AI - Ultimate Development Studio",
+  "displayName": "Echo AI",
   "description": "35+ specialized AI agents, quantum code understanding, predictive intelligence. The most advanced AI coding assistant with multi-provider support.",
   "version": "1.0.2",
   "publisher": "LoopXo",
@@ -457,7 +457,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vijeet-shah/echo-ai-cli.git",
+    "url": "https://github.com/vijeet-shah/echoai.git",
     "directory": "extensions/vscode"
   },
   "license": "MIT",
