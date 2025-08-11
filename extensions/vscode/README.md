@@ -1,8 +1,12 @@
-# Echo AI - VSCode Extension
-
-🔮 **Advanced AI-Powered Development Assistant for Visual Studio Code**
-
-Transform your coding experience with Echo AI's intelligent assistance directly in your favorite editor. Get real-time code completions, instant error detection, and powerful AI-driven development features - all while maintaining your choice of AI provider.
+<div align="center">
+  <img src="icon.png" alt="Echo AI Logo" width="120" height="120">
+  
+  # Echo AI - VS Code Extension
+  
+  🎭 **The Ultimate AI Development Studio for VS Code**
+  
+  Transform your development workflow with 35+ specialized AI agents, quantum-level code understanding, and predictive intelligence - all integrated directly into VS Code.
+</div>
 
 ## ✨ Key Features
 

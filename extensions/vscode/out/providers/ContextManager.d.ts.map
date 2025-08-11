@@ -1,0 +1,1 @@
+{"version":3,"file":"ContextManager.d.ts","sourceRoot":"","sources":["../../src/providers/ContextManager.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,MAAM,QAAQ,CAAC;AAEjC,qBAAa,cAAc;IAGX,OAAO,CAAC,aAAa;IAFjC,OAAO,CAAC,gBAAgB,CAAa;gBAEjB,aAAa,EAAE,MAAM,CAAC,aAAa;YAIzC,0BAA0B;YAiB1B,uBAAuB;IAUrC,mBAAmB,IAAI,GAAG;IAgC1B,mBAAmB,IAAI,GAAG;IAI1B,OAAO,IAAI,IAAI;CAGlB"}

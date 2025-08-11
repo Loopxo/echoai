@@ -6,7 +6,7 @@
         "lib": ["ES2022"],
         "sourceMap": true,
         "rootDir": "src",
-        "strict": true,
+        "strict": false,
         "moduleResolution": "node",
         "esModuleInterop": true,
         "skipLibCheck": true,

@@ -95,7 +95,7 @@ export declare class SecurityRemediationEngine {
         progress: number;
         currentAction: string;
         startTime: number;
-    } | undefined;
+    };
     getAppliedRemediation(actionId: string): RemediationResult | undefined;
     getAllAppliedRemediations(): RemediationResult[];
     rollbackRemediation(actionId: string): Promise<boolean>;
