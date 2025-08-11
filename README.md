@@ -1,6 +1,10 @@
-# Echo - The Ultimate AI Development Studio
-
-> 🎭 The most advanced AI coding assistant with 35+ specialized agents, quantum-level code understanding, and predictive intelligence
+<div align="center">
+  <img src="assets/echo-logo.png" alt="Echo AI Logo" width="120" height="120">
+  
+  # Echo - The Ultimate AI Development Studio
+  
+  > 🎭 The most advanced AI coding assistant with 35+ specialized agents, quantum-level code understanding, and predictive intelligence
+</div>
 
 [![NPM Version](https://img.shields.io/npm/v/echoai.svg)](https://npmjs.org/package/echoai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
