@@ -19,6 +19,8 @@ import { IDEConnection } from './providers/IDEConnection';
 import { MultiModelManager } from './providers/MultiModelManager';
 import { ContextManager } from './providers/ContextManager';
 import { MemoryManager } from './providers/MemoryManager';
+import { CLIService } from './services/CLIService';
+import { OptimizedResourceManager } from './services/OptimizedResourceManager';
 
 let echoProvider: EchoAIProvider;
 let completionProvider: CompletionProvider;
@@ -34,31 +36,40 @@ let smartRefactoring: SmartRefactoring;
 let vulnerabilityScanner: VulnerabilityScanner;
 let securityRemediationEngine: SecurityRemediationEngine;
 let securityDashboard: SecurityDashboard;
+let cliService: CLIService;
+let resourceManager: OptimizedResourceManager;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Echo AI extension is now active!');
 
-    // Initialize core components
+    // Initialize core components with resource management
     const configManager = new ConfigurationManager();
-    echoProvider = new EchoAIProvider(configManager);
-    completionProvider = new CompletionProvider(echoProvider);
-    errorProvider = new ErrorDetectionProvider(echoProvider);
-    advancedDiagnosticsProvider = new AdvancedDiagnosticsProvider(echoProvider);
+    resourceManager = OptimizedResourceManager.getInstance(configManager);
     
-    // Phase 3: Performance optimization services
-    performanceMonitor = new PerformanceMonitor();
-    codebaseIndexer = new CodebaseIndexer();
-    incrementalAnalyzer = new IncrementalAnalyzer(codebaseIndexer, echoProvider);
+    // Register ALL components with lazy loading - only initialize when needed
+    resourceManager.registerComponent('echoProvider', () => new EchoAIProvider(configManager), 'high');
+    resourceManager.registerComponent('completionProvider', () => new CompletionProvider(echoProvider), 'high', ['echoProvider']);
+    resourceManager.registerComponent('errorProvider', () => new ErrorDetectionProvider(echoProvider), 'medium', ['echoProvider']);
+    resourceManager.registerComponent('advancedDiagnosticsProvider', () => new AdvancedDiagnosticsProvider(echoProvider), 'medium', ['echoProvider']);
+    resourceManager.registerComponent('realTimeAnalyzer', () => new RealTimeAnalyzer(echoProvider, diagnosticCollection), 'medium', ['echoProvider']);
+    resourceManager.registerComponent('performanceMonitor', () => new PerformanceMonitor(), 'low');
+    resourceManager.registerComponent('codebaseIndexer', () => new CodebaseIndexer(), 'low');
+    resourceManager.registerComponent('incrementalAnalyzer', () => new IncrementalAnalyzer(codebaseIndexer, echoProvider), 'low', ['codebaseIndexer', 'echoProvider']);
+    resourceManager.registerComponent('refactoringEngine', () => new RefactoringEngine(echoProvider, codebaseIndexer), 'low', ['echoProvider', 'codebaseIndexer']);
+    resourceManager.registerComponent('architecturalRefactoring', () => new ArchitecturalRefactoring(echoProvider, codebaseIndexer, refactoringEngine), 'low', ['echoProvider', 'codebaseIndexer', 'refactoringEngine']);
+    resourceManager.registerComponent('smartRefactoring', () => new SmartRefactoring(echoProvider, refactoringEngine, architecturalRefactoring), 'low', ['echoProvider', 'refactoringEngine', 'architecturalRefactoring']);
+    resourceManager.registerComponent('vulnerabilityScanner', () => new VulnerabilityScanner(echoProvider, codebaseIndexer), 'low', ['echoProvider', 'codebaseIndexer']);
+    resourceManager.registerComponent('securityRemediationEngine', () => new SecurityRemediationEngine(echoProvider, vulnerabilityScanner), 'low', ['echoProvider', 'vulnerabilityScanner']);
+    resourceManager.registerComponent('securityDashboard', () => new SecurityDashboard(context, echoProvider, vulnerabilityScanner, securityRemediationEngine), 'low', ['echoProvider', 'vulnerabilityScanner', 'securityRemediationEngine']);
     
-    // Phase 4: Advanced refactoring services
-    refactoringEngine = new RefactoringEngine(echoProvider, codebaseIndexer);
-    architecturalRefactoring = new ArchitecturalRefactoring(echoProvider, codebaseIndexer, refactoringEngine);
-    smartRefactoring = new SmartRefactoring(echoProvider, refactoringEngine, architecturalRefactoring);
-    
-    // Phase 5: Security vulnerability scanning services
-    vulnerabilityScanner = new VulnerabilityScanner(echoProvider, codebaseIndexer);
-    securityRemediationEngine = new SecurityRemediationEngine(echoProvider, vulnerabilityScanner);
-    securityDashboard = new SecurityDashboard(context, echoProvider, vulnerabilityScanner, securityRemediationEngine);
+    // Initialize ONLY essential components at startup - async loading
+    resourceManager.getComponent('echoProvider').then(provider => {
+        echoProvider = provider;
+        cliService = CLIService.getInstance(context, echoProvider, configManager);
+        cliService.log('success', 'Echo AI core components initialized');
+    }).catch(error => {
+        console.error('Failed to initialize core components:', error);
+    });
 
     // Register inline completion provider for all languages
     const inlineCompletionProvider = vscode.languages.registerInlineCompletionItemProvider(
@@ -139,6 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const selectedText = editor.document.getText(selection);
         try {
+            cliService.log('info', `Explaining code: ${selectedText.substring(0, 100)}...`);
             const explanation = await echoProvider.explainCode(selectedText, editor.document.languageId);
             
             // Show explanation in a webview panel
@@ -150,8 +162,11 @@ export function activate(context: vscode.ExtensionContext) {
             );
 
             panel.webview.html = getExplanationWebviewContent(explanation, selectedText);
+            cliService.log('success', 'Code explanation completed');
         } catch (error) {
-            vscode.window.showErrorMessage(`Echo AI error: ${error}`);
+            const errorMsg = `Echo AI error: ${error}`;
+            vscode.window.showErrorMessage(errorMsg);
+            cliService.log('error', errorMsg);
         }
     });
 
@@ -167,6 +182,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const selectedText = editor.document.getText(selection);
         try {
+            cliService.log('info', `Refactoring code: ${selectedText.substring(0, 100)}...`);
             const refactoredCode = await echoProvider.refactorCode(selectedText, editor.document.languageId);
             
             const edit = new vscode.WorkspaceEdit();
@@ -175,9 +191,12 @@ export function activate(context: vscode.ExtensionContext) {
             const applied = await vscode.workspace.applyEdit(edit);
             if (applied) {
                 vscode.window.showInformationMessage('Code refactored successfully!');
+                cliService.log('success', 'Code refactored successfully');
             }
         } catch (error) {
-            vscode.window.showErrorMessage(`Echo AI refactor error: ${error}`);
+            const errorMsg = `Echo AI refactor error: ${error}`;
+            vscode.window.showErrorMessage(errorMsg);
+            cliService.log('error', errorMsg);
         }
     });
 
@@ -263,7 +282,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // Phase 2: Advanced Analysis Commands
+    // Phase 2: Advanced Analysis Commands with lazy loading
     const forceAnalysisCommand = vscode.commands.registerCommand('echo-ai.forceAnalysis', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -273,7 +292,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         try {
             vscode.window.showInformationMessage('Running advanced analysis...');
-            await realTimeAnalyzer.forceAnalysis(editor.document);
+            const analyzer = await resourceManager.getComponent('realTimeAnalyzer');
+            await analyzer.forceAnalysis(editor.document);
             vscode.window.showInformationMessage('Advanced analysis completed');
         } catch (error) {
             vscode.window.showErrorMessage(`Analysis failed: ${error}`);
@@ -891,6 +911,26 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // CLI Commands
+    const showCLICommand = vscode.commands.registerCommand('echo-ai.showCLI', () => {
+        cliService.showCLI();
+        cliService.log('info', 'CLI interface opened');
+    });
+
+    const clearLogsCommand = vscode.commands.registerCommand('echo-ai.clearLogs', () => {
+        cliService.clearLogs();
+    });
+
+    // Auto-open CLI if configured
+    if (configManager.get<boolean>('cli.autoOpen', false)) {
+        setTimeout(() => {
+            cliService.showCLI();
+        }, 1000);
+    }
+
+    // Log extension activation
+    cliService.log('success', 'Echo AI extension activated and ready!');
+
     // Status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(zap) Echo AI";
@@ -933,22 +973,38 @@ export function activate(context: vscode.ExtensionContext) {
         generateComplianceReportCommand,
         fixHardcodedSecretsCommand,
         securityEducationCommand,
+        showCLICommand,
+        clearLogsCommand,
         statusBarItem
     );
 
     // Show welcome message
     vscode.window.showInformationMessage(
-        'Echo AI is now active! Use Ctrl+Space for completions or right-click for AI features.',
-        'Configure'
+        'Echo AI is now active! Use Ctrl+Space for completions, right-click for AI features, or open CLI.',
+        'Configure',
+        'Open CLI'
     ).then(selection => {
         if (selection === 'Configure') {
             vscode.commands.executeCommand('echo-ai.configure');
+        } else if (selection === 'Open CLI') {
+            vscode.commands.executeCommand('echo-ai.showCLI');
         }
     });
 }
 
 export function deactivate() {
     console.log('Echo AI extension is now deactivated');
+    
+    // Clean up CLI service
+    if (cliService) {
+        cliService.log('warning', 'Extension deactivating...');
+        cliService.dispose();
+    }
+    
+    // Clean up resource manager (will dispose all managed components)
+    if (resourceManager) {
+        resourceManager.dispose();
+    }
     
     // Clean up Phase 2 components
     if (realTimeAnalyzer) {

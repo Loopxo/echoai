@@ -37,11 +37,9 @@ exports.CompletionProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const CodeContextExtractor_1 = require("../utils/CodeContextExtractor");
 class CompletionProvider {
-    echoProvider;
-    contextExtractor;
-    completionCache = new Map();
-    CACHE_DURATION = 60000; // 1 minute
     constructor(echoProvider) {
+        this.completionCache = new Map();
+        this.CACHE_DURATION = 60000; // 1 minute
         this.echoProvider = echoProvider;
         this.contextExtractor = new CodeContextExtractor_1.CodeContextExtractor();
     }
@@ -227,4 +225,3 @@ Provide the most likely import statement based on usage patterns.`;
     }
 }
 exports.CompletionProvider = CompletionProvider;
-//# sourceMappingURL=CompletionProvider.js.map

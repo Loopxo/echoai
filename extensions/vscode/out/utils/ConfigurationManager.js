@@ -36,7 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConfigurationManager = void 0;
 const vscode = __importStar(require("vscode"));
 class ConfigurationManager {
-    SECTION = 'echoAI';
+    constructor() {
+        this.SECTION = 'echoAI';
+    }
     get(key, defaultValue) {
         const config = vscode.workspace.getConfiguration(this.SECTION);
         return config.get(key, defaultValue);
@@ -117,4 +119,3 @@ class ConfigurationManager {
     }
 }
 exports.ConfigurationManager = ConfigurationManager;
-//# sourceMappingURL=ConfigurationManager.js.map

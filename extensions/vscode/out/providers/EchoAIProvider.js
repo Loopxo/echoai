@@ -36,9 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EchoAIProvider = void 0;
 const vscode = __importStar(require("vscode"));
 class EchoAIProvider {
-    configManager;
-    providers = new Map();
     constructor(configManager) {
+        this.providers = new Map();
         this.configManager = configManager;
         this.initializeProviders();
     }
@@ -225,4 +224,3 @@ Provide only the completion code without explanations or markdown formatting.`;
     }
 }
 exports.EchoAIProvider = EchoAIProvider;
-//# sourceMappingURL=EchoAIProvider.js.map

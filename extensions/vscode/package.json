@@ -5,7 +5,7 @@
   "version": "1.0.2",
   "publisher": "LoopXo",
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.102.0"
   },
   "categories": [
     "Other",
@@ -15,7 +15,7 @@
   ],
   "keywords": [
     "ai",
-    "artificial intelligence", 
+    "artificial intelligence",
     "code completion",
     "agents",
     "specialized agents",
@@ -39,7 +39,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./out/simple-optimized-extension.js",
   "contributes": {
     "commands": [
       {
@@ -165,6 +165,14 @@
       {
         "command": "echo-ai.securityEducation",
         "title": "Security Education"
+      },
+      {
+        "command": "echo-ai.showCLI",
+        "title": "Open Echo AI CLI"
+      },
+      {
+        "command": "echo-ai.clearLogs",
+        "title": "Clear Echo AI Logs"
       }
     ],
     "keybindings": [
@@ -185,7 +193,14 @@
         "echoAI.provider": {
           "type": "string",
           "default": "claude",
-          "enum": ["claude", "openai", "groq", "openrouter", "gemini", "meta"],
+          "enum": [
+            "claude",
+            "openai",
+            "groq",
+            "openrouter",
+            "gemini",
+            "meta"
+          ],
           "description": "Default AI provider for completions"
         },
         "echoAI.model": {
@@ -215,10 +230,20 @@
         },
         "echoAI.analysis.enabledTypes": {
           "type": "array",
-          "default": ["syntax", "semantic", "logic", "security", "performance"],
+          "default": [
+            "syntax",
+            "semantic"
+          ],
           "items": {
             "type": "string",
-            "enum": ["syntax", "semantic", "logic", "security", "performance", "maintainability"]
+            "enum": [
+              "syntax",
+              "semantic",
+              "logic",
+              "security",
+              "performance",
+              "maintainability"
+            ]
           },
           "description": "Types of analysis to perform"
         },
@@ -229,7 +254,7 @@
         },
         "echoAI.analysis.analysisDelay": {
           "type": "number",
-          "default": 2000,
+          "default": 3000,
           "minimum": 500,
           "maximum": 10000,
           "description": "Delay in milliseconds before running analysis"
@@ -275,7 +300,12 @@
         },
         "echoAI.indexing.excludePatterns": {
           "type": "array",
-          "default": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/coverage/**"],
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/coverage/**"
+          ],
           "items": {
             "type": "string"
           },
@@ -328,10 +358,47 @@
         },
         "echoAI.performance.memoryThreshold": {
           "type": "number",
-          "default": 500,
+          "default": 200,
           "minimum": 100,
           "maximum": 2000,
           "description": "Memory usage threshold (MB) for performance warnings"
+        },
+        "echoAI.cli.autoOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically open CLI panel on extension activation"
+        },
+        "echoAI.cli.showLogs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Echo AI operation logs in CLI"
+        },
+        "echoAI.cli.maxLogEntries": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "maximum": 10000,
+          "description": "Maximum number of log entries to keep"
+        },
+        "echoAI.cli.theme": {
+          "type": "string",
+          "default": "dark",
+          "enum": [
+            "dark",
+            "light",
+            "auto"
+          ],
+          "description": "CLI interface theme"
+        },
+        "echoAI.optimization.lazyLoading": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable lazy loading of components for better performance"
+        },
+        "echoAI.optimization.resourceThrottling": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable resource throttling on low-spec systems"
         }
       }
     },
@@ -440,20 +507,20 @@
     "package": "vsce package"
   },
   "devDependencies": {
-    "@types/vscode": "^1.74.0",
-    "@types/node": "20.x",
-    "@typescript-eslint/eslint-plugin": "^6.4.1",
-    "@typescript-eslint/parser": "^6.4.1",
-    "eslint": "^8.47.0",
-    "typescript": "^5.1.6",
-    "@vscode/test-electron": "^2.3.4",
-    "@vscode/vsce": "^2.21.0"
+    "@types/node": "~20.19.10",
+    "@types/vscode": "^1.102.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^2.32.0",
+    "eslint": "^8.57.1",
+    "typescript": "^5.9.2"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "@anthropic-ai/sdk": "^0.24.0",
-    "openai": "^4.20.0",
-    "groq-sdk": "^0.7.0"
+    "@anthropic-ai/sdk": "^0.24.3",
+    "axios": "^1.11.0",
+    "groq-sdk": "^0.7.0",
+    "openai": "^4.104.0"
   },
   "repository": {
     "type": "git",
