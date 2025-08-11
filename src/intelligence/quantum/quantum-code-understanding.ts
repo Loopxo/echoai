@@ -711,4 +711,4 @@ class QuantumRecommendationEngine {
     }
 }
 
-export { QuantumCodeUnderstandingSystem };
+// QuantumCodeUnderstandingSystem is already exported above

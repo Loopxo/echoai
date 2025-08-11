@@ -1,5 +1,6 @@
-import { ProviderManager } from '../core/provider-manager.js';
-import { Config } from '../config/index.js';
+import { ProviderManager } from '../../core/provider-manager.js';
+import type { Config } from '../../config/index.js';
+import { ConfigManager } from '../../config/manager.js';
 
 export interface Intent {
     name: string;
@@ -10,7 +11,15 @@ export interface Intent {
 }
 
 export interface IntentContext {
-    domain: 'code' | 'file' | 'project' | 'debug' | 'optimization' | 'documentation' | 'general';
+    domain: 'code' | 'file' | 'project' | 'debug' | 'optimization' | 'documentation' | 'general' | 
+           'ai' | 'ml' | 'architecture' | 'database' | 'infrastructure' | 'deployment' | 'monitoring' |
+           'ui' | 'frontend' | 'mobile' | 'ios' | 'android' | 'prototype' | 'mvp' | 'validation' |
+           'testing' | 'quality' | 'debugging' | 'design' | 'branding' | 'visual' | 'research' |
+           'ux' | 'interaction' | 'animation' | 'marketing' | 'growth' | 'analytics' | 'content' |
+           'copywriting' | 'app_store' | 'social_media' | 'instagram' | 'tiktok' | 'twitter' |
+           'community' | 'reddit' | 'planning' | 'strategy' | 'feedback' | 'market' | 'performance' |
+           'workflow' | 'metrics' | 'reporting' | 'maintenance' | 'components' | 'user_testing' |
+           'storytelling' | 'product' | 'user_research' | 'api' | 'integration';
     task: string;
     language?: string;
     framework?: string;
@@ -38,8 +47,8 @@ export class AdvancedNLPIntentAnalyzer {
     private providerManager: ProviderManager;
     private intentHistory: Array<{ intent: Intent; timestamp: Date; success: boolean }> = [];
 
-    constructor(private config: Config) {
-        this.providerManager = new ProviderManager(config);
+    constructor(private configManager: ConfigManager) {
+        this.providerManager = new ProviderManager(configManager);
         this.initializePatterns();
     }
 
@@ -348,13 +357,13 @@ export class AdvancedNLPIntentAnalyzer {
         // Infer language from context
         const languageMatch = input.match(/(?:in|using|with)\s+(javascript|typescript|python|java|c\+\+|c#|go|rust|php|swift|kotlin)/i);
         if (languageMatch) {
-            context.language = languageMatch[1].toLowerCase();
+            context.language = languageMatch[1]?.toLowerCase();
         }
         
         // Infer framework
         const frameworkMatch = input.match(/(react|vue|angular|svelte|express|fastapi|spring|django|flask)/i);
         if (frameworkMatch) {
-            context.framework = frameworkMatch[1].toLowerCase();
+            context.framework = frameworkMatch[1]?.toLowerCase();
         }
         
         return context;
@@ -438,7 +447,8 @@ export class AdvancedNLPIntentAnalyzer {
 
     private async analyzeWithAI(input: string, context?: Partial<IntentContext>): Promise<Intent | null> {
         try {
-            const provider = this.providerManager.getProvider(this.config.provider || 'claude');
+            const config = await this.configManager.getConfig();
+            const provider = this.providerManager.getProvider(Object.keys(config.providers || {})[0] || 'claude');
             
             const analysisPrompt = `
 Analyze this user request and extract the intent, parameters, and context:
@@ -470,7 +480,10 @@ Respond with a JSON object containing:
 
 Be precise and only extract information that's clearly present in the input.`;
 
-            const response = await provider.generateCompletion(analysisPrompt, '', 'intent-analysis', 1000);
+            const response = await (await provider).complete(analysisPrompt, {
+                maxTokens: 1000,
+                temperature: 0.3
+            });
             
             try {
                 const analyzed = JSON.parse(response);
@@ -586,7 +599,7 @@ Be precise and only extract information that's clearly present in the input.`;
         
         // Convert to percentages
         for (const intentName in stats) {
-            stats[intentName].successRate = stats[intentName].successRate / stats[intentName].count;
+            stats[intentName]!.successRate = stats[intentName]!.successRate / stats[intentName]!.count;
         }
         
         return stats;

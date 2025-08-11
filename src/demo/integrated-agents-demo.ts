@@ -7,18 +7,17 @@
 
 import { AdvancedAgentOrchestrator } from '../agents/nlp/agent-orchestrator.js';
 import { StudioAgentRegistry } from '../agents/studio-agent-registry.js';
-import { Config } from '../config/index.js';
+import { ConfigManager } from '../config/manager.js';
+import type { Config } from '../config/index.js';
 
 export class IntegratedAgentsDemo {
     private orchestrator: AdvancedAgentOrchestrator;
 
     constructor() {
-        const config = new Config({
-            provider: 'claude',
-            apiKey: process.env.ANTHROPIC_API_KEY || 'demo-key'
-        });
+        const configManager = new ConfigManager();
         
-        this.orchestrator = new AdvancedAgentOrchestrator(config);
+        // Create a minimal config for demo
+        this.orchestrator = new AdvancedAgentOrchestrator(configManager);
     }
 
     async runComprehensiveDemo(): Promise<void> {
@@ -71,22 +70,22 @@ export class IntegratedAgentsDemo {
             {
                 input: "I need to integrate OpenAI's GPT-4 API into my React app for chat functionality",
                 expectedAgent: 'ai_engineer',
-                context: { domain: 'ai', complexity: 'complex' }
+                context: { domain: 'ai' as const, complexity: 'complex' as const }
             },
             {
                 input: "Design a scalable REST API for a social media platform with user authentication",
                 expectedAgent: 'backend_architect', 
-                context: { domain: 'architecture', complexity: 'expert' }
+                context: { domain: 'architecture' as const, complexity: 'expert' as const }
             },
             {
                 input: "Set up automated deployment pipeline with GitHub Actions and Docker",
                 expectedAgent: 'devops_automator',
-                context: { domain: 'infrastructure', complexity: 'moderate' }
+                context: { domain: 'infrastructure' as const, complexity: 'moderate' as const }
             },
             {
                 input: "Build a responsive dashboard component with React and TypeScript",
                 expectedAgent: 'frontend_developer',
-                context: { domain: 'ui', complexity: 'moderate' }
+                context: { domain: 'ui' as const, complexity: 'moderate' as const }
             }
         ];
 
@@ -111,17 +110,17 @@ export class IntegratedAgentsDemo {
             {
                 input: "Create a cohesive design system for our fitness app with consistent colors and typography",
                 expectedAgent: 'brand_guardian',
-                context: { domain: 'branding', complexity: 'complex' }
+                context: { domain: 'branding' as const, complexity: 'complex' as const }
             },
             {
                 input: "Design a modern onboarding flow UI that converts well on mobile",
                 expectedAgent: 'ui_designer',
-                context: { domain: 'ui', complexity: 'moderate' }
+                context: { domain: 'ui' as const, complexity: 'moderate' as const }
             },
             {
                 input: "Research user pain points in our checkout process and recommend improvements",
                 expectedAgent: 'ux_researcher',
-                context: { domain: 'research', complexity: 'moderate' }
+                context: { domain: 'research' as const, complexity: 'moderate' as const }
             }
         ];
 
@@ -146,17 +145,17 @@ export class IntegratedAgentsDemo {
             {
                 input: "Create a viral loop mechanism to increase our app's user acquisition by 300%",
                 expectedAgent: 'growth_hacker',
-                context: { domain: 'growth', complexity: 'expert' }
+                context: { domain: 'growth' as const, complexity: 'expert' as const }
             },
             {
                 input: "Write engaging TikTok video concepts that showcase our AI tool's capabilities",
                 expectedAgent: 'tiktok_strategist',
-                context: { domain: 'social_media', complexity: 'moderate' }
+                context: { domain: 'social_media' as const, complexity: 'moderate' as const }
             },
             {
                 input: "Optimize our app store listing to rank higher for 'productivity app' searches",
                 expectedAgent: 'app_store_optimizer',
-                context: { domain: 'app_store', complexity: 'moderate' }
+                context: { domain: 'app_store' as const, complexity: 'moderate' as const }
             }
         ];
 
@@ -181,17 +180,17 @@ export class IntegratedAgentsDemo {
             {
                 input: "Help prioritize features for our 6-day sprint: AI chat, dark mode, or push notifications?",
                 expectedAgent: 'sprint_prioritizer',
-                context: { domain: 'planning', complexity: 'moderate' }
+                context: { domain: 'planning' as const, complexity: 'moderate' as const }
             },
             {
                 input: "Analyze 500+ user feedback messages and extract the top feature requests",
                 expectedAgent: 'feedback_synthesizer',
-                context: { domain: 'feedback', complexity: 'complex' }
+                context: { domain: 'feedback' as const, complexity: 'complex' as const }
             },
             {
                 input: "Research emerging trends in productivity apps that we could adopt",
                 expectedAgent: 'trend_researcher',
-                context: { domain: 'research', complexity: 'moderate' }
+                context: { domain: 'research' as const, complexity: 'moderate' as const }
             }
         ];
 
@@ -216,17 +215,17 @@ export class IntegratedAgentsDemo {
             {
                 input: "Set up comprehensive analytics tracking for our user onboarding funnel",
                 expectedAgent: 'analytics_reporter',
-                context: { domain: 'analytics', complexity: 'moderate' }
+                context: { domain: 'analytics' as const, complexity: 'moderate' as const }
             },
             {
                 input: "Create automated API tests for our authentication endpoints",
                 expectedAgent: 'api_tester',
-                context: { domain: 'testing', complexity: 'moderate' }
+                context: { domain: 'testing' as const, complexity: 'moderate' as const }
             },
             {
                 input: "Benchmark our app's performance and identify bottlenecks",
                 expectedAgent: 'performance_benchmarker',
-                context: { domain: 'performance', complexity: 'complex' }
+                context: { domain: 'performance' as const, complexity: 'complex' as const }
             }
         ];
 

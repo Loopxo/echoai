@@ -21,7 +21,7 @@ export abstract class EchoPlugin {
 export abstract class AgentPlugin extends EchoPlugin {
     abstract getAgentDefinition(): PluginAgent;
     
-    abstract async handleRequest(intent: string, parameters: any, context: any): Promise<any>;
+    abstract handleRequest(intent: string, parameters: any, context: any): Promise<any>;
     
     async activate(): Promise<void> {
         const agentDef = this.getAgentDefinition();
@@ -41,7 +41,7 @@ export abstract class AgentPlugin extends EchoPlugin {
 export abstract class ProviderPlugin extends EchoPlugin {
     abstract getProviderDefinition(): PluginProvider;
     
-    abstract async generateCompletion(
+    abstract generateCompletion(
         prompt: string,
         systemMessage: string,
         context: string,
@@ -49,7 +49,7 @@ export abstract class ProviderPlugin extends EchoPlugin {
         options?: any
     ): Promise<string>;
     
-    abstract async generateChat(messages: any[], options?: any): Promise<string>;
+    abstract generateChat(messages: any[], options?: any): Promise<string>;
     
     async activate(): Promise<void> {
         const providerDef = this.getProviderDefinition();
@@ -155,7 +155,7 @@ export class PluginUtils {
         while ((match = codeBlockRegex.exec(text)) !== null) {
             blocks.push({
                 language: match[1] || 'text',
-                code: match[2]
+                code: match[2]!
             });
         }
         

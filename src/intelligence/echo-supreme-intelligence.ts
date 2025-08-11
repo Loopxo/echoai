@@ -3,7 +3,8 @@ import { PredictiveIntelligenceEngine } from './realtime/predictive-intelligence
 import { QuantumCodeUnderstandingSystem } from './quantum/quantum-code-understanding.js';
 import { AdvancedAgentOrchestrator } from '../agents/nlp/agent-orchestrator.js';
 import { AdvancedPluginManager } from '../plugins/core/plugin-manager.js';
-import { Config } from '../config/index.js';
+import type { Config } from '../config/index.js';
+import { ConfigManager } from '../config/manager.js';
 
 /**
  * Echo Supreme Intelligence System
@@ -115,9 +116,9 @@ export class EchoSupremeIntelligence {
     private transcendenceDetector: TranscendenceDetector;
     
     // Intelligence state
-    private currentCapabilities: SupremeIntelligenceCapabilities;
-    private consciousnessLevel: ConsciousnessLevel;
-    private intelligenceEvolution: Array<{
+    private currentCapabilities!: SupremeIntelligenceCapabilities;
+    private consciousnessLevel!: ConsciousnessLevel;
+    private intelligenceEvolution!: Array<{
         timestamp: Date;
         level: number;
         breakthrough: string;
@@ -128,13 +129,13 @@ export class EchoSupremeIntelligence {
     private selfModificationEngine: SelfModificationEngine;
     private emergentPropertyDetector: EmergentPropertyDetector;
     
-    constructor(private config: Config) {
+    constructor(private configManager: ConfigManager) {
         // Initialize core engines
-        this.codeEngine = new AdvancedCodeIntelligenceEngine(config);
+        this.codeEngine = new AdvancedCodeIntelligenceEngine(configManager);
         this.predictiveEngine = new PredictiveIntelligenceEngine(this.codeEngine);
         this.quantumEngine = new QuantumCodeUnderstandingSystem(this.codeEngine, this.predictiveEngine);
-        this.agentOrchestrator = new AdvancedAgentOrchestrator(config);
-        this.pluginManager = new AdvancedPluginManager(config);
+        this.agentOrchestrator = new AdvancedAgentOrchestrator(configManager);
+        this.pluginManager = new AdvancedPluginManager(configManager);
         
         // Initialize supreme components
         this.consciousnessCore = new ConsciousnessCore();

@@ -1,6 +1,6 @@
 import { AdvancedNLPIntentAnalyzer, Intent, IntentContext } from './intent-analyzer.js';
-import { ProviderManager } from '../core/provider-manager.js';
-import { Config } from '../config/index.js';
+import { ProviderManager } from '../../core/provider-manager.js';
+import type { Config } from '../../config/index.js';
 import { StudioAgentRegistry, StudioAgentCapability } from '../studio-agent-registry.js';
 
 export interface AgentCapability {
@@ -49,7 +49,7 @@ export class AdvancedAgentOrchestrator {
     private contextualPrompts: ContextualPrompt[] = [];
     private useStudioAgents: boolean = true;
 
-    constructor(private config: Config) {
+    constructor(private config: Config | any) {
         this.intentAnalyzer = new AdvancedNLPIntentAnalyzer(config);
         this.providerManager = new ProviderManager(config);
         this.initializeAgents();
@@ -284,7 +284,20 @@ export class AdvancedAgentOrchestrator {
 
         if (eligibleAgents.length === 0) {
             // Fallback to general helper
-            return this.agents.get('general_helper')!;
+            const fallbackAgent = this.agents.get('general_helper');
+            if (fallbackAgent) {
+                return fallbackAgent;
+            }
+            // If no fallback, create a minimal agent
+            return {
+                name: 'general_helper',
+                description: 'General assistance agent',
+                intents: ['help', 'general'],
+                contexts: ['general'],
+                complexity: ['simple', 'moderate'],
+                priority: 1,
+                isActive: true
+            };
         }
 
         // Sort by priority and confidence compatibility, prefer studio agents
@@ -294,7 +307,7 @@ export class AdvancedAgentOrchestrator {
             return bScore - aScore;
         });
 
-        return eligibleAgents[0];
+        return eligibleAgents[0]!;
     }
 
     private isStudioAgent(agent: AgentCapability | StudioAgentCapability): boolean {
@@ -402,13 +415,11 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
         const modelOptions = this.getModelOptionsForAgent(agent, intent);
         
         try {
-            const response = await provider.generateCompletion(
+            const response = await (await provider).complete(
                 prompt.enhancedPrompt,
-                '', // system message handled in prompt
-                agent.name,
-                modelOptions.maxTokens,
                 {
                     temperature: modelOptions.temperature,
+                    maxTokens: modelOptions.maxTokens,
                     model: modelOptions.model
                 }
             );

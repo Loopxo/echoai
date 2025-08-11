@@ -1,8 +1,9 @@
-import { ProviderManager } from '../core/provider-manager.js';
-import { AdvancedAgentOrchestrator } from '../agents/nlp/agent-orchestrator.js';
-import { MemoryManager } from '../../extensions/vscode/src/providers/MemoryManager.js';
-import { ContextManager } from '../../extensions/vscode/src/providers/ContextManager.js';
-import { Config } from '../config/index.js';
+import { ProviderManager } from '../../core/provider-manager.js';
+import { AdvancedAgentOrchestrator } from '../../agents/nlp/agent-orchestrator.js';
+import type { Config } from '../../config/index.js';
+import { ConfigManager } from '../../config/manager.js';
+// import { MemoryManager } from '../../extensions/vscode/src/providers/MemoryManager.js';
+// import { ContextManager } from '../../extensions/vscode/src/providers/ContextManager.js';
 
 export interface CodeIntelligenceContext {
     // File context
@@ -196,8 +197,9 @@ export interface CodeExplanation {
 export class AdvancedCodeIntelligenceEngine {
     private providerManager: ProviderManager;
     private agentOrchestrator: AdvancedAgentOrchestrator;
-    private memoryManager: MemoryManager;
-    private contextManager: ContextManager;
+    // Memory and context managers - commented out for now
+    // private memoryManager: MemoryManager;
+    // private contextManager: ContextManager;
     
     // Intelligence modules
     private codeAnalyzer: AdvancedCodeAnalyzer;
@@ -209,9 +211,9 @@ export class AdvancedCodeIntelligenceEngine {
     private learningEngine: AdaptiveLearningEngine;
     private userProfiler: UserProfiler;
     
-    constructor(private config: Config) {
-        this.providerManager = new ProviderManager(config);
-        this.agentOrchestrator = new AdvancedAgentOrchestrator(config);
+    constructor(private configManager: ConfigManager) {
+        this.providerManager = new ProviderManager(configManager);
+        this.agentOrchestrator = new AdvancedAgentOrchestrator(configManager);
         
         // Initialize intelligence modules
         this.codeAnalyzer = new AdvancedCodeAnalyzer(this.providerManager);
@@ -290,7 +292,10 @@ export class AdvancedCodeIntelligenceEngine {
         const completions = await Promise.all(
             completionPrompts.map(async ({ prompt, model }) => {
                 const provider = this.providerManager.getProvider(model);
-                const response = await provider.generateCompletion(prompt, '', 'completion', 1000);
+                const response = await (await provider).complete(prompt, {
+                    maxTokens: 1000,
+                    temperature: 0.3
+                });
                 return this.parseCompletionResponse(response, model, context);
             })
         );
@@ -308,7 +313,10 @@ export class AdvancedCodeIntelligenceEngine {
         
         // Use the most suitable model for explanations
         const provider = this.providerManager.getProvider('claude'); // Claude is best for explanations
-        const response = await provider.generateCompletion(explanationPrompt, '', 'explanation', 2000);
+        const response = await (await provider).complete(explanationPrompt, {
+            maxTokens: 2000,
+            temperature: 0.3
+        });
         
         return this.parseExplanationResponse(response, codeToExplain, context);
     }
@@ -494,7 +502,7 @@ export class AdvancedCodeIntelligenceEngine {
         const preferred = modelPreferences[language as keyof typeof modelPreferences] || modelPreferences.default;
         
         // For high complexity tasks, use multiple models for ensemble
-        return complexity > 0.7 ? preferred.slice(0, 2) : [preferred[0]];
+        return complexity > 0.7 ? preferred.slice(0, 2) : [preferred[0]!];
     }
 
     private assessComplexity(context: CodeIntelligenceContext): number {

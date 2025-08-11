@@ -1,6 +1,8 @@
 import { ConfigManager } from './manager.js';
 import { Config } from '../types/index.js';
 
+export type { Config };
+
 const configManager = new ConfigManager();
 
 export async function loadConfig(): Promise<Config> {

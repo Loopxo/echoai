@@ -238,7 +238,7 @@ export interface PluginAPI {
 export class AdvancedPluginManager extends EventEmitter {
     private plugins = new Map<string, LoadedPlugin>();
     private pluginDirectories: string[] = [];
-    private api: PluginAPI;
+    private api!: PluginAPI;
     private securityManager: PluginSecurityManager;
     
     constructor(

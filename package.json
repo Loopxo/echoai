@@ -75,6 +75,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
     "@types/diff": "^7.0.2",
+    "@types/ws": "^8.18.1",
     "axios": "^1.6.0",
     "commander": "^11.1.0",
     "cosmiconfig": "^9.0.0",
@@ -83,6 +84,7 @@
     "groq-sdk": "^0.7.0",
     "inquirer": "^9.2.0",
     "openai": "^4.20.0",
+    "ws": "^8.18.3",
     "zod": "^3.22.0"
   },
   "devDependencies": {
