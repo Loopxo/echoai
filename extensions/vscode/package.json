@@ -39,13 +39,9 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/simple-optimized-extension.js",
+  "main": "./out/clean-extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "echo-ai.complete",
-        "title": "Complete with Echo AI"
-      },
       {
         "command": "echo-ai.explain",
         "title": "Explain Code"
@@ -59,132 +55,28 @@
         "title": "Generate Tests"
       },
       {
-        "command": "echo-ai.fixErrors",
-        "title": "Fix Syntax Errors"
-      },
-      {
         "command": "echo-ai.configure",
         "title": "Configure Echo AI"
-      },
-      {
-        "command": "echo-ai.forceAnalysis",
-        "title": "Force Advanced Analysis"
-      },
-      {
-        "command": "echo-ai.autoFixAdvanced",
-        "title": "Auto-fix Advanced Issues"
-      },
-      {
-        "command": "echo-ai.explainAdvancedIssue",
-        "title": "Explain Advanced Issue"
-      },
-      {
-        "command": "echo-ai.showSecurityRecommendations",
-        "title": "Show Security Recommendations"
-      },
-      {
-        "command": "echo-ai.toggleAnalysisType",
-        "title": "Toggle Analysis Type"
-      },
-      {
-        "command": "echo-ai.indexWorkspace",
-        "title": "Index Workspace"
-      },
-      {
-        "command": "echo-ai.analyzeWorkspace",
-        "title": "Analyze Workspace"
-      },
-      {
-        "command": "echo-ai.showPerformanceReport",
-        "title": "Show Performance Report"
-      },
-      {
-        "command": "echo-ai.showCodebaseStats",
-        "title": "Show Codebase Statistics"
-      },
-      {
-        "command": "echo-ai.clearAnalysisCache",
-        "title": "Clear Analysis Cache"
-      },
-      {
-        "command": "echo-ai.optimizePerformance",
-        "title": "Optimize Performance"
-      },
-      {
-        "command": "echo-ai.findSymbol",
-        "title": "Find Symbol"
-      },
-      {
-        "command": "echo-ai.smartRefactor",
-        "title": "Smart Refactoring Wizard"
-      },
-      {
-        "command": "echo-ai.analyzeArchitecture",
-        "title": "Analyze Architecture"
-      },
-      {
-        "command": "echo-ai.refactorOpportunities",
-        "title": "Find Refactoring Opportunities"
-      },
-      {
-        "command": "echo-ai.aiRefactorRecommendations",
-        "title": "AI Refactoring Recommendations"
-      },
-      {
-        "command": "echo-ai.extractMethod",
-        "title": "Extract Method"
-      },
-      {
-        "command": "echo-ai.modernizeCode",
-        "title": "Modernize Code Syntax"
-      },
-      {
-        "command": "echo-ai.securityScan",
-        "title": "Run Security Scan"
-      },
-      {
-        "command": "echo-ai.showSecurityDashboard",
-        "title": "Show Security Dashboard"
-      },
-      {
-        "command": "echo-ai.quickSecurityScan",
-        "title": "Quick Security Scan"
-      },
-      {
-        "command": "echo-ai.automatedRemediation",
-        "title": "Automated Security Remediation"
-      },
-      {
-        "command": "echo-ai.generateComplianceReport",
-        "title": "Generate Compliance Report"
-      },
-      {
-        "command": "echo-ai.fixHardcodedSecrets",
-        "title": "Fix Hardcoded Secrets"
-      },
-      {
-        "command": "echo-ai.securityEducation",
-        "title": "Security Education"
       },
       {
         "command": "echo-ai.showCLI",
         "title": "Open Echo AI CLI"
       },
       {
-        "command": "echo-ai.clearLogs",
-        "title": "Clear Echo AI Logs"
+        "command": "echo-ai.performance",
+        "title": "Show Performance"
       }
     ],
     "keybindings": [
       {
-        "command": "echo-ai.complete",
-        "key": "ctrl+space",
-        "when": "editorTextFocus"
-      },
-      {
         "command": "echo-ai.explain",
         "key": "ctrl+shift+e",
         "when": "editorHasSelection"
+      },
+      {
+        "command": "echo-ai.showCLI",
+        "key": "ctrl+shift+c",
+        "when": "editorTextFocus"
       }
     ],
     "configuration": {
@@ -193,212 +85,28 @@
         "echoAI.provider": {
           "type": "string",
           "default": "claude",
-          "enum": [
-            "claude",
-            "openai",
-            "groq",
-            "openrouter",
-            "gemini",
-            "meta"
-          ],
-          "description": "Default AI provider for completions"
+          "enum": ["claude", "openai", "groq", "openrouter", "gemini", "meta"],
+          "description": "AI provider for completions"
         },
         "echoAI.model": {
           "type": "string",
           "default": "claude-3-5-sonnet-20241022",
           "description": "Model to use for completions"
         },
-        "echoAI.completionDelay": {
-          "type": "number",
-          "default": 500,
-          "description": "Delay in milliseconds before triggering completion"
-        },
         "echoAI.enableInlineCompletion": {
           "type": "boolean",
           "default": true,
-          "description": "Enable real-time inline completions"
+          "description": "Enable inline completions"
         },
-        "echoAI.enableErrorDetection": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable real-time syntax error detection"
+        "echoAI.completionDelay": {
+          "type": "number",
+          "default": 1000,
+          "description": "Delay before showing completions (ms)"
         },
         "echoAI.maxContextSize": {
           "type": "number",
-          "default": 4000,
+          "default": 2000,
           "description": "Maximum context size for AI requests"
-        },
-        "echoAI.analysis.enabledTypes": {
-          "type": "array",
-          "default": [
-            "syntax",
-            "semantic"
-          ],
-          "items": {
-            "type": "string",
-            "enum": [
-              "syntax",
-              "semantic",
-              "logic",
-              "security",
-              "performance",
-              "maintainability"
-            ]
-          },
-          "description": "Types of analysis to perform"
-        },
-        "echoAI.analysis.realTimeEnabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable real-time analysis as you type"
-        },
-        "echoAI.analysis.analysisDelay": {
-          "type": "number",
-          "default": 3000,
-          "minimum": 500,
-          "maximum": 10000,
-          "description": "Delay in milliseconds before running analysis"
-        },
-        "echoAI.analysis.maxFileSize": {
-          "type": "number",
-          "default": 200000,
-          "minimum": 10000,
-          "maximum": 1000000,
-          "description": "Maximum file size (in characters) to analyze"
-        },
-        "echoAI.security.enableHardcodedSecretDetection": {
-          "type": "boolean",
-          "default": true,
-          "description": "Detect hardcoded passwords, API keys, and secrets"
-        },
-        "echoAI.security.enableXSSDetection": {
-          "type": "boolean",
-          "default": true,
-          "description": "Detect potential XSS vulnerabilities"
-        },
-        "echoAI.security.enableSQLInjectionDetection": {
-          "type": "boolean",
-          "default": true,
-          "description": "Detect potential SQL injection vulnerabilities"
-        },
-        "echoAI.performance.enableComplexityAnalysis": {
-          "type": "boolean",
-          "default": true,
-          "description": "Analyze code complexity and suggest optimizations"
-        },
-        "echoAI.performance.complexityThreshold": {
-          "type": "number",
-          "default": 10,
-          "minimum": 5,
-          "maximum": 50,
-          "description": "Cyclomatic complexity threshold for warnings"
-        },
-        "echoAI.indexing.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable automatic codebase indexing"
-        },
-        "echoAI.indexing.excludePatterns": {
-          "type": "array",
-          "default": [
-            "**/node_modules/**",
-            "**/dist/**",
-            "**/build/**",
-            "**/coverage/**"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "File patterns to exclude from indexing"
-        },
-        "echoAI.indexing.maxFileSize": {
-          "type": "number",
-          "default": 500000,
-          "minimum": 50000,
-          "maximum": 2000000,
-          "description": "Maximum file size (in bytes) to index"
-        },
-        "echoAI.indexing.chunkSize": {
-          "type": "number",
-          "default": 100,
-          "minimum": 10,
-          "maximum": 1000,
-          "description": "Number of files to process in each indexing batch"
-        },
-        "echoAI.incremental.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable incremental analysis with dependency tracking"
-        },
-        "echoAI.incremental.maxConcurrentAnalyses": {
-          "type": "number",
-          "default": 3,
-          "minimum": 1,
-          "maximum": 10,
-          "description": "Maximum number of concurrent file analyses"
-        },
-        "echoAI.incremental.batchSize": {
-          "type": "number",
-          "default": 10,
-          "minimum": 5,
-          "maximum": 50,
-          "description": "Number of files to analyze in each batch"
-        },
-        "echoAI.performance.enableMonitoring": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable performance monitoring and alerts"
-        },
-        "echoAI.performance.monitoringInterval": {
-          "type": "number",
-          "default": 10000,
-          "minimum": 5000,
-          "maximum": 60000,
-          "description": "Performance monitoring interval in milliseconds"
-        },
-        "echoAI.performance.memoryThreshold": {
-          "type": "number",
-          "default": 200,
-          "minimum": 100,
-          "maximum": 2000,
-          "description": "Memory usage threshold (MB) for performance warnings"
-        },
-        "echoAI.cli.autoOpen": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically open CLI panel on extension activation"
-        },
-        "echoAI.cli.showLogs": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show Echo AI operation logs in CLI"
-        },
-        "echoAI.cli.maxLogEntries": {
-          "type": "number",
-          "default": 1000,
-          "minimum": 100,
-          "maximum": 10000,
-          "description": "Maximum number of log entries to keep"
-        },
-        "echoAI.cli.theme": {
-          "type": "string",
-          "default": "dark",
-          "enum": [
-            "dark",
-            "light",
-            "auto"
-          ],
-          "description": "CLI interface theme"
-        },
-        "echoAI.optimization.lazyLoading": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable lazy loading of components for better performance"
-        },
-        "echoAI.optimization.resourceThrottling": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable resource throttling on low-spec systems"
         }
       }
     },
@@ -410,7 +118,7 @@
           "group": "echo-ai"
         },
         {
-          "command": "echo-ai.refactor",
+          "command": "echo-ai.refactor", 
           "when": "editorHasSelection",
           "group": "echo-ai"
         },
@@ -418,81 +126,6 @@
           "command": "echo-ai.generateTests",
           "when": "editorTextFocus",
           "group": "echo-ai"
-        },
-        {
-          "command": "echo-ai.forceAnalysis",
-          "when": "editorTextFocus",
-          "group": "echo-ai-analysis"
-        },
-        {
-          "command": "echo-ai.toggleAnalysisType",
-          "when": "editorTextFocus",
-          "group": "echo-ai-analysis"
-        },
-        {
-          "command": "echo-ai.findSymbol",
-          "when": "editorTextFocus",
-          "group": "echo-ai-analysis"
-        },
-        {
-          "command": "echo-ai.showCodebaseStats",
-          "when": "editorTextFocus",
-          "group": "echo-ai-performance"
-        },
-        {
-          "command": "echo-ai.optimizePerformance",
-          "when": "editorTextFocus",
-          "group": "echo-ai-performance"
-        },
-        {
-          "command": "echo-ai.smartRefactor",
-          "when": "editorTextFocus",
-          "group": "echo-ai-refactor"
-        },
-        {
-          "command": "echo-ai.analyzeArchitecture",
-          "when": "editorTextFocus",
-          "group": "echo-ai-refactor"
-        },
-        {
-          "command": "echo-ai.refactorOpportunities",
-          "when": "editorTextFocus",
-          "group": "echo-ai-refactor"
-        },
-        {
-          "command": "echo-ai.aiRefactorRecommendations",
-          "when": "editorTextFocus",
-          "group": "echo-ai-refactor"
-        },
-        {
-          "command": "echo-ai.extractMethod",
-          "when": "editorHasSelection",
-          "group": "echo-ai-refactor"
-        },
-        {
-          "command": "echo-ai.modernizeCode",
-          "when": "editorTextFocus",
-          "group": "echo-ai-refactor"
-        },
-        {
-          "command": "echo-ai.quickSecurityScan",
-          "when": "editorTextFocus",
-          "group": "echo-ai-security"
-        },
-        {
-          "command": "echo-ai.showSecurityDashboard",
-          "when": "editorTextFocus",
-          "group": "echo-ai-security"
-        },
-        {
-          "command": "echo-ai.fixHardcodedSecrets",
-          "when": "editorTextFocus",
-          "group": "echo-ai-security"
-        },
-        {
-          "command": "echo-ai.securityEducation",
-          "when": "editorTextFocus",
-          "group": "echo-ai-security"
         }
       ]
     }
@@ -507,21 +140,10 @@
     "package": "vsce package"
   },
   "devDependencies": {
-    "@types/node": "~20.19.10",
     "@types/vscode": "^1.102.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@vscode/test-electron": "^2.5.2",
-    "@vscode/vsce": "^2.32.0",
-    "eslint": "^8.57.1",
     "typescript": "^5.9.2"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.24.3",
-    "axios": "^1.11.0",
-    "groq-sdk": "^0.7.0",
-    "openai": "^4.104.0"
-  },
+  "dependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/vijeet-shah/echoai.git",
