@@ -1,6 +1,6 @@
 {
   "name": "echoai",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Echo - Intelligent AI terminal with autonomous agents, 6 providers (Claude, GPT, Groq, OpenRouter, Meta, Gemini), and advanced output optimization",
   "main": "dist/index.js",
   "bin": {
