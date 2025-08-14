@@ -71,6 +71,14 @@ export async function analyzeRepository(rootPath: string, deep: boolean = false)
     recommendations: []
   };
 
+  // Early project type detection from directory structure
+  const quickTypeDetection = await detectProjectTypeFromStructure(rootPath);
+  if (quickTypeDetection) {
+    analysis.projectType = quickTypeDetection.type;
+    analysis.language = quickTypeDetection.language;
+    console.log(`🎯 Quick detection: ${quickTypeDetection.type} (${quickTypeDetection.language})`);
+  }
+
   // Analyze package.json first
   const packageJsonPath = join(rootPath, 'package.json');
   if (existsSync(packageJsonPath)) {
@@ -397,8 +405,59 @@ function extractClasses(content: string): string[] {
   return classes;
 }
 
+async function detectProjectTypeFromStructure(rootPath: string): Promise<{type: string, language: string} | null> {
+  try {
+    const items = readdirSync(rootPath);
+    
+    // Check for specific project indicators
+    if (items.includes('package.json')) {
+      const packageJson = JSON.parse(readFileSync(join(rootPath, 'package.json'), 'utf-8'));
+      
+      // AI CLI Tool detection
+      if (packageJson.name === 'echoai' || 
+          (packageJson.bin && Object.keys(packageJson.bin).some(key => key.includes('echo'))) ||
+          packageJson.description?.includes('AI') && packageJson.bin) {
+        return { type: 'AI CLI Tool', language: 'TypeScript/JavaScript' };
+      }
+      
+      // VS Code extension detection
+      if (items.includes('extensions') && items.some(item => item.includes('vscode'))) {
+        return { type: 'VS Code Extension Project', language: 'TypeScript' };
+      }
+      
+      return { type: determineProjectType(packageJson), language: 'JavaScript/TypeScript' };
+    }
+    
+    // Python projects
+    if (items.includes('requirements.txt') || items.includes('pyproject.toml') || items.includes('setup.py')) {
+      return { type: 'Python Application', language: 'Python' };
+    }
+    
+    // Rust projects
+    if (items.includes('Cargo.toml')) {
+      return { type: 'Rust Application', language: 'Rust' };
+    }
+    
+    // Go projects
+    if (items.includes('go.mod') || items.includes('go.sum')) {
+      return { type: 'Go Application', language: 'Go' };
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
 function generateRecommendations(analysis: RepoAnalysis): string[] {
   const recommendations: string[] = [];
+  
+  // Project-specific recommendations
+  if (analysis.projectType === 'AI CLI Tool') {
+    recommendations.push('Consider adding more comprehensive error handling for AI provider failures');
+    recommendations.push('Add rate limiting and retry logic for API calls');
+    recommendations.push('Consider adding telemetry for usage analytics');
+  }
   
   // TypeScript recommendations
   if (analysis.language === 'javascript' && analysis.totalFiles > 10) {
