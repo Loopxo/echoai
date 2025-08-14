@@ -512,7 +512,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     const showCLICommand = vscode.commands.registerCommand('echo-ai.showCLI', async () => {
         const terminal = vscode.window.createTerminal({
             name: 'Echo AI',
-            iconPath: new vscode.ThemeIcon('terminal'),
+            iconPath: vscode.Uri.file(context.asAbsolutePath('icon.png')),
             location: { viewColumn: vscode.ViewColumn.Two, preserveFocus: false }
         });
         terminal.show();
@@ -604,7 +604,7 @@ function updateStatusBar(): void {
     const stats = memoryManager.getStats();
     const isHighMemory = stats.heapUsed > 150;
     
-    statusBarItem.text = `$(${isHighMemory ? 'warning' : 'zap'}) Echo AI (${stats.heapUsed}MB)`;
+    statusBarItem.text = `$(echo-ai-icon) Echo AI (${stats.heapUsed}MB)`;
     statusBarItem.tooltip = `Echo AI - Click to open CLI\nMemory: ${stats.heapUsed}MB, Cache: ${stats.cacheItems} items`;
     statusBarItem.command = 'echo-ai.showCLI';
     statusBarItem.backgroundColor = isHighMemory ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;

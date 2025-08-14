@@ -41,6 +41,14 @@
   ],
   "main": "./out/clean-extension.js",
   "contributes": {
+    "icons": {
+      "echo-ai-icon": {
+        "description": "Echo AI logo",
+        "default": {
+          "fontPath": "./icon.png"
+        }
+      }
+    },
     "commands": [
       {
         "command": "echo-ai.explain",
@@ -60,7 +68,8 @@
       },
       {
         "command": "echo-ai.showCLI",
-        "title": "Open Echo AI Terminal"
+        "title": "Open Echo AI Terminal",
+        "icon": "$(echo-ai-icon)"
       },
       {
         "command": "echo-ai.performance",
@@ -111,6 +120,19 @@
       }
     },
     "menus": {
+      "editor/title": [
+        {
+          "command": "echo-ai.showCLI",
+          "group": "navigation@1",
+          "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|py|java|cpp|c|cs|php|rb|go|rs|swift|kt|dart|scala|clj|hs|ml|fs|pas|pl|r|jl|nim|zig|v)$/"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "echo-ai.showCLI",
+          "group": "navigation@1"
+        }
+      ],
       "editor/context": [
         {
           "command": "echo-ai.explain",
@@ -126,6 +148,44 @@
           "command": "echo-ai.generateTests",
           "when": "editorTextFocus",
           "group": "echo-ai"
+        },
+        {
+          "command": "echo-ai.showCLI",
+          "when": "editorTextFocus",
+          "group": "echo-ai"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "echo-ai.showCLI",
+          "when": "view == workbench.explorer.fileView",
+          "group": "navigation@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "echo-ai.showCLI",
+          "when": "true"
+        },
+        {
+          "command": "echo-ai.explain",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "echo-ai.refactor",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "echo-ai.generateTests",
+          "when": "true"
+        },
+        {
+          "command": "echo-ai.configure",
+          "when": "true"
+        },
+        {
+          "command": "echo-ai.performance",
+          "when": "true"
         }
       ]
     }
