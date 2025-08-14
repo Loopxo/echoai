@@ -137,9 +137,13 @@ export class TokenTracker {
     
     // Daily usage
     const today = new Date().toISOString().split('T')[0];
-    analytics.dailyUsage[today] = (analytics.dailyUsage[today] || 0) + usage.totalTokens;
+    if (!analytics.dailyUsage) analytics.dailyUsage = {};
+    if (today) {
+      analytics.dailyUsage[today] = (analytics.dailyUsage[today] || 0) + usage.totalTokens;
+    }
     
     // Provider usage
+    if (!analytics.providerUsage) analytics.providerUsage = {};
     analytics.providerUsage[usage.provider] = (analytics.providerUsage[usage.provider] || 0) + usage.totalTokens;
     
     writeFileSync(this.analyticsPath, JSON.stringify(analytics, null, 2));
@@ -173,7 +177,7 @@ export class TokenTracker {
 
   estimateCost(tokens: number, provider: string, model: string, isInput: boolean = false): number {
     // Token pricing per 1000 tokens (approximate, as of 2024)
-    const pricing: { [key: string]: { input: number; output: number } } = {
+    const pricing: { [key: string]: { [key: string]: { input: number; output: number } } } = {
       'claude': {
         'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
         'claude-3-opus-20240229': { input: 0.015, output: 0.075 },
@@ -210,7 +214,7 @@ export class TokenTracker {
 
   formatAnalytics(analytics: TokenAnalytics): string {
     const today = new Date().toISOString().split('T')[0];
-    const todayUsage = analytics.dailyUsage[today] || 0;
+    const todayUsage = (analytics.dailyUsage && today && analytics.dailyUsage[today]) || 0;
     
     return `📈 Total: ${analytics.totalTokensUsed.toLocaleString()} tokens | 💰 Total cost: ~$${analytics.totalCost.toFixed(2)} | 📅 Today: ${todayUsage.toLocaleString()} tokens`;
   }
@@ -226,7 +230,7 @@ export class TokenTracker {
 
     const analytics = this.getAnalytics();
     const today = new Date().toISOString().split('T')[0];
-    const todayUsage = analytics.dailyUsage[today] || 0;
+    const todayUsage = (analytics.dailyUsage && today && analytics.dailyUsage[today]) || 0;
 
     // Check daily limit
     if (limits.daily && todayUsage >= limits.daily) {

@@ -154,7 +154,7 @@ function generateIntelligentSummary(repoAnalysis: RepoAnalysis, semanticData: an
   const detailedBreakdown = {
     coreComponents: semanticData.coreModules.length > 0 ? semanticData.coreModules : ['Main application logic', 'Configuration system'],
     dependencies: repoAnalysis.dependencies.production.slice(0, 10), // Top 10 dependencies
-    buildSystem: repoAnalysis.buildCommands.length > 0 ? repoAnalysis.buildCommands[0] : 'Standard build process',
+    buildSystem: repoAnalysis.buildCommands.length > 0 ? (repoAnalysis.buildCommands[0] || 'Standard build process') : 'Standard build process',
     testingApproach: repoAnalysis.testCommands.length > 0 ? 'Automated testing configured' : 'No testing framework detected'
   };
 

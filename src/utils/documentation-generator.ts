@@ -128,7 +128,7 @@ ${intelligentAnalysis.detailedBreakdown.coreComponents.map((comp: string) => `- 
    \`\`\`
 
 2. **Configuration**
-   ${getConfigurationSteps(repoAnalysis)}
+   ${generateConfigurationSteps(repoAnalysis)}
 
 3. **Verify Installation**
    \`\`\`bash
@@ -629,9 +629,9 @@ function extractAPIEndpoints(content: string): any[] {
     let match;
     while ((match = pattern.exec(content)) !== null) {
       endpoints.push({
-        method: match[1].toUpperCase(),
-        path: match[2],
-        description: `${match[1].toUpperCase()} endpoint for ${match[2]}`,
+        method: match[1]?.toUpperCase() || '',
+        path: match[2] || '',
+        description: `${match[1]?.toUpperCase() || ''} endpoint for ${match[2] || ''}`,
         example: null
       });
     }
@@ -640,4 +640,4 @@ function extractAPIEndpoints(content: string): any[] {
   return endpoints;
 }
 
-export { DocumentationConfig, GeneratedDocumentation };
+// Types already exported above

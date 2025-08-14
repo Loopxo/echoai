@@ -1,7 +1,7 @@
 export interface AgentCapability {
   name: string;
   description: string;
-  category: 'optimization' | 'analysis' | 'generation' | 'transformation';
+  category: 'optimization' | 'analysis' | 'generation' | 'transformation' | 'documentation';
   supportedProviders: string[];
   requiredParameters?: string[];
 }
@@ -24,7 +24,7 @@ export interface AgentPreferences {
 
 export interface AgentResult {
   optimizedPrompt: string;
-  expectedOutputType: 'code' | 'explanation' | 'analysis' | 'creative';
+  expectedOutputType: 'code' | 'explanation' | 'analysis' | 'creative' | 'documentation';
   confidence: number;
   suggestedProvider?: string;
   suggestedModel?: string;

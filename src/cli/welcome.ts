@@ -706,7 +706,11 @@ async function startCodeEditing(): Promise<void> {
       }
 
       // Get provider and send request with context
-      const provider = providerFactory.getProvider(currentProvider, currentConfig.providers?.[currentProvider]);
+      const currentProviderConfig = currentConfig.providers?.[currentProvider];
+      if (!currentProviderConfig) {
+        throw new Error(`No configuration found for provider '${currentProvider}'. Run: echo config setup`);
+      }
+      const provider = providerFactory.getProvider(currentProvider, currentProviderConfig);
 
       console.log('💭 Thinking...\n');
       
@@ -1125,7 +1129,7 @@ async function showConfigMenu(): Promise<void> {
   const config = await loadConfig().catch(() => null);
   const currentProvider = config ? getDefaultProvider(config) : null;
   
-  if (currentProvider) {
+  if (currentProvider && config) {
     const providerConfig = config.providers?.[currentProvider];
     const model = providerConfig?.model || 'default';
     console.log(`\n🤖 Currently Active: ${currentProvider.toUpperCase()} (${model})\n`);
@@ -1325,8 +1329,8 @@ async function configureTokenLimits(): Promise<void> {
   console.log('💡 Set limits to prevent unexpected costs and usage');
   console.log('⚠️  Leave blank to disable a limit\n');
 
-  const currentConfig = await loadConfig().catch(() => ({}));
-  const currentLimits = currentConfig.limits || {};
+  const currentConfig = await loadConfig().catch(() => ({} as any));
+  const currentLimits = (currentConfig as any).limits || {};
 
   const limitsConfig = await inquirer.prompt([
     {
@@ -1416,8 +1420,8 @@ async function configureSoundSettings(): Promise<void> {
   console.log('🎵 Configure Echo sound notifications and alerts');
   console.log('💡 Echo will beep when asking for permission (true to the name!)\n');
 
-  const currentConfig = await loadConfig().catch(() => ({}));
-  const currentSound = currentConfig.sound || {
+  const currentConfig = await loadConfig().catch(() => ({} as any));
+  const currentSound = (currentConfig as any).sound || {
     enabled: true,
     volume: 50,
     permissionPrompts: true,
