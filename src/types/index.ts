@@ -50,6 +50,24 @@ export interface GitConfig {
   commitMessageTemplate?: string;
 }
 
+export interface TokenLimits {
+  daily?: number;
+  session?: number;
+  monthly?: number;
+  cost?: {
+    daily?: number;
+    monthly?: number;
+  };
+}
+
+export interface SoundConfig {
+  enabled: boolean;
+  volume: number; // 0-100
+  permissionPrompts: boolean;
+  tokenWarnings: boolean;
+  completionNotifications: boolean;
+}
+
 export interface Config {
   providers: {
     [key: string]: ProviderConfig;
@@ -69,6 +87,8 @@ export interface Config {
     diffPreview: boolean;
     streaming: boolean;
   };
+  limits?: TokenLimits;
+  sound?: SoundConfig;
 }
 
 export interface FileDiff {

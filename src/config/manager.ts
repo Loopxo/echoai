@@ -24,6 +24,24 @@ const GitConfigSchema = z.object({
   commitMessageTemplate: z.string().optional(),
 });
 
+const TokenLimitsSchema = z.object({
+  daily: z.number().positive().optional(),
+  session: z.number().positive().optional(),
+  monthly: z.number().positive().optional(),
+  cost: z.object({
+    daily: z.number().positive().optional(),
+    monthly: z.number().positive().optional(),
+  }).optional(),
+});
+
+const SoundConfigSchema = z.object({
+  enabled: z.boolean(),
+  volume: z.number().min(0).max(100),
+  permissionPrompts: z.boolean(),
+  tokenWarnings: z.boolean(),
+  completionNotifications: z.boolean(),
+});
+
 const ConfigSchema = z.object({
   providers: z.record(ProviderConfigSchema),
   defaults: z.object({
@@ -41,6 +59,8 @@ const ConfigSchema = z.object({
     diffPreview: z.boolean(),
     streaming: z.boolean(),
   }),
+  limits: TokenLimitsSchema.optional(),
+  sound: SoundConfigSchema.optional(),
 });
 
 export class ConfigManager {
