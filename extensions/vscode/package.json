@@ -2,7 +2,7 @@
   "name": "echo-ai-vscode",
   "displayName": "Echo AI",
   "description": "35+ specialized AI agents, quantum code understanding, predictive intelligence. The most advanced AI coding assistant with multi-provider support.",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "publisher": "LoopXo",
   "engines": {
     "vscode": "^1.102.0"
@@ -60,7 +60,7 @@
       },
       {
         "command": "echo-ai.showCLI",
-        "title": "Open Echo AI CLI"
+        "title": "Open Echo AI Terminal"
       },
       {
         "command": "echo-ai.performance",

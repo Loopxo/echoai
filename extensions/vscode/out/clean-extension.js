@@ -472,8 +472,15 @@ function registerCommands(context) {
         }
     });
     // CLI command
-    const showCLICommand = vscode.commands.registerCommand('echo-ai.showCLI', () => {
-        cliService.showCLI();
+    const showCLICommand = vscode.commands.registerCommand('echo-ai.showCLI', async () => {
+        const terminal = vscode.window.createTerminal({
+            name: 'Echo AI',
+            iconPath: new vscode.ThemeIcon('terminal'),
+            location: { viewColumn: vscode.ViewColumn.Two, preserveFocus: false }
+        });
+        terminal.show();
+        // Use npx directly to avoid path issues - it's cached after first run anyway
+        terminal.sendText('npx --yes echoai@latest');
     });
     // Configure command
     const configureCommand = vscode.commands.registerCommand('echo-ai.configure', async () => {
@@ -538,8 +545,8 @@ function updateStatusBar() {
     const stats = memoryManager.getStats();
     const isHighMemory = stats.heapUsed > 150;
     statusBarItem.text = `$(${isHighMemory ? 'warning' : 'zap'}) Echo AI (${stats.heapUsed}MB)`;
-    statusBarItem.tooltip = `Echo AI - Memory: ${stats.heapUsed}MB, Cache: ${stats.cacheItems} items`;
-    statusBarItem.command = 'echo-ai.performance';
+    statusBarItem.tooltip = `Echo AI - Click to open CLI\nMemory: ${stats.heapUsed}MB, Cache: ${stats.cacheItems} items`;
+    statusBarItem.command = 'echo-ai.showCLI';
     statusBarItem.backgroundColor = isHighMemory ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
 }
 function deactivate() {
