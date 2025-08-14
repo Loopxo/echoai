@@ -6,6 +6,8 @@ import { configCommand } from './cli/config.js';
 import { editCommand } from './cli/edit.js';
 import { providerCommand } from './cli/provider.js';
 import { agentsCommand } from './cli/agents.js';
+import { quickAnalyzeCommand } from './cli/quick-analyze.js';
+import { docsCommand } from './cli/docs.js';
 
 const program = new Command();
 
@@ -39,5 +41,13 @@ program.addCommand(configCommand);
 program.addCommand(editCommand);
 program.addCommand(providerCommand);
 program.addCommand(agentsCommand);
+
+// Add quick analyze command
+const analyzeCommand = new Command('analyze')
+  .description('🧠 Quick intelligent codebase analysis')
+  .action(quickAnalyzeCommand);
+
+program.addCommand(analyzeCommand);
+program.addCommand(docsCommand);
 
 program.parse();
