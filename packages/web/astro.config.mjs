@@ -2,8 +2,13 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import solidJs from "@astrojs/solid-js";
+import vercel from "@astrojs/vercel/serverless";
 
 export default defineConfig({
+  output: 'hybrid',
+  adapter: vercel({
+    webAnalytics: { enabled: true }
+  }),
   integrations: [
     starlight({
       title: "Echo AI",

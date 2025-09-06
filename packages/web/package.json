@@ -4,13 +4,14 @@
   "version": "2.2.1",
   "scripts": {
     "dev": "astro dev",
-    "start": "astro dev", 
+    "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview"
   },
   "dependencies": {
     "@astrojs/solid-js": "^5.1.0",
     "@astrojs/starlight": "^0.34.3",
+    "@astrojs/vercel": "^8.2.7",
     "@shikijs/transformers": "^3.4.2",
     "@types/luxon": "^3.6.2",
     "astro": "^5.7.13",
