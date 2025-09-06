@@ -1,0 +1,69 @@
+---
+title: Echo AI
+description: The AI coding agent built for the terminal
+template: splash
+head: []
+hero:
+  tagline: The AI coding agent built for the terminal
+  image:
+    file: /echo.png
+  actions:
+    - text: Get Started
+      link: /cli/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/Loopxo/echoai
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is Echo AI?
+
+Echo AI is a powerful terminal-based AI coding agent that helps developers write, debug, and improve code directly from the command line. With support for 651+ AI models from 43+ providers, Echo AI adapts to your workflow and preferences.
+
+<CardGrid stagger>
+  <Card title="🚀 Universal Model Support" icon="rocket">
+    Access 651+ AI models from 43+ providers including OpenAI, Anthropic, Google, Meta, and more. Switch between models seamlessly.
+  </Card>
+  <Card title="🛠️ Terminal Native" icon="setting">
+    Built for developers who live in the terminal. No context switching, no browser tabs - just pure command-line efficiency.
+  </Card>
+  <Card title="🔒 Enterprise Ready" icon="approve-check">
+    Advanced security features, permission management, audit logging, and enterprise-grade controls for team deployments.
+  </Card>
+  <Card title="📊 Analytics & Insights" icon="information">
+    Track usage patterns, costs, and performance metrics. Make data-driven decisions about which models work best.
+  </Card>
+</CardGrid>
+
+## Quick Start
+
+```bash
+# Install Echo AI
+npm install -g echo-ai
+
+# Start your first chat
+echo chat "Help me write a Python function to parse JSON"
+
+# Use with specific models
+echo chat --model gpt-4 "Review this code for security issues"
+
+# Interactive mode
+echo tui
+```
+
+## Core Features
+
+### 🤖 Intelligent Code Assistance
+- **Code Generation**: Write functions, classes, and entire modules with AI assistance
+- **Bug Detection**: Identify and fix issues in your codebase automatically  
+- **Code Review**: Get AI-powered code reviews and suggestions for improvements
+- **Refactoring**: Modernize and optimize your code with intelligent refactoring suggestions
+
+### 🔧 Powerful CLI Tools
+- **Interactive Chat**: Engage in conversations about your code and get contextual help
+- **File Operations**: Read, write, and modify files with AI assistance
+- **Git Integration**: Commit messages, branch suggestions, and code history analysis
+- **Custom Commands**: Create and share custom AI-powered commands for your workflow

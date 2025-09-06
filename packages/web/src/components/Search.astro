@@ -1,0 +1,314 @@
+---
+// Enhanced search component for Echo AI docs
+---
+<div class="search-wrapper">
+  <div class="search-container">
+    <div id="search-input-container">
+      <input 
+        type="search" 
+        id="search-input" 
+        placeholder="Search Echo AI docs..." 
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="search-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+      </div>
+    </div>
+    <div id="search-results" class="search-results hidden"></div>
+  </div>
+</div>
+
+<style>
+  .search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .search-container {
+    position: relative;
+  }
+  
+  #search-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  #search-input {
+    width: 100%;
+    padding: 0.75rem 3rem 0.75rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-bg-nav);
+    color: var(--sl-color-white);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+  
+  #search-input:focus {
+    outline: none;
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 0 0 2px var(--sl-color-accent-low);
+  }
+  
+  #search-input::placeholder {
+    color: var(--sl-color-gray-3);
+  }
+  
+  .search-icon {
+    position: absolute;
+    right: 1rem;
+    color: var(--sl-color-gray-3);
+    pointer-events: none;
+  }
+  
+  .search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--sl-color-bg-sidebar);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    margin-top: 0.25rem;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .search-results.hidden {
+    display: none;
+  }
+  
+  .search-result-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-6);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  
+  .search-result-item:hover {
+    background: var(--sl-color-gray-6);
+  }
+  
+  .search-result-item:last-child {
+    border-bottom: none;
+  }
+  
+  .search-result-title {
+    font-weight: 600;
+    color: var(--sl-color-white);
+    margin-bottom: 0.25rem;
+  }
+  
+  .search-result-excerpt {
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2);
+    line-height: 1.4;
+  }
+  
+  .search-result-path {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-3);
+    margin-top: 0.25rem;
+  }
+  
+  /* Keyboard navigation */
+  .search-result-item.keyboard-focused {
+    background: var(--sl-color-accent-low);
+  }
+  
+  @media (max-width: 768px) {
+    .search-wrapper {
+      max-width: 100%;
+    }
+    
+    #search-input {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+  }
+</style>
+
+<script>
+  // Enhanced search functionality with keyboard navigation
+  class EchoSearch {
+    constructor() {
+      this.searchInput = document.getElementById('search-input');
+      this.searchResults = document.getElementById('search-results');
+      this.currentFocus = -1;
+      this.searchData = [];
+      this.isSearching = false;
+      
+      if (this.searchInput && this.searchResults) {
+        this.init();
+      }
+    }
+    
+    init() {
+      // Load search data (in real implementation, this would load from Pagefind)
+      this.loadSearchData();
+      
+      // Event listeners
+      this.searchInput.addEventListener('input', this.handleInput.bind(this));
+      this.searchInput.addEventListener('keydown', this.handleKeydown.bind(this));
+      this.searchInput.addEventListener('focus', this.handleFocus.bind(this));
+      
+      // Close search results when clicking outside
+      document.addEventListener('click', this.handleOutsideClick.bind(this));
+    }
+    
+    async loadSearchData() {
+      // Mock search data - in real implementation, integrate with Pagefind
+      this.searchData = [
+        {
+          title: "CLI Reference",
+          excerpt: "Complete reference for Echo AI CLI commands and options",
+          url: "/cli/",
+          path: "Getting Started → CLI Reference"
+        },
+        {
+          title: "Configuration",
+          excerpt: "Configure Echo AI using JSON config files",
+          url: "/config/",
+          path: "Core Features → Configuration"
+        },
+        {
+          title: "Agents",
+          excerpt: "Create and manage specialized AI agents",
+          url: "/agents/",
+          path: "Core Features → Agents"
+        },
+        {
+          title: "Enterprise",
+          excerpt: "Deploy Echo AI in enterprise environments",
+          url: "/enterprise/",
+          path: "Advanced → Enterprise"
+        }
+      ];
+    }
+    
+    handleInput(event) {
+      const query = event.target.value.trim().toLowerCase();
+      
+      if (query.length === 0) {
+        this.hideResults();
+        return;
+      }
+      
+      if (query.length < 2) {
+        return;
+      }
+      
+      this.performSearch(query);
+    }
+    
+    performSearch(query) {
+      this.isSearching = true;
+      
+      // Filter search data based on query
+      const results = this.searchData.filter(item => 
+        item.title.toLowerCase().includes(query) ||
+        item.excerpt.toLowerCase().includes(query) ||
+        item.path.toLowerCase().includes(query)
+      );
+      
+      this.displayResults(results, query);
+      this.currentFocus = -1;
+    }
+    
+    displayResults(results, query) {
+      if (results.length === 0) {
+        this.searchResults.innerHTML = `
+          <div class="search-result-item">
+            <div class="search-result-title">No results found</div>
+            <div class="search-result-excerpt">Try different keywords</div>
+          </div>
+        `;
+      } else {
+        this.searchResults.innerHTML = results.map(result => `
+          <div class="search-result-item" data-url="${result.url}">
+            <div class="search-result-title">${this.highlightQuery(result.title, query)}</div>
+            <div class="search-result-excerpt">${this.highlightQuery(result.excerpt, query)}</div>
+            <div class="search-result-path">${result.path}</div>
+          </div>
+        `).join('');
+        
+        // Add click listeners to results
+        this.searchResults.querySelectorAll('.search-result-item[data-url]').forEach(item => {
+          item.addEventListener('click', () => {
+            window.location.href = item.dataset.url;
+          });
+        });
+      }
+      
+      this.showResults();
+    }
+    
+    highlightQuery(text, query) {
+      if (!query) return text;
+      
+      const regex = new RegExp(`(${query})`, 'gi');
+      return text.replace(regex, '<mark>$1</mark>');
+    }
+    
+    handleKeydown(event) {
+      const items = this.searchResults.querySelectorAll('.search-result-item[data-url]');
+      
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.currentFocus = Math.min(this.currentFocus + 1, items.length - 1);
+        this.updateKeyboardFocus(items);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.currentFocus = Math.max(this.currentFocus - 1, -1);
+        this.updateKeyboardFocus(items);
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        if (this.currentFocus >= 0 && items[this.currentFocus]) {
+          items[this.currentFocus].click();
+        }
+      } else if (event.key === 'Escape') {
+        this.hideResults();
+        this.searchInput.blur();
+      }
+    }
+    
+    updateKeyboardFocus(items) {
+      items.forEach((item, index) => {
+        item.classList.toggle('keyboard-focused', index === this.currentFocus);
+      });
+    }
+    
+    handleFocus() {
+      if (this.searchInput.value.trim().length >= 2) {
+        this.performSearch(this.searchInput.value.trim().toLowerCase());
+      }
+    }
+    
+    handleOutsideClick(event) {
+      if (!this.searchInput.contains(event.target) && !this.searchResults.contains(event.target)) {
+        this.hideResults();
+      }
+    }
+    
+    showResults() {
+      this.searchResults.classList.remove('hidden');
+    }
+    
+    hideResults() {
+      this.searchResults.classList.add('hidden');
+      this.currentFocus = -1;
+    }
+  }
+  
+  // Initialize search when DOM is loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    new EchoSearch();
+  });
+</script>

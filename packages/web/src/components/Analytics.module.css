@@ -1,0 +1,320 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.sidebar {
+  width: 250px;
+  background: #111111;
+  border-right: 1px solid #333333;
+  flex-shrink: 0;
+}
+
+.sidebarHeader {
+  padding: 2rem 1.5rem;
+}
+
+.sidebarHeader h2 {
+  margin: 0 0 2rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.navItem {
+  display: block;
+  padding: 0.75rem 1rem;
+  color: #888888;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.navItem.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.main {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 2rem;
+  border-bottom: 1px solid #333333;
+}
+
+.header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.header p {
+  margin: 0;
+  color: #888888;
+  font-size: 1.1rem;
+}
+
+.controls {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #333333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.periodSelector {
+  display: flex;
+  background: #111111;
+  border-radius: 8px;
+  padding: 0.25rem;
+}
+
+.periodSelector button {
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  color: #888888;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.periodSelector button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.periodSelector button:hover:not(.active) {
+  color: #ffffff;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.statCard {
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.statHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.statHeader h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statIcon {
+  font-size: 1.5rem;
+  opacity: 0.6;
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.statLabel {
+  color: #666666;
+  font-size: 0.875rem;
+}
+
+.chartSection {
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.chartHeader h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.metricSelector {
+  display: flex;
+  background: #0a0a0a;
+  border-radius: 8px;
+  padding: 0.25rem;
+}
+
+.metricSelector button {
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  color: #888888;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.metricSelector button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.metricSelector button:hover:not(.active) {
+  color: #ffffff;
+}
+
+.chart {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  height: 200px;
+  padding: 1rem 0;
+}
+
+.chartBar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chartBarFill {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+  min-height: 4px;
+}
+
+.chartLabel {
+  color: #888888;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.modelUsageSection {
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.modelUsageSection h2 {
+  margin: 0 0 2rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modelUsageTable {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  font-weight: 600;
+  color: #888888;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #333333;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid #222222;
+  transition: background 0.2s ease;
+}
+
+.tableRow:hover {
+  background: #1a1a1a;
+}
+
+.modelInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.modelName {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.providerName {
+  font-size: 0.875rem;
+  color: #888888;
+  text-transform: capitalize;
+}
+
+.tableCell {
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+}
+
+.cost {
+  color: #fbbf24;
+}
+
+.free {
+  color: #10b981;
+  font-weight: 600;
+}

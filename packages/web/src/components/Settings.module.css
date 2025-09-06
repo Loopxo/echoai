@@ -1,0 +1,418 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.sidebar {
+  width: 250px;
+  background: #111111;
+  border-right: 1px solid #333333;
+  flex-shrink: 0;
+}
+
+.sidebarHeader {
+  padding: 2rem 1.5rem;
+}
+
+.sidebarHeader h2 {
+  margin: 0 0 2rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.navItem {
+  display: block;
+  padding: 0.75rem 1rem;
+  color: #888888;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.navItem.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.main {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 2rem;
+  border-bottom: 1px solid #333333;
+}
+
+.header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.header p {
+  margin: 0;
+  color: #888888;
+  font-size: 1.1rem;
+}
+
+.content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid #333333;
+  background: #111111;
+}
+
+.tab, .activeTab {
+  padding: 1rem 2rem;
+  background: none;
+  border: none;
+  color: #888888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: #ffffff;
+  background: #1a1a1a;
+}
+
+.activeTab {
+  color: #ffffff;
+  border-bottom-color: #667eea;
+  background: #0a0a0a;
+}
+
+.tabContent {
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+}
+
+.settingsSection {
+  max-width: 800px;
+}
+
+.settingsSection h2 {
+  margin: 0 0 2rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.sectionDescription {
+  color: #888888;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.settingItem {
+  margin-bottom: 2rem;
+}
+
+.settingLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.select {
+  padding: 0.75rem;
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 1rem;
+  min-width: 200px;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.numberInput {
+  padding: 0.75rem;
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 1rem;
+  width: 120px;
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.slider {
+  width: 100%;
+  max-width: 300px;
+  height: 6px;
+  background: #333333;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #667eea;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #667eea;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.settingDescription {
+  color: #888888;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.apiKeyList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.apiKeyItem {
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.apiKeyInfo {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.providerName {
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: capitalize;
+}
+
+.apiKeyValue {
+  font-family: monospace;
+  color: #888888;
+  font-size: 0.9rem;
+}
+
+.apiKeyStatus {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.active {
+  color: #10b981;
+}
+
+.not_configured {
+  color: #888888;
+}
+
+.apiKeyActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+
+.addButton, .editButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.addButton:hover, .editButton:hover {
+  opacity: 0.9;
+}
+
+.removeButton {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.removeButton:hover {
+  background: #dc2626;
+}
+
+.securityNote {
+  background: #1a1a2e;
+  border: 1px solid #333366;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.securityNote h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #ffffff;
+}
+
+.securityNote p {
+  margin: 0;
+  color: #888888;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.primaryButton:hover {
+  opacity: 0.9;
+}
+
+.secondaryButton {
+  background: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid #333333;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.secondaryButton:hover {
+  background: #333333;
+}
+
+.warningButton {
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.warningButton:hover {
+  background: #d97706;
+}
+
+.dangerButton {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.dangerButton:hover {
+  background: #dc2626;
+}
+
+.debugInfo {
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: #888888;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.footer {
+  padding: 2rem;
+  border-top: 1px solid #333333;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  background: #111111;
+}
