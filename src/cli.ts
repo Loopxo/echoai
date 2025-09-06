@@ -8,6 +8,12 @@ import { providerCommand } from './cli/provider.js';
 import { agentsCommand } from './cli/agents.js';
 import { quickAnalyzeCommand } from './cli/quick-analyze.js';
 import { docsCommand } from './cli/docs.js';
+import { mcpCommand } from './cli/mcp.js';
+import { sessionsCommand } from './cli/sessions.js';
+import { securityCommand } from './cli/security.js';
+import { analyticsCommand } from './cli/analytics.js';
+import { exportImportCommand } from './cli/export-import.js';
+import { modelsCommand } from './cli/models.js';
 
 const program = new Command();
 
@@ -49,5 +55,11 @@ const analyzeCommand = new Command('analyze')
 
 program.addCommand(analyzeCommand);
 program.addCommand(docsCommand);
+program.addCommand(mcpCommand);
+program.addCommand(sessionsCommand);
+program.addCommand(securityCommand);
+program.addCommand(analyticsCommand);
+program.addCommand(exportImportCommand);
+program.addCommand(modelsCommand);
 
 program.parse();
