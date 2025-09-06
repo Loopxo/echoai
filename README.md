@@ -1,65 +1,50 @@
 <div align="center">
-  <img src="assets/echo-logo.png" alt="Echo AI Logo" width="120" height="120">
+  <img src="echo.png" alt="Echo AI Logo" width="120" height="120">
   
-  # Echo - The Ultimate AI Development Studio
+  # Echo AI - Intelligent Terminal with Autonomous Agents
   
-  > 🎭 The most advanced AI coding assistant with 35+ specialized agents, quantum-level code understanding, and predictive intelligence
+  > 🔮 The most intelligent AI terminal with autonomous agents, multi-provider support, and advanced analytics
 </div>
 
 [![NPM Version](https://img.shields.io/npm/v/echoai.svg)](https://npmjs.org/package/echoai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://typescriptlang.org)
 
-## 🎯 What Makes Echo Different
+## 🎯 What is Echo AI?
 
-Echo isn't just another AI CLI - it's a **complete AI development studio** with 35+ specialized agents across 7 departments, quantum-level code understanding, and intelligence that adapts to your workflow.
+Echo AI is an intelligent terminal interface that brings together multiple AI providers with autonomous agents to enhance your development workflow. Unlike other AI tools, Echo AI provides a comprehensive command-line interface with advanced features for session management, analytics, and extensibility.
 
-### 🏢 Studio Agent Departments
+### 🔧 Core Features
 
-**⚙️ Engineering (7 agents)**
-- AI Engineer, Backend Architect, DevOps Automator
-- Frontend Developer, Mobile App Builder, Rapid Prototyper, Test Writer
+**🧠 Intelligent Agents**
+- Specialized agents for code optimization and prompt enhancement
+- Context-aware agent selection with confidence scoring
+- Automatic prompt optimization for better results
 
-**🎨 Design (5 agents)**  
-- Brand Guardian, UI Designer, UX Researcher
-- Visual Storyteller, Whimsy Injector
-
-**📢 Marketing (10 agents)**
-- Growth Hacker, Content Creator, TikTok Strategist
-- Instagram Optimizer, Twitter Enhancer, App Store Optimizer
-- Community Builder, Analytics Reporter, Reddit Strategist, Social Media Optimizer
-
-**🚀 Product (5 agents)**
-- Sprint Prioritizer, Feedback Synthesizer, Trend Researcher
-- Market Validator, User Research Specialist
-
-**⚡ Operations (4 agents)**
-- Workflow Optimizer, Performance Benchmarker
-- Infrastructure Maintainer, API Tester
-
-**🧪 Testing (2 agents)**
-- Quality Assurance Agent, User Testing Coordinator
-
-**👔 Management (2 agents)**
-- Project Manager, Strategic Advisor
-
-## ✨ Revolutionary Features
-
-### 🧠 Supreme Intelligence System
-- **Quantum Code Understanding**: Analyzes code across 11+ dimensions simultaneously
-- **Predictive Intelligence**: Anticipates your needs before you know them
-- **Real-time Adaptation**: Learns your patterns and optimizes suggestions
-- **Multi-Model Ensemble**: Uses 4+ AI models for optimal results
-
-### 🎯 Intelligent Agent Selection
-- **Context-Aware Routing**: Automatically selects the perfect agent for your task
-- **Department Coordination**: Agents collaborate across departments
-- **6-Day Sprint Optimization**: Agents optimized for rapid development cycles
-
-### 🌍 Multi-Provider Support
+**🌐 Multi-Provider Support**
 - **6 AI Providers**: Claude, OpenAI, Gemini, Groq, Meta AI, OpenRouter
-- **100+ Models**: Access to the world's largest AI model marketplace
-- **Smart Routing**: Automatically selects optimal provider per task
+- Unified interface for accessing 100+ AI models
+- Smart routing to automatically select the optimal provider
+
+**💾 Session Management**
+- Save and organize conversation sessions
+- Export sessions in multiple formats (JSON, Markdown, Text)
+- Share sessions with secure links
+
+**📊 Analytics & Insights**
+- Track usage statistics and cost analysis
+- Monitor provider performance and success rates
+- Export analytics data for further analysis
+
+**🔄 Model Context Protocol (MCP) Support**
+- Integrate with MCP-compatible tools and servers
+- Extend Echo AI with custom tools and capabilities
+- Add external tools via stdio, HTTP, or SSE transports
+
+**🔒 Security & Privacy**
+- Secure storage of API keys and configuration
+- Granular permissions and access controls
+- Data anonymization options
 
 ## 📦 Installation
 
@@ -75,123 +60,112 @@ npm install && npm run build
 
 ## 🚀 Quick Start
 
-### 1. Launch Echo Studio
+### 1. Launch Interactive Mode
 ```bash
 echoai
-# Interactive studio interface with agent selection
+# Opens interactive terminal interface
 ```
 
-### 2. Experience Specialized Agents
+### 2. Direct Prompting
 ```bash
-# AI Engineering
-echoai "integrate GPT-4 API into React app" 
-# → AI Engineer agent automatically selected
+# Send a prompt directly to AI
+echoai "Explain how React hooks work"
 
-# Mobile Development  
-echoai "create iOS app with SwiftUI"
-# → Mobile App Builder agent handles the task
+# Specify a provider and model
+echoai "Write a Python function to sort a list" --provider openai --model gpt-4
 
-# Growth Marketing
-echoai "create viral TikTok campaign for our app"
-# → TikTok Strategist + Growth Hacker collaboration
-
-# Sprint Planning
-echoai "prioritize features for 6-day sprint"
-# → Sprint Prioritizer agent optimizes your workflow
+# Include files as context
+echoai "Refactor this code for better performance" --file src/utils.js
 ```
 
-### 3. Department-Level Intelligence
+### 3. Use Specialized Commands
 ```bash
-# Engineering department coordination
-echoai agents --department engineering "build scalable microservices architecture"
+# Start a chat session
+echoai chat
 
-# Design team collaboration  
-echoai agents --department design "create cohesive brand system for fintech app"
+# Edit files with AI assistance
+echoai edit src/components/Button.tsx "Add loading state"
 
-# Marketing campaign planning
-echoai agents --department marketing "launch strategy for productivity app"
+# Analyze your codebase
+echoai analyze
+
+# Manage configuration
+echoai config setup
 ```
 
-## 🎭 Studio Agent System
+## 🤖 Intelligent Agents
 
-### Engineering Excellence
+Echo AI uses specialized agents to optimize your prompts and improve results:
+
+### Code Optimization Agent
 ```bash
-# AI/ML Integration
-echoai "implement RAG system with vector embeddings"
-# → AI Engineer: Advanced ML pipeline with best practices
+# Optimize code-related prompts
+echoai agents optimize "Create a React component for a todo list"
 
-# Backend Architecture
-echoai "design REST API for social media platform"  
-# → Backend Architect: Scalable architecture with security
-
-# DevOps Automation
-echoai "set up CI/CD with GitHub Actions and Docker"
-# → DevOps Automator: Complete automation pipeline
+# Optimize with specific preferences
+echoai agents optimize "Write a Python API" --format detailed --level expert
 ```
 
-### Design & User Experience
+### Prompt Enhancement Agent
 ```bash
-# Brand Consistency
-echoai "create design system for fitness app"
-# → Brand Guardian: Comprehensive design guidelines
+# Enhance general prompts
+echoai agents optimize "Explain quantum computing"
 
-# UI/UX Design
-echoai "design onboarding flow that converts"
-# → UI Designer + UX Researcher: Data-driven design
+# Get structured responses
+echoai agents optimize "List best practices for Docker" --format structured
 ```
 
-### Growth & Marketing
+### Agent-Based Execution
 ```bash
-# Viral Growth Strategy
-echoai "create user acquisition loop for 300% growth"
-# → Growth Hacker: Comprehensive growth framework
+# Run a prompt with automatic agent optimization
+echoai agents run "Create a REST API with Express.js and MongoDB"
 
-# Social Media Optimization
-echoai "optimize TikTok content for tech startups"
-# → TikTok Strategist: Platform-specific viral strategies
+# Run with streaming output
+echoai agents run "Build a React dashboard" --stream
 ```
 
-### Product & Strategy
-```bash
-# Sprint Planning
-echoai "prioritize backlog for maximum impact"
-# → Sprint Prioritizer: Data-driven feature prioritization
+## 📊 Analytics & Insights
 
-# User Feedback Analysis
-echoai "analyze 500+ user reviews for insights"
-# → Feedback Synthesizer: Actionable user intelligence
+Track your AI usage and optimize your workflow:
+
+### Usage Analytics
+```bash
+# View analytics overview
+echoai analytics overview
+
+# See daily statistics
+echoai analytics daily
+
+# Detailed cost analysis
+echoai analytics costs
 ```
 
-## 🧬 Advanced Intelligence Features
-
-### Quantum Code Understanding
-- **Multi-dimensional Analysis**: Understands code across syntax, semantics, performance, security
-- **Pattern Recognition**: Identifies complex patterns across your entire codebase
-- **Temporal Awareness**: Tracks code evolution and suggests improvements
-
-### Predictive Intelligence Engine
-- **Typing Prediction**: Anticipates your next code before you type it
-- **Error Prevention**: Predicts and prevents bugs before they occur  
-- **Flow State Detection**: Optimizes suggestions based on your coding rhythm
-- **Cognitive Load Monitoring**: Adjusts complexity based on your mental state
-
-### Real-time Adaptation
+### Tool Usage Statistics
 ```bash
-# System learns your preferences
-echoai --learn-mode "analyze user behavior patterns"
+# View tool usage stats
+echoai analytics tools
 
-# Cognitive state awareness
-echoai --flow-protection "complex refactoring task"
+# Export analytics data
+echoai analytics export --format json --days 30
+```
 
-# Predictive suggestions
-echoai --predict "implement authentication"
+### Configuration
+```bash
+# View current analytics config
+echoai analytics config
+
+# Enable tracking with detailed level
+echoai analytics config --enable --level detailed
+
+# Set data retention
+echoai analytics config --retention 90 --anonymize
 ```
 
 ## ⚙️ Configuration
 
 ### Provider Setup
 ```bash
-# Interactive setup with all 35 agents
+# Interactive setup
 echoai config setup
 
 # Provider-specific configuration
@@ -200,129 +174,251 @@ echoai config set openai.key sk-your-key
 echoai config set groq.key gsk-your-key
 ```
 
-### Agent Preferences
+### General Configuration
 ```bash
-# Department preferences
-echoai config set agents.preferred-departments "engineering,design"
+# Set default provider and model
+echoai config set defaults.provider openai
+echoai config set defaults.model gpt-4
 
-# Specialization level
-echoai config set agents.complexity-level expert
-
-# Collaboration mode
-echoai config set agents.collaboration-mode enabled
+# Configure temperature and token limits
+echoai config set defaults.temperature 0.7
+echoai config set defaults.maxTokens 2000
 ```
 
-## 🏗️ Architecture
+## 🗂️ Session Management
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                 Echo Supreme Intelligence               │
-├─────────────────────────────────────────────────────────┤
-│  Quantum Code Understanding  │  Predictive Intelligence  │
-├─────────────────────────────────────────────────────────┤
-│           35 Specialized Studio Agents                  │
-│  ⚙️ Engineering │ 🎨 Design │ 📢 Marketing │ 🚀 Product   │
-├─────────────────────────────────────────────────────────┤
-│  Advanced Agent Orchestrator │  Multi-Model Ensemble    │
-├─────────────────────────────────────────────────────────┤
-│            6 AI Providers (100+ Models)                 │
-└─────────────────────────────────────────────────────────┘
-```
+Organize and manage your conversation sessions:
 
-## 🎯 Agent Intelligence Levels
-
-### Rapid Development Mode (6-Day Sprints)
-- **Speed-Optimized**: Agents prioritize delivery over perfection
-- **MVP Focus**: Quick prototyping and iteration
-- **Resource-Conscious**: Efficient token usage and processing
-
-### Enterprise Mode  
-- **Production-Ready**: Full testing, documentation, security
-- **Scalability Focus**: Architecture for growth
-- **Team Collaboration**: Multi-developer workflows
-
-### Learning Mode
-- **Skill Building**: Detailed explanations and best practices
-- **Interactive Guidance**: Step-by-step learning paths
-- **Knowledge Retention**: Personalized learning profiles
-
-## 📊 Performance Comparison
-
-| Feature | GitHub Copilot | Cursor | Qwen Code | **Echo Studio** |
-|---------|---------------|---------|-----------|------------------|
-| **Agents** | 0 | 1 | 1 | **35 Specialized** |
-| **Departments** | 0 | 0 | 0 | **7 Complete** |
-| **Intelligence** | Basic | Code | Code | **Quantum+Predictive** |
-| **Providers** | 1 | 2 | 1 | **6 (100+ models)** |
-| **Adaptation** | Static | Limited | Basic | **Real-time Learning** |
-| **Collaboration** | No | No | No | **Cross-Department** |
-
-## 🛠️ Development & Extension
-
-### Custom Agent Development
-```typescript
-// Create specialized agents for your domain
-import { StudioAgentCapability } from '@echo/agents';
-
-const customAgent: StudioAgentCapability = {
-  name: 'blockchain_developer',
-  department: 'engineering',
-  description: 'Specialized in Web3 and blockchain development',
-  // ... implementation
-};
-```
-
-### Plugin System
+### List and Search Sessions
 ```bash
-# Install community agents
-echoai plugins install @echo/fintech-agents
+# List all sessions
+echoai sessions list
 
-# Create custom plugin
-echoai plugins create my-specialized-agents
+# Filter by provider
+echoai sessions list --provider openai
+
+# Search in session content
+echoai sessions list --search "react component"
+
+# Limit results
+echoai sessions list --limit 10
 ```
 
-## 📈 Roadmap
+### View and Export Sessions
+```bash
+# Show session details
+echoai sessions show session-id-123
 
-### Q1 2024
-- ✅ 35 Studio Agents Implementation
-- ✅ Quantum Code Understanding
-- ✅ Predictive Intelligence Engine
-- ✅ Multi-Provider Integration
+# Include message history
+echoai sessions show session-id-123 --messages
 
-### Q2 2024
-- 🔄 Agent Marketplace
-- 🔄 Team Collaboration Features
-- 🔄 Enterprise Security
-- 🔄 Custom Model Training
+# Export session in different formats
+echoai sessions export session-id-123 --format markdown
+echoai sessions export session-id-123 --format json --output my-session.json
+```
 
-### Q3 2024
-- 📋 IDE Extensions (VS Code, IntelliJ)
-- 📋 API Integration Platform
-- 📋 Advanced Analytics Dashboard
-- 📋 Multi-language Support (50+ languages)
+### Share and Delete Sessions
+```bash
+# Create a shareable link
+echoai sessions share session-id-123 --public
+
+# Create password-protected share
+echoai sessions share session-id-123 --password secret123
+
+# Set expiration
+echoai sessions share session-id-123 --expires 7
+
+# Delete a session
+echoai sessions delete session-id-123
+```
+
+### Session Statistics
+```bash
+# View session statistics
+echoai sessions stats
+```
+
+## 🔌 Model Context Protocol (MCP) Support
+
+Integrate with MCP-compatible tools to extend Echo AI's capabilities:
+
+### Manage MCP Servers
+```bash
+# List configured MCP servers
+echoai mcp list
+
+# Add a new MCP server
+echoai mcp add --id my-tool --name "My Tool" --transport stdio --command "/path/to/tool"
+
+# Add HTTP-based MCP server
+echoai mcp add --id api-tool --name "API Tool" --transport http --url http://localhost:8000
+
+# Remove an MCP server
+echoai mcp remove my-tool
+```
+
+### Use MCP Tools
+```bash
+# List available tools
+echoai mcp tools
+
+# Call an MCP tool
+echoai mcp call calculator expression="2+2*3"
+
+# Call tool with complex arguments
+echoai mcp call file-reader path="src/index.ts" encoding="utf-8"
+```
+
+## 🔒 Security & Privacy
+
+Protect your data and control access:
+
+### Security Management
+```bash
+# View security status
+echoai security status
+
+# Run security audit
+echoai security audit
+
+# Check for vulnerabilities
+echoai security check
+
+# Update security policies
+echoai security update
+```
+
+### Permissions & Access Control
+```bash
+# View current permissions
+echoai security permissions
+
+# Grant tool access
+echoai security permissions --grant mcp-tool --tool calculator
+
+# Revoke access
+echoai security permissions --revoke mcp-tool --tool file-reader
+
+# Set access level
+echoai security permissions --level restricted
+```
+
+## 📈 Advanced Features
+
+### Data Export & Import
+```bash
+# Export all data
+echoai export --type all --format json
+
+# Export specific data types
+echoai export --type sessions --format json
+echoai export --type config --format json
+
+# Import data
+echoai import --file backup.json
+```
+
+### Model Management
+```bash
+# List available models
+echoai models list
+
+# Show model details
+echoai models show gpt-4
+
+# Set favorite models
+echoai models favorite gpt-4 claude-3-opus
+```
+
+### Quick Code Analysis
+```bash
+# Analyze your codebase
+echoai analyze
+
+# Analyze with specific focus
+echoai analyze --focus security
+
+# Get optimization suggestions
+echoai analyze --focus performance
+```
+
+## 🛠️ Development
+
+### Building from Source
+```bash
+# Clone the repository
+git clone https://github.com/vijeet-shah/echo-ai-cli.git
+cd echo-ai-cli
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run in development mode
+npm run dev
+```
+
+### Running Tests
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Code Quality
+```bash
+# Check types
+npm run type-check
+
+# Run linter
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Format code
+npm run format
+```
 
 ## 🤝 Contributing
 
-Echo's agent system is designed for community extension:
+We welcome contributions to Echo AI! Here's how you can help:
 
-1. **Agent Development**: Create specialized agents for new domains
-2. **Intelligence Enhancement**: Improve quantum understanding algorithms  
-3. **Provider Integration**: Add new AI providers and models
-4. **Performance Optimization**: Enhance prediction accuracy
+1. **Bug Reports**: Submit issues for any bugs you encounter
+2. **Feature Requests**: Suggest new features or improvements
+3. **Code Contributions**: Submit pull requests with bug fixes or new features
+4. **Documentation**: Help improve our documentation and examples
+
+### Development Setup
+```bash
+# Fork and clone the repository
+git clone https://github.com/your-username/echo-ai-cli.git
+cd echo-ai-cli
+
+# Install dependencies
+npm install
+
+# Create a branch for your feature
+git checkout -b feature/your-feature-name
+
+# Make your changes and test thoroughly
+
+# Commit and push your changes
+git commit -m "Add your feature description"
+git push origin feature/your-feature-name
+
+# Create a pull request
+```
 
 ## 📄 License
 
 MIT License - Built for the developer community
 
-## 🌟 Why Echo?
-
-> "Echo doesn't just generate code - it understands your project, anticipates your needs, and collaborates with you like a team of 35 expert developers across every discipline."
-
-**The future of coding is here. It's intelligent, specialized, and it's called Echo.**
-
 ---
-
-<div align="center">
-  <strong>Echo Studio - Where 35 AI Experts Meet Your Code</strong><br>
-  <em>The Ultimate AI Development Experience</em>
-</div>
