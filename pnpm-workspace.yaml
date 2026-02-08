@@ -1,0 +1,8 @@
+packages:
+  - .
+  - packages/*
+  - channels/*
+  - apps/*
+
+onlyBuiltDependencies:
+  - better-sqlite3

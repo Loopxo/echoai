@@ -1,0 +1,27 @@
+{
+    "name": "@echoai/gateway",
+    "version": "1.0.0",
+    "description": "Central Gateway server for EchoAI - handles client connections, channel routing, and device nodes",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js",
+        "./server": "./dist/server.js",
+        "./protocol": "./dist/protocol/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@echoai/core": "workspace:*",
+        "hono": "^4.0.0",
+        "ws": "^8.18.0"
+    },
+    "devDependencies": {
+        "@types/ws": "^8.5.0",
+        "typescript": "^5.2.0"
+    }
+}
