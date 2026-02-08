@@ -1,0 +1,16 @@
+{
+    "name": "@echoai/media",
+    "version": "1.0.0",
+    "description": "EchoAI Media - Image/audio/video understanding",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.0"
+    }
+}
