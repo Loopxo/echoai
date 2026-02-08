@@ -114,6 +114,10 @@ system prompt when this skill is activated.
                     }
 
                     const skill = skills[0];
+                    if (!skill) {
+                        console.log(`❌ No skill found matching: ${name}`);
+                        return;
+                    }
                     console.log(`\n⚡ ${skill.name}\n`);
                     console.log(`Description: ${skill.description}`);
                     console.log(`Source:      ${skill.source}`);
