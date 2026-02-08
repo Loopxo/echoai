@@ -1,0 +1,20 @@
+{
+    "name": "@echoai/browser",
+    "version": "1.0.0",
+    "description": "EchoAI Browser Control - Playwright/CDP automation",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "^5.3.0"
+    },
+    "peerDependencies": {
+        "playwright-core": "^1.40.0"
+    }
+}
