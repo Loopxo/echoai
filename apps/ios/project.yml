@@ -1,0 +1,82 @@
+name: EchoAI
+options:
+  bundleIdPrefix: ai.echoai
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+
+packages:
+  EchoAIKit:
+    path: ../shared/EchoAIKit
+
+schemes:
+  EchoAI:
+    shared: true
+    build:
+      targets:
+        EchoAI: all
+    test:
+      targets:
+        - EchoAITests
+
+targets:
+  EchoAI:
+    type: application
+    platform: iOS
+    sources:
+      - path: EchoAI/Sources
+    dependencies:
+      - package: EchoAIKit
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: Manual
+        PRODUCT_BUNDLE_IDENTIFIER: ai.echoai.ios
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+    info:
+      path: EchoAI/Sources/Info.plist
+      properties:
+        CFBundleDisplayName: EchoAI
+        CFBundleIconName: AppIcon
+        CFBundleShortVersionString: "2026.2.8"
+        CFBundleVersion: "20260208"
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes:
+          - audio
+        NSLocalNetworkUsageDescription: EchoAI discovers and connects to your EchoAI gateway on the local network.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoadsInWebContent: true
+        NSBonjourServices:
+          - _echoai-gw._tcp
+        NSCameraUsageDescription: EchoAI can capture photos or short video clips when requested via the gateway.
+        NSLocationWhenInUseUsageDescription: EchoAI uses your location when you allow location sharing.
+        NSLocationAlwaysAndWhenInUseUsageDescription: EchoAI can share your location in the background when you enable Always.
+        NSMicrophoneUsageDescription: EchoAI needs microphone access for voice wake.
+        NSSpeechRecognitionUsageDescription: EchoAI uses on-device speech recognition for voice wake.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+  EchoAITests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: EchoAI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.echoai.ios.tests
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/EchoAI.app/EchoAI"
+        BUNDLE_LOADER: "$(TEST_HOST)"
