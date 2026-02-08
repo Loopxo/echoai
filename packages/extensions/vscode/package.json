@@ -2,7 +2,7 @@
   "name": "echo-ai-vscode",
   "displayName": "Echo AI",
   "description": "35+ specialized AI agents, quantum code understanding, predictive intelligence. The most advanced AI coding assistant with multi-provider support.",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "publisher": "LoopXo",
   "engines": {
     "vscode": "^1.102.0"
@@ -74,6 +74,26 @@
       {
         "command": "echo-ai.performance",
         "title": "Show Performance"
+      },
+      {
+        "command": "echo-ai.memory",
+        "title": "Echo AI: Memory Context"
+      },
+      {
+        "command": "echo-ai.sessions",
+        "title": "Echo AI: Sessions"
+      },
+      {
+        "command": "echo-ai.docs",
+        "title": "Echo AI: Generate Documentation"
+      },
+      {
+        "command": "echo-ai.skills",
+        "title": "Echo AI: Skills"
+      },
+      {
+        "command": "echo-ai.gateway",
+        "title": "Echo AI: Gateway Status"
       }
     ],
     "keybindings": [
@@ -94,7 +114,14 @@
         "echoAI.provider": {
           "type": "string",
           "default": "claude",
-          "enum": ["claude", "openai", "groq", "openrouter", "gemini", "meta"],
+          "enum": [
+            "claude",
+            "openai",
+            "groq",
+            "openrouter",
+            "gemini",
+            "meta"
+          ],
           "description": "AI provider for completions"
         },
         "echoAI.model": {
@@ -140,7 +167,7 @@
           "group": "echo-ai"
         },
         {
-          "command": "echo-ai.refactor", 
+          "command": "echo-ai.refactor",
           "when": "editorHasSelection",
           "group": "echo-ai"
         },

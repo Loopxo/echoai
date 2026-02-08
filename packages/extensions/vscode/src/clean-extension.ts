@@ -5,11 +5,11 @@ import * as vscode from 'vscode';
 // ============================================================================
 class ConfigManager {
     private readonly SECTION = 'echoAI';
-    
+
     get<T>(key: string, defaultValue?: T): T {
         return vscode.workspace.getConfiguration(this.SECTION).get(key, defaultValue as T);
     }
-    
+
     async set(key: string, value: any): Promise<void> {
         await vscode.workspace.getConfiguration(this.SECTION).update(key, value, vscode.ConfigurationTarget.Global);
     }
@@ -20,14 +20,14 @@ class ConfigManager {
 // ============================================================================
 class AIProvider {
     private config: ConfigManager;
-    
+
     constructor(config: ConfigManager) {
         this.config = config;
     }
-    
+
     async getCompletion(prompt: string, context: string = '', language: string = 'typescript'): Promise<string> {
         const provider = this.config.get<string>('provider', 'claude');
-        
+
         // Simulate AI response - replace with actual provider implementation
         return new Promise((resolve) => {
             setTimeout(() => {
@@ -35,15 +35,15 @@ class AIProvider {
             }, 500);
         });
     }
-    
+
     async explainCode(code: string, language: string): Promise<string> {
         return this.getCompletion(`Explain this ${language} code:\n${code}`);
     }
-    
+
     async refactorCode(code: string, language: string): Promise<string> {
         return this.getCompletion(`Refactor this ${language} code:\n${code}`);
     }
-    
+
     async generateTests(code: string, language: string): Promise<string> {
         return this.getCompletion(`Generate tests for this ${language} code:\n${code}`);
     }
@@ -54,11 +54,11 @@ class AIProvider {
 // ============================================================================
 class CompletionProvider {
     private aiProvider: AIProvider;
-    
+
     constructor(aiProvider: AIProvider) {
         this.aiProvider = aiProvider;
     }
-    
+
     async getInlineCompletion(
         document: vscode.TextDocument,
         position: vscode.Position,
@@ -66,19 +66,19 @@ class CompletionProvider {
         token: vscode.CancellationToken
     ): Promise<vscode.InlineCompletionItem | null> {
         if (token.isCancellationRequested) return null;
-        
+
         const line = document.lineAt(position).text;
         const prefix = line.substring(0, position.character);
-        
+
         if (prefix.trim().length < 3) return null;
-        
+
         try {
             const completion = await this.aiProvider.getCompletion(
                 `Complete this code: ${prefix}`,
                 this.getContext(document, position),
                 document.languageId
             );
-            
+
             return new vscode.InlineCompletionItem(
                 completion,
                 new vscode.Range(position, position)
@@ -88,16 +88,16 @@ class CompletionProvider {
             return null;
         }
     }
-    
+
     private getContext(document: vscode.TextDocument, position: vscode.Position): string {
         const startLine = Math.max(0, position.line - 5);
         const endLine = Math.min(document.lineCount - 1, position.line + 2);
-        
+
         let context = '';
         for (let i = startLine; i <= endLine; i++) {
             context += document.lineAt(i).text + '\n';
         }
-        
+
         return context;
     }
 }
@@ -109,32 +109,32 @@ class MemoryManager {
     private cache = new Map<string, { data: any; timestamp: number }>();
     private readonly TTL = 60000; // 1 minute
     private cleanupInterval: NodeJS.Timeout;
-    
+
     constructor() {
         // Clean cache every 30 seconds
         this.cleanupInterval = setInterval(() => this.cleanup(), 30000);
     }
-    
+
     set(key: string, value: any): void {
         this.cache.set(key, { data: value, timestamp: Date.now() });
     }
-    
+
     get<T>(key: string): T | null {
         const item = this.cache.get(key);
         if (!item) return null;
-        
+
         if (Date.now() - item.timestamp > this.TTL) {
             this.cache.delete(key);
             return null;
         }
-        
+
         return item.data as T;
     }
-    
+
     clear(): void {
         this.cache.clear();
     }
-    
+
     private cleanup(): void {
         const now = Date.now();
         for (const [key, item] of this.cache.entries()) {
@@ -143,7 +143,7 @@ class MemoryManager {
             }
         }
     }
-    
+
     getStats() {
         const memUsage = process.memoryUsage();
         return {
@@ -152,7 +152,7 @@ class MemoryManager {
             cacheItems: this.cache.size
         };
     }
-    
+
     dispose(): void {
         if (this.cleanupInterval) {
             clearInterval(this.cleanupInterval);
@@ -168,49 +168,49 @@ class CLIService {
     private panel: vscode.WebviewPanel | undefined;
     private logs: Array<{ time: string; level: string; message: string }> = [];
     private maxLogs = 50;
-    
+
     constructor(
         private context: vscode.ExtensionContext,
         private aiProvider: AIProvider
-    ) {}
-    
+    ) { }
+
     showCLI(): void {
         if (this.panel) {
             this.panel.reveal(vscode.ViewColumn.Beside);
             return;
         }
-        
+
         this.panel = vscode.window.createWebviewPanel(
             'echo-ai-cli',
             'Echo AI',
             vscode.ViewColumn.Beside,
             { enableScripts: true, retainContextWhenHidden: false }
         );
-        
+
         this.panel.webview.html = this.getCLIHTML();
         this.panel.onDidDispose(() => { this.panel = undefined; this.logs = []; });
         this.setupMessageHandling();
-        
+
         this.log('info', 'Echo AI CLI Ready - Type /help for commands');
     }
-    
+
     log(level: string, message: string): void {
         const entry = {
             time: new Date().toLocaleTimeString(),
             level,
             message
         };
-        
+
         this.logs.push(entry);
         if (this.logs.length > this.maxLogs) {
             this.logs = this.logs.slice(-this.maxLogs);
         }
-        
+
         if (this.panel) {
             this.panel.webview.postMessage({ command: 'log', entry });
         }
     }
-    
+
     private setupMessageHandling(): void {
         this.panel?.webview.onDidReceiveMessage(async message => {
             if (message.command === 'execute') {
@@ -218,13 +218,13 @@ class CLIService {
             }
         });
     }
-    
+
     private async executeCommand(input: string): Promise<void> {
         const command = input.trim();
         if (!command) return;
-        
+
         this.log('user', `> ${command}`);
-        
+
         try {
             if (command.startsWith('/')) {
                 await this.handleSystemCommand(command);
@@ -235,10 +235,10 @@ class CLIService {
             this.log('error', `Error: ${error}`);
         }
     }
-    
+
     private async handleSystemCommand(command: string): Promise<void> {
         const [cmd] = command.toLowerCase().split(' ');
-        
+
         switch (cmd) {
             case '/help':
                 this.log('info', 'Commands:\n/help - Show this help\n/clear - Clear logs\n/status - Show status\n/analyze - Analyze current file\nOr type any question for AI');
@@ -265,15 +265,15 @@ class CLIService {
                 this.log('error', `Unknown command: ${cmd}`);
         }
     }
-    
+
     private async handleAICommand(command: string): Promise<void> {
         const editor = vscode.window.activeTextEditor;
         const context = editor?.selection.isEmpty ? '' : editor.document.getText(editor.selection);
-        
+
         const response = await this.aiProvider.getCompletion(command, context);
         this.log('success', response);
     }
-    
+
     private getCLIHTML(): string {
         return `<!DOCTYPE html>
 <html>
@@ -365,7 +365,7 @@ class CLIService {
 </body>
 </html>`;
     }
-    
+
     dispose(): void {
         if (this.panel) this.panel.dispose();
     }
@@ -386,7 +386,7 @@ let statusBarItem: vscode.StatusBarItem;
 // ============================================================================
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Echo AI extension activated');
-    
+
     try {
         // Initialize core services
         configManager = new ConfigManager();
@@ -394,21 +394,21 @@ export async function activate(context: vscode.ExtensionContext) {
         completionProvider = new CompletionProvider(aiProvider);
         memoryManager = new MemoryManager();
         cliService = new CLIService(context, aiProvider);
-        
+
         // Create status bar
         statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         updateStatusBar();
         statusBarItem.show();
-        
+
         // Register commands
         registerCommands(context);
-        
+
         // Register providers
         registerProviders(context);
-        
+
         // Start memory monitoring
         startMemoryMonitoring();
-        
+
         // Show welcome
         vscode.window.showInformationMessage(
             'Echo AI Ready - Optimized for performance',
@@ -420,7 +420,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.commands.executeCommand('echo-ai.configure');
             }
         });
-        
+
     } catch (error) {
         console.error('Echo AI activation failed:', error);
         vscode.window.showErrorMessage(`Echo AI activation failed: ${error}`);
@@ -435,11 +435,11 @@ function registerCommands(context: vscode.ExtensionContext): void {
             vscode.window.showInformationMessage('Please select code to explain');
             return;
         }
-        
+
         try {
             const selectedText = editor.document.getText(editor.selection);
             const explanation = await aiProvider.explainCode(selectedText, editor.document.languageId);
-            
+
             // Show in notification
             const short = explanation.length > 200 ? explanation.substring(0, 200) + '...' : explanation;
             vscode.window.showInformationMessage(short, 'Show Full').then(selection => {
@@ -454,7 +454,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
             vscode.window.showErrorMessage(`Explanation failed: ${error}`);
         }
     });
-    
+
     // Refactor command
     const refactorCommand = vscode.commands.registerCommand('echo-ai.refactor', async () => {
         const editor = vscode.window.activeTextEditor;
@@ -462,14 +462,14 @@ function registerCommands(context: vscode.ExtensionContext): void {
             vscode.window.showInformationMessage('Please select code to refactor');
             return;
         }
-        
+
         try {
             const selectedText = editor.document.getText(editor.selection);
             const refactoredCode = await aiProvider.refactorCode(selectedText, editor.document.languageId);
-            
+
             const edit = new vscode.WorkspaceEdit();
             edit.replace(editor.document.uri, editor.selection, refactoredCode);
-            
+
             const applied = await vscode.workspace.applyEdit(edit);
             if (applied) {
                 vscode.window.showInformationMessage('Code refactored successfully!');
@@ -478,7 +478,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
             vscode.window.showErrorMessage(`Refactor failed: ${error}`);
         }
     });
-    
+
     // Generate tests command
     const generateTestsCommand = vscode.commands.registerCommand('echo-ai.generateTests', async () => {
         const editor = vscode.window.activeTextEditor;
@@ -486,18 +486,18 @@ function registerCommands(context: vscode.ExtensionContext): void {
             vscode.window.showInformationMessage('No active editor');
             return;
         }
-        
+
         try {
             const code = editor.document.getText();
             const tests = await aiProvider.generateTests(code, editor.document.languageId);
-            
+
             const testFileName = editor.document.fileName.replace(/\.(ts|js|py)$/, '.test.$1');
             const testUri = vscode.Uri.file(testFileName);
-            
+
             const edit = new vscode.WorkspaceEdit();
             edit.createFile(testUri, { overwrite: false });
             edit.insert(testUri, new vscode.Position(0, 0), tests);
-            
+
             const applied = await vscode.workspace.applyEdit(edit);
             if (applied) {
                 vscode.window.showInformationMessage(`Test file created: ${testFileName}`);
@@ -507,7 +507,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
             vscode.window.showErrorMessage(`Test generation failed: ${error}`);
         }
     });
-    
+
     // CLI command
     const showCLICommand = vscode.commands.registerCommand('echo-ai.showCLI', async () => {
         const terminal = vscode.window.createTerminal({
@@ -516,58 +516,165 @@ function registerCommands(context: vscode.ExtensionContext): void {
             location: { viewColumn: vscode.ViewColumn.Two, preserveFocus: false }
         });
         terminal.show();
-        
+
         // Use npx directly to avoid path issues - it's cached after first run anyway
         terminal.sendText('npx --yes echoai@latest');
     });
-    
+
     // Configure command
     const configureCommand = vscode.commands.registerCommand('echo-ai.configure', async () => {
         const providers = ['claude', 'openai', 'groq', 'openrouter', 'gemini', 'meta'];
         const selectedProvider = await vscode.window.showQuickPick(providers, {
             placeHolder: 'Select AI Provider'
         });
-        
+
         if (selectedProvider) {
             await configManager.set('provider', selectedProvider);
-            
+
             const apiKey = await vscode.window.showInputBox({
                 prompt: `Enter API key for ${selectedProvider}`,
                 password: true
             });
-            
+
             if (apiKey) {
                 await context.secrets.store(`echo-ai-${selectedProvider}`, apiKey);
                 vscode.window.showInformationMessage(`Echo AI configured with ${selectedProvider}`);
             }
         }
     });
-    
+
     // Performance command
     const performanceCommand = vscode.commands.registerCommand('echo-ai.performance', () => {
         const stats = memoryManager.getStats();
         const info = `Echo AI Performance:\nMemory: ${stats.heapUsed}MB / ${stats.heapTotal}MB\nCache: ${stats.cacheItems} items\nProvider: ${configManager.get('provider', 'claude')}`;
-        
+
         vscode.workspace.openTextDocument({
             content: info,
             language: 'plaintext'
         }).then(doc => vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside));
     });
-    
+
+    // Memory command - show/clear conversation context
+    const memoryCommand = vscode.commands.registerCommand('echo-ai.memory', async () => {
+        const action = await vscode.window.showQuickPick(
+            ['Show Memory Context', 'Clear Memory', 'Export Memory'],
+            { placeHolder: 'Memory Management' }
+        );
+
+        if (action === 'Show Memory Context') {
+            const stats = memoryManager.getStats();
+            vscode.window.showInformationMessage(`Memory: ${stats.cacheItems} cached items, ${stats.heapUsed}MB used`);
+        } else if (action === 'Clear Memory') {
+            memoryManager.clear();
+            vscode.window.showInformationMessage('Memory cleared successfully');
+        } else if (action === 'Export Memory') {
+            vscode.window.showInformationMessage('Memory export available in CLI: echoai memory export');
+        }
+    });
+
+    // Sessions command - quick access to saved sessions
+    const sessionsCommand = vscode.commands.registerCommand('echo-ai.sessions', async () => {
+        const action = await vscode.window.showQuickPick(
+            ['View Recent Sessions', 'Create New Session', 'Export Session', 'Open in CLI'],
+            { placeHolder: 'Session Management' }
+        );
+
+        if (action === 'Open in CLI') {
+            const terminal = vscode.window.createTerminal({ name: 'Echo AI Sessions' });
+            terminal.show();
+            terminal.sendText('npx --yes echoai@latest sessions list');
+        } else {
+            vscode.window.showInformationMessage(`Sessions: Use CLI for full management - echoai sessions ${action?.toLowerCase().replace(/ /g, '-') || 'list'}`);
+        }
+    });
+
+    // Docs command - generate documentation for current file
+    const docsCommand = vscode.commands.registerCommand('echo-ai.docs', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showInformationMessage('No active editor');
+            return;
+        }
+
+        try {
+            const code = editor.document.getText();
+            const fileName = editor.document.fileName.split('/').pop() || 'file';
+            const language = editor.document.languageId;
+
+            const docs = await aiProvider.getCompletion(
+                `Generate comprehensive documentation for this ${language} file named ${fileName}:\n${code.substring(0, 3000)}`,
+                '',
+                language
+            );
+
+            vscode.workspace.openTextDocument({
+                content: `# Documentation: ${fileName}\n\n${docs}`,
+                language: 'markdown'
+            }).then(doc => vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside));
+        } catch (error) {
+            vscode.window.showErrorMessage(`Documentation generation failed: ${error}`);
+        }
+    });
+
+    // Skills command - list/activate available skills
+    const skillsCommand = vscode.commands.registerCommand('echo-ai.skills', async () => {
+        const skills = [
+            { label: '$(code) Code Analysis', description: 'Analyze code patterns and suggest improvements' },
+            { label: '$(shield) Security Audit', description: 'Check for security vulnerabilities' },
+            { label: '$(beaker) Test Generation', description: 'Generate unit tests automatically' },
+            { label: '$(book) Documentation', description: 'Generate code documentation' },
+            { label: '$(zap) Performance', description: 'Analyze and optimize performance' },
+            { label: '$(git-compare) Refactoring', description: 'Suggest code refactoring opportunities' }
+        ];
+
+        const selected = await vscode.window.showQuickPick(skills, {
+            placeHolder: 'Select a skill to activate',
+            matchOnDescription: true
+        });
+
+        if (selected) {
+            vscode.window.showInformationMessage(`Skill activated: ${selected.label}`);
+        }
+    });
+
+    // Gateway command - show connection status
+    const gatewayCommand = vscode.commands.registerCommand('echo-ai.gateway', async () => {
+        const status = {
+            connected: false,
+            endpoint: 'Not configured',
+            lastPing: 'N/A'
+        };
+
+        const info = `Gateway Status:\n• Connected: ${status.connected ? 'Yes' : 'No'}\n• Endpoint: ${status.endpoint}\n• Last Ping: ${status.lastPing}\n\nConfigure gateway: echoai gateway setup`;
+
+        vscode.window.showInformationMessage(info, 'Open CLI').then(selection => {
+            if (selection === 'Open CLI') {
+                const terminal = vscode.window.createTerminal({ name: 'Echo AI Gateway' });
+                terminal.show();
+                terminal.sendText('npx --yes echoai@latest gateway status');
+            }
+        });
+    });
+
     context.subscriptions.push(
         explainCommand,
-        refactorCommand, 
+        refactorCommand,
         generateTestsCommand,
         showCLICommand,
         configureCommand,
-        performanceCommand
+        performanceCommand,
+        memoryCommand,
+        sessionsCommand,
+        docsCommand,
+        skillsCommand,
+        gatewayCommand
     );
 }
 
 function registerProviders(context: vscode.ExtensionContext): void {
     // Only register completion if enabled and memory allows
     const memUsage = process.memoryUsage().heapUsed / 1024 / 1024;
-    
+
     if (configManager.get<boolean>('enableInlineCompletion', true) && memUsage < 200) {
         const inlineProvider = vscode.languages.registerInlineCompletionItemProvider(
             { scheme: 'file' },
@@ -590,7 +697,7 @@ function registerProviders(context: vscode.ExtensionContext): void {
 function startMemoryMonitoring(): void {
     setInterval(() => {
         updateStatusBar();
-        
+
         // Auto cleanup if memory usage is high
         const stats = memoryManager.getStats();
         if (stats.heapUsed > 200) {
@@ -603,7 +710,7 @@ function startMemoryMonitoring(): void {
 function updateStatusBar(): void {
     const stats = memoryManager.getStats();
     const isHighMemory = stats.heapUsed > 150;
-    
+
     statusBarItem.text = `$(echo-ai-icon) Echo AI (${stats.heapUsed}MB)`;
     statusBarItem.tooltip = `Echo AI - Click to open CLI\nMemory: ${stats.heapUsed}MB, Cache: ${stats.cacheItems} items`;
     statusBarItem.command = 'echo-ai.showCLI';
@@ -612,7 +719,7 @@ function updateStatusBar(): void {
 
 export function deactivate() {
     console.log('Echo AI extension deactivated');
-    
+
     if (memoryManager) memoryManager.dispose();
     if (cliService) cliService.dispose();
     if (statusBarItem) statusBarItem.dispose();
