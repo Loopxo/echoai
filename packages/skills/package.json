@@ -1,0 +1,25 @@
+{
+    "name": "@echoai/skills",
+    "version": "1.0.0",
+    "description": "Skills engine for EchoAI - extensible agent capabilities via markdown instructions",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@echoai/core": "workspace:*",
+        "js-yaml": "^4.1.0"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^20.8.0",
+        "typescript": "^5.2.0"
+    }
+}
