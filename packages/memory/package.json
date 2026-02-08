@@ -1,0 +1,27 @@
+{
+    "name": "@echoai/memory",
+    "version": "1.0.0",
+    "description": "Memory and RAG system for EchoAI - vector embeddings and semantic search",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js",
+        "./embeddings": "./dist/embeddings/index.js",
+        "./store": "./dist/store/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@echoai/core": "workspace:*",
+        "better-sqlite3": "^12.2.0"
+    },
+    "devDependencies": {
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/node": "^20.8.0",
+        "typescript": "^5.2.0"
+    }
+}
