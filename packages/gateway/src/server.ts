@@ -7,7 +7,6 @@
 
 import http from "node:http";
 import { Hono } from "hono";
-import { serve } from "@hono/node-server";
 import { WebSocketServer, WebSocket } from "ws";
 import { loadConfig, type EchoAIConfig, generateId } from "@echoai/core";
 import {
@@ -82,7 +81,7 @@ export async function startGatewayServer(
     });
 
     // Create HTTP server
-    const httpServer = http.createServer((req, res) => {
+    const httpServer = http.createServer(async (req, res) => {
         // Handle Hono requests
         const url = new URL(req.url ?? "/", `http://${host}:${port}`);
         const honoReq = new Request(url, {
@@ -93,11 +92,16 @@ export async function startGatewayServer(
             }, {} as Record<string, string>),
         });
 
-        app.fetch(honoReq).then((response) => {
+        try {
+            const response = await app.fetch(honoReq);
             res.statusCode = response.status;
-            response.headers.forEach((v, k) => res.setHeader(k, v));
-            response.text().then((body) => res.end(body));
-        });
+            response.headers.forEach((v: string, k: string) => res.setHeader(k, v));
+            const body = await response.text();
+            res.end(body);
+        } catch (error) {
+            res.statusCode = 500;
+            res.end("Internal Server Error");
+        }
     });
 
     // Create WebSocket server

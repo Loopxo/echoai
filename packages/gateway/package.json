@@ -17,10 +17,12 @@
     },
     "dependencies": {
         "@echoai/core": "workspace:*",
+        "@hono/node-server": "^1.13.0",
         "hono": "^4.0.0",
         "ws": "^8.18.0"
     },
     "devDependencies": {
+        "@types/node": "^20.8.0",
         "@types/ws": "^8.5.0",
         "typescript": "^5.2.0"
     }

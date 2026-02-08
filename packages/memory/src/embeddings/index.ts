@@ -209,8 +209,21 @@ export function createEmbeddingProvider(
     const appConfig = loadConfig();
     const memoryConfig = appConfig.memory;
 
+    // Map gemini to google for embedding provider
+    let provider: EmbeddingProviderId = "openai";
+    const configProvider = config?.provider || memoryConfig?.provider;
+    if (configProvider === "google" || configProvider === "gemini") {
+        provider = "google";
+    } else if (configProvider === "voyage") {
+        provider = "voyage";
+    } else if (configProvider === "local") {
+        provider = "local";
+    } else if (configProvider === "openai") {
+        provider = "openai";
+    }
+
     const providerConfig: EmbeddingProviderConfig = {
-        provider: config?.provider || memoryConfig?.provider || "openai",
+        provider,
         model: config?.model || memoryConfig?.model,
         apiKey: config?.apiKey,
         dimensions: config?.dimensions,

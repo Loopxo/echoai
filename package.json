@@ -74,6 +74,10 @@
   "homepage": "https://github.com/vijeet-shah/echo-ai-cli#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
+    "@echoai/core": "workspace:*",
+    "@echoai/gateway": "workspace:*",
+    "@echoai/memory": "workspace:*",
+    "@echoai/skills": "workspace:*",
     "@types/diff": "^7.0.2",
     "@types/js-yaml": "^4.0.9",
     "@types/ws": "^8.18.1",
@@ -85,6 +89,7 @@
     "dotenv": "^16.3.0",
     "eventsource": "^4.0.0",
     "groq-sdk": "^0.7.0",
+    "hono": "^4.0.0",
     "inquirer": "^9.2.0",
     "js-yaml": "^4.1.0",
     "openai": "^4.20.0",

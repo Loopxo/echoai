@@ -14,6 +14,10 @@ import { securityCommand } from './cli/security.js';
 import { analyticsCommand } from './cli/analytics.js';
 import { exportImportCommand } from './cli/export-import.js';
 import { modelsCommand } from './cli/models.js';
+import { gatewayCommand } from './cli/gateway.js';
+import { memoryCommand } from './cli/memory.js';
+import { channelsCommand } from './cli/channels.js';
+import { skillsCommand } from './cli/skills.js';
 
 const program = new Command();
 
@@ -61,5 +65,11 @@ program.addCommand(securityCommand);
 program.addCommand(analyticsCommand);
 program.addCommand(exportImportCommand);
 program.addCommand(modelsCommand);
+
+// New EchoAI Pro commands
+program.addCommand(gatewayCommand);
+program.addCommand(memoryCommand);
+program.addCommand(channelsCommand);
+program.addCommand(skillsCommand);
 
 program.parse();
