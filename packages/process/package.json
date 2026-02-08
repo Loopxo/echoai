@@ -1,0 +1,16 @@
+{
+    "name": "@echoai/process",
+    "version": "1.0.0",
+    "description": "EchoAI Process - Process management utilities",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.0"
+    }
+}
