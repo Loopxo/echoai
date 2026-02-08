@@ -1,0 +1,16 @@
+{
+    "name": "@echoai/web-channel",
+    "version": "1.0.0",
+    "description": "EchoAI Web - Web chat channel",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.0"
+    }
+}
