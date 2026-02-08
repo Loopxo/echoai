@@ -1,0 +1,17 @@
+{
+    "name": "@echoai/agents",
+    "version": "1.0.0",
+    "description": "EchoAI Agents - AI agent orchestration, tools, and system prompts",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "^5.3.0"
+    }
+}
