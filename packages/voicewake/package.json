@@ -1,0 +1,20 @@
+{
+    "name": "@echoai/voicewake",
+    "version": "1.0.0",
+    "description": "EchoAI Voice Wake word detection and configuration",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "^5.3.0"
+    },
+    "peerDependencies": {
+        "@echoai/core": "workspace:*"
+    }
+}

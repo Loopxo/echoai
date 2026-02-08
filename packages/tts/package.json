@@ -1,0 +1,23 @@
+{
+    "name": "@echoai/tts",
+    "version": "1.0.0",
+    "description": "Text-to-Speech synthesis for EchoAI - supports OpenAI, ElevenLabs, and Edge TTS",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "node-edge-tts": "^1.2.10"
+    },
+    "devDependencies": {
+        "@types/node": "^20.8.0",
+        "typescript": "^5.2.0"
+    }
+}

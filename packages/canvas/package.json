@@ -1,0 +1,21 @@
+{
+    "name": "@echoai/canvas",
+    "version": "1.0.0",
+    "description": "EchoAI Live Canvas - Interactive browser-based UI host",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "chokidar": "^3.5.3",
+        "ws": "^8.16.0"
+    },
+    "devDependencies": {
+        "@types/ws": "^8.5.10",
+        "typescript": "^5.3.0"
+    }
+}

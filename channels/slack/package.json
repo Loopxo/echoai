@@ -1,0 +1,23 @@
+{
+    "name": "@echoai/slack",
+    "version": "1.0.0",
+    "description": "Slack integration channel for EchoAI - supports workspaces, channels, DMs, and threading",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@echoai/core": "workspace:*",
+        "@slack/web-api": "^7.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.2.0"
+    }
+}
