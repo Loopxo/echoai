@@ -137,6 +137,18 @@ importers:
         specifier: ^5.2.0
         version: 5.9.3
 
+  channels/imessage:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  channels/line:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
   channels/signal:
     dependencies:
       '@echoai/core':
@@ -176,6 +188,12 @@ importers:
         specifier: ^5.2.0
         version: 5.9.3
 
+  channels/web-channel:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
   channels/whatsapp:
     dependencies:
       '@echoai/core':
@@ -195,6 +213,28 @@ importers:
         specifier: ^5.2.0
         version: 5.9.3
 
+  packages/agents:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/autoreply:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/browser:
+    dependencies:
+      playwright-core:
+        specifier: ^1.40.0
+        version: 1.58.2
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
   packages/canvas:
     dependencies:
       chokidar:
@@ -211,6 +251,18 @@ importers:
         specifier: ^5.3.0
         version: 5.9.3
 
+  packages/commands:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/config:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
   packages/core:
     dependencies:
       zod:
@@ -219,6 +271,18 @@ importers:
     devDependencies:
       typescript:
         specifier: ^5.2.0
+        version: 5.9.3
+
+  packages/cron:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/daemon:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
         version: 5.9.3
 
   packages/gateway:
@@ -246,6 +310,42 @@ importers:
         specifier: ^5.2.0
         version: 5.9.3
 
+  packages/hooks:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/infra:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/links:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/logging:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/markdown:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/media:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
   packages/memory:
     dependencies:
       '@echoai/core':
@@ -265,7 +365,55 @@ importers:
         specifier: ^5.2.0
         version: 5.9.3
 
+  packages/pairing:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/plugins:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/polls:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/process:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/providers:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/routing:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
   packages/security:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/sessions:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/shared:
     devDependencies:
       typescript:
         specifier: ^5.3.0
@@ -288,6 +436,12 @@ importers:
         version: 20.19.33
       typescript:
         specifier: ^5.2.0
+        version: 5.9.3
+
+  packages/terminal:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
         version: 5.9.3
 
   packages/testing:
@@ -313,6 +467,24 @@ importers:
         version: 20.19.33
       typescript:
         specifier: ^5.2.0
+        version: 5.9.3
+
+  packages/tui:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/types:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/utils:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
         version: 5.9.3
 
   packages/voicewake:
@@ -372,6 +544,12 @@ importers:
         version: 22.19.10
       typescript:
         specifier: ^5.6.0
+        version: 5.9.3
+
+  packages/wizard:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
         version: 5.9.3
 
 packages:
@@ -3749,6 +3927,11 @@ packages:
 
   pkg-types@1.3.1:
     resolution: {integrity: sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ==}
+
+  playwright-core@1.58.2:
+    resolution: {integrity: sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   postcss-nested@6.2.0:
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
@@ -8637,6 +8820,8 @@ snapshots:
       confbox: 0.1.8
       mlly: 1.8.0
       pathe: 2.0.3
+
+  playwright-core@1.58.2: {}
 
   postcss-nested@6.2.0(postcss@8.5.6):
     dependencies:
