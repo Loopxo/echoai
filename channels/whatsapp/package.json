@@ -1,0 +1,25 @@
+{
+    "name": "@echoai/channel-whatsapp",
+    "version": "1.0.0",
+    "description": "WhatsApp channel integration for EchoAI using Baileys",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@echoai/core": "workspace:*",
+        "@whiskeysockets/baileys": "^6.7.0",
+        "pino": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.8.0",
+        "typescript": "^5.2.0"
+    }
+}

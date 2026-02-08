@@ -1,0 +1,24 @@
+{
+    "name": "@echoai/channel-discord",
+    "version": "1.0.0",
+    "description": "Discord Bot channel integration for EchoAI using discord.js",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@echoai/core": "workspace:*",
+        "discord.js": "^14.14.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.8.0",
+        "typescript": "^5.2.0"
+    }
+}
