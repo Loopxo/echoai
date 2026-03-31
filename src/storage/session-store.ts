@@ -4,13 +4,15 @@ import { join } from 'path';
 import { mkdirSync, existsSync } from 'fs';
 import { SessionData, SessionMetadata, SessionFilter, SessionShare } from '../types/session.js';
 import { v4 as uuidv4 } from 'uuid';
+import { resolveStateDir } from '@echoai/core';
 
 export class SessionStore {
   private db: Database.Database;
   private readonly dbPath: string;
 
   constructor() {
-    const echoDir = join(homedir(), '.echo');
+    const legacyDir = join(homedir(), '.echo');
+    const echoDir = existsSync(resolveStateDir()) ? resolveStateDir() : (existsSync(legacyDir) ? legacyDir : resolveStateDir());
     if (!existsSync(echoDir)) {
       mkdirSync(echoDir, { recursive: true });
     }

@@ -6,7 +6,7 @@ import {
   formatFileSize,
   isValidTemperature,
   isValidMaxTokens,
-} from '../index';
+} from '../index.js';
 
 describe('Utility Functions', () => {
   describe('formatError', () => {

@@ -65,6 +65,9 @@ temp/
 .cache/
 .parcel-cache/
 .eslintcache
+.astro/
+.vercel/
+.gradle/
 
 # Optional npm cache directory
 .npm

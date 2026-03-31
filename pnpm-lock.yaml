@@ -20,6 +20,9 @@ importers:
       '@echoai/memory':
         specifier: workspace:*
         version: link:packages/memory
+      '@echoai/runtime':
+        specifier: workspace:*
+        version: link:packages/runtime
       '@echoai/skills':
         specifier: workspace:*
         version: link:packages/skills
@@ -399,6 +402,19 @@ importers:
     devDependencies:
       typescript:
         specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/runtime:
+    dependencies:
+      '@echoai/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^20.8.0
+        version: 20.19.33
+      typescript:
+        specifier: ^5.2.0
         version: 5.9.3
 
   packages/security:

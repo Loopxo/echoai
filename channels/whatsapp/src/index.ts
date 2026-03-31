@@ -12,15 +12,15 @@ import {
     CHANNEL_META,
 } from "@echoai/core";
 import type { IncomingMessage, OutgoingMessage, ChannelId } from "@echoai/core";
-import makeWASocket, {
+import {
     DisconnectReason,
     useMultiFileAuthState,
     WASocket,
     proto,
-    downloadMediaMessage,
+    makeWASocket,
 } from "@whiskeysockets/baileys";
-import { Boom } from "@hapi/boom";
 import pino from "pino";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import os from "node:os";
 
@@ -82,18 +82,19 @@ export class WhatsAppChannel extends BaseChannel {
         });
 
         // Create socket
-        this.socket = makeWASocket({
+        const socket = makeWASocket({
             auth: state,
             logger,
             printQRInTerminal: config.printQR ?? true,
             browser: ["EchoAI", "Chrome", "1.0.0"],
         });
+        this.socket = socket;
 
         // Save credentials on update
-        this.socket.ev.on("creds.update", saveCreds);
+        socket.ev.on("creds.update", saveCreds);
 
         // Handle connection updates
-        this.socket.ev.on("connection.update", (update) => {
+        socket.ev.on("connection.update", (update) => {
             const { connection, lastDisconnect, qr } = update;
 
             if (qr) {
@@ -101,7 +102,9 @@ export class WhatsAppChannel extends BaseChannel {
             }
 
             if (connection === "close") {
-                const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+                const statusCode = (
+                    lastDisconnect?.error as { output?: { statusCode?: number } } | undefined
+                )?.output?.statusCode;
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
                 console.log(
@@ -126,14 +129,14 @@ export class WhatsAppChannel extends BaseChannel {
                 this.status.error = undefined;
 
                 // Store own JID
-                if (this.socket?.user?.id) {
-                    this.ownJid = this.socket.user.id.replace(/:\d+@/, "@");
+                if (socket.user?.id) {
+                    this.ownJid = socket.user.id.replace(/:\d+@/, "@");
                 }
             }
         });
 
         // Handle incoming messages
-        this.socket.ev.on("messages.upsert", async ({ messages, type }) => {
+        socket.ev.on("messages.upsert", async ({ messages, type }) => {
             if (type !== "notify") return;
 
             for (const msg of messages) {
@@ -236,7 +239,7 @@ export class WhatsAppChannel extends BaseChannel {
 
             // Create incoming message
             const incomingMessage: IncomingMessage = {
-                id: msg.key.id || crypto.randomUUID(),
+                id: msg.key.id || randomUUID(),
                 channelId: "whatsapp",
                 senderId: peerId.replace("@s.whatsapp.net", ""),
                 text,

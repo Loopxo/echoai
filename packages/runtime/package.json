@@ -1,0 +1,29 @@
+{
+  "name": "@echoai/runtime",
+  "version": "1.0.0",
+  "description": "Canonical runtime kernel for EchoAI sessions, tools, and agent execution",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./types": "./dist/types.js",
+    "./kernel": "./dist/kernel.js",
+    "./registry": "./dist/registry.js",
+    "./tools": "./dist/tools.js",
+    "./compaction": "./dist/compaction.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@echoai/core": "workspace:*",
+    "diff": "^8.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "typescript": "^5.2.0"
+  }
+}

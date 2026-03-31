@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ConfigManager } from '../manager';
+import { ConfigManager } from '../manager.js';
 
 // Mock fs and os modules
 vi.mock('fs', () => ({

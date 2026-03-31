@@ -24,7 +24,7 @@ const program = new Command();
 program
   .name('echoai')
   .description('🔮 Echo AI - Intelligent Terminal with Autonomous Agents')
-  .version('1.0.2');
+  .version('2.3.0');
 
 program
   .argument('[prompt]', 'Direct prompt to send to AI')

@@ -2,10 +2,10 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import solidJs from "@astrojs/solid-js";
-import vercel from "@astrojs/vercel/serverless";
+import vercel from "@astrojs/vercel";
 
 export default defineConfig({
-  output: 'hybrid',
+  output: "static",
   adapter: vercel({
     webAnalytics: { enabled: true }
   }),

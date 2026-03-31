@@ -13,15 +13,24 @@
     "LICENSE",
     "CHANGELOG.md"
   ],
+  "workspaces": [
+    "packages/*",
+    "channels/*"
+  ],
+  "packageManager": "pnpm@10.14.0",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
+    "build": "pnpm run build:packages && pnpm run build:app",
+    "build:app": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "build:packages": "pnpm --recursive run build",
     "build:watch": "tsc --watch",
     "dev": "tsx src/cli.ts",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
+    "test:packages": "pnpm --recursive --if-present run test",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
@@ -29,9 +38,12 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "pnpm run build:packages && tsc --noEmit",
+    "type-check:packages": "pnpm run build:packages",
+    "validate": "pnpm run type-check && pnpm run test && pnpm run build:app && pnpm run smoke:cli",
+    "smoke:cli": "node dist/cli.js --version",
     "type-check:watch": "tsc --noEmit --watch",
-    "clean": "rm -rf dist coverage .nyc_output",
+    "clean": "rm -rf dist coverage .nyc_output && pnpm --recursive run clean",
     "prepack": "npm run clean && npm run build",
     "postinstall": "node -e \"console.log('\\n🔮 Echo AI CLI installed! Run: echoai\\n')\"",
     "prepublishOnly": "npm run clean && npm run build && npm run test",
@@ -77,6 +89,7 @@
     "@echoai/core": "workspace:*",
     "@echoai/gateway": "workspace:*",
     "@echoai/memory": "workspace:*",
+    "@echoai/runtime": "workspace:*",
     "@echoai/skills": "workspace:*",
     "@types/diff": "^7.0.2",
     "@types/js-yaml": "^4.0.9",

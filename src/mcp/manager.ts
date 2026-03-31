@@ -1,8 +1,8 @@
 import { MCPClient } from './client.js';
 import { MCPServer, MCPConfig, MCPTool } from '../types/mcp.js';
-import { readFile, writeFile } from 'fs/promises';
-import { homedir } from 'os';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
+import { resolveStateDir } from '@echoai/core';
 
 export class MCPManager {
   private client: MCPClient;
@@ -11,7 +11,7 @@ export class MCPManager {
 
   constructor() {
     this.client = new MCPClient();
-    this.configPath = join(homedir(), '.echo', 'mcp.json');
+    this.configPath = join(resolveStateDir(), 'mcp.json');
   }
 
   async initialize(): Promise<void> {
@@ -74,6 +74,7 @@ export class MCPManager {
 
   private async saveConfig(): Promise<void> {
     try {
+      await mkdir(join(resolveStateDir()), { recursive: true });
       await writeFile(this.configPath, JSON.stringify(this.config, null, 2));
     } catch (error) {
       console.error('Failed to save MCP config:', error);
