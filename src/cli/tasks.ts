@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { readFile } from 'node:fs/promises';
 import { createCliRuntimeKernel } from '../runtime/cli-kernel.js';
 import { getCliSessionRegistry } from '../runtime/session-bridge.js';
 
@@ -95,14 +96,17 @@ tasksCommand
   .argument('<session-id>', 'Session ID')
   .argument('<task-id>', 'Task ID')
   .option('--bytes <number>', 'Maximum bytes to read', parseInt, 64000)
+  .option('-f, --follow', 'Follow logs until the task exits')
   .action(async (sessionId, taskId, options) => {
+    if (options.follow) {
+      await followTaskLogs(sessionId, taskId);
+      return;
+    }
+
     const log = await kernel.getTaskLog(sessionId, taskId, {
       maxBytes: options.bytes,
     });
-    process.stdout.write(log);
-    if (!log.endsWith('\n')) {
-      process.stdout.write('\n');
-    }
+    writeLogChunk(log);
   });
 
 tasksCommand
@@ -120,3 +124,64 @@ tasksCommand
 
     console.log(`✅ Stopped task ${taskId}`);
   });
+
+async function followTaskLogs(sessionId: string, taskId: string): Promise<void> {
+  let offset = 0;
+
+  while (true) {
+    const session = await sessionRegistry.load(sessionId);
+    const task = session?.tasks.find((entry) => entry.id === taskId);
+    const logPath = typeof task?.metadata?.logPath === 'string'
+      ? task.metadata.logPath
+      : task?.outputPath;
+
+    if (logPath) {
+      try {
+        const content = await readFile(logPath, 'utf8');
+        const nextChunk = content.slice(offset);
+        if (nextChunk.length > 0) {
+          process.stdout.write(nextChunk);
+          offset = content.length;
+        }
+      } catch {
+        // Wait for the task to create the log file.
+      }
+    }
+
+    const tasks = await kernel.listTasks(sessionId);
+    const current = tasks.find((entry) => entry.id === taskId);
+    if (!current) {
+      throw new Error(`Task ${taskId} not found`);
+    }
+
+    if (current.status !== 'running') {
+      if (logPath) {
+        try {
+          const content = await readFile(logPath, 'utf8');
+          const nextChunk = content.slice(offset);
+          if (nextChunk.length > 0) {
+            process.stdout.write(nextChunk);
+          }
+        } catch {
+          // Ignore final read failures.
+        }
+      }
+
+      process.stdout.write(`\n[task ${current.status}]\n`);
+      return;
+    }
+
+    await delay(300);
+  }
+}
+
+function writeLogChunk(log: string): void {
+  process.stdout.write(log);
+  if (!log.endsWith('\n')) {
+    process.stdout.write('\n');
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
