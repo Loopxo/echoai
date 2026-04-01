@@ -3,6 +3,7 @@ import { ConfigManager } from '../config/manager.js';
 
 export class ProviderManager {
   private providers: Map<string, AIProvider> = new Map();
+  private loadingProviders: Map<string, Promise<void>> = new Map();
   private configManager: ConfigManager;
 
   constructor(configManager: ConfigManager) {
@@ -15,7 +16,7 @@ export class ProviderManager {
 
   async getProvider(name: string): Promise<AIProvider> {
     if (!this.providers.has(name)) {
-      await this.loadProvider(name);
+      await this.ensureProviderLoaded(name);
     }
 
     const provider = this.providers.get(name);
@@ -24,6 +25,21 @@ export class ProviderManager {
     }
 
     return provider;
+  }
+
+  private async ensureProviderLoaded(name: string): Promise<void> {
+    const inFlight = this.loadingProviders.get(name);
+    if (inFlight) {
+      await inFlight;
+      return;
+    }
+
+    const loadPromise = this.loadProvider(name).finally(() => {
+      this.loadingProviders.delete(name);
+    });
+
+    this.loadingProviders.set(name, loadPromise);
+    await loadPromise;
   }
 
   private async loadProvider(name: string): Promise<void> {

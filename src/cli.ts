@@ -1,33 +1,22 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { chatCommand } from './cli/chat.js';
-import { configCommand } from './cli/config.js';
-import { editCommand } from './cli/edit.js';
-import { providerCommand } from './cli/provider.js';
-import { agentsCommand } from './cli/agents.js';
-import { quickAnalyzeCommand } from './cli/quick-analyze.js';
-import { docsCommand } from './cli/docs.js';
-import { mcpCommand } from './cli/mcp.js';
-import { sessionsCommand } from './cli/sessions.js';
-import { securityCommand } from './cli/security.js';
-import { analyticsCommand } from './cli/analytics.js';
-import { exportImportCommand } from './cli/export-import.js';
-import { modelsCommand } from './cli/models.js';
-import { gatewayCommand } from './cli/gateway.js';
-import { memoryCommand } from './cli/memory.js';
-import { channelsCommand } from './cli/channels.js';
-import { skillsCommand } from './cli/skills.js';
-import { reviewCommand } from './cli/review.js';
-import { securityReviewCommand } from './cli/security-review.js';
-import { tasksCommand } from './cli/tasks.js';
+import { readFileSync } from 'fs';
+
+const VERSION = readVersion();
+const args = process.argv.slice(2);
+
+if (args.includes('--version') || args.includes('-V')) {
+  console.log(VERSION);
+  process.exit(0);
+}
 
 const program = new Command();
 
 program
   .name('echoai')
   .description('🔮 Echo AI - Intelligent Terminal with Autonomous Agents')
-  .version('2.3.0');
+  .version(VERSION);
 
 program
   .argument('[prompt]', 'Direct prompt to send to AI')
@@ -39,7 +28,6 @@ program
   .option('-s, --stream', 'Stream response in real-time')
   .action(async (prompt, options) => {
     if (!prompt) {
-      // Show interactive welcome experience
       const { default: showWelcome } = await import('./cli/welcome.js');
       await showWelcome();
       return;
@@ -49,13 +37,56 @@ program
     await handleDirectPrompt(prompt, options);
   });
 
+const [
+  { chatCommand },
+  { configCommand },
+  { editCommand },
+  { providerCommand },
+  { agentsCommand },
+  { quickAnalyzeCommand },
+  { docsCommand },
+  { mcpCommand },
+  { sessionsCommand },
+  { securityCommand },
+  { analyticsCommand },
+  { exportImportCommand },
+  { modelsCommand },
+  { gatewayCommand },
+  { memoryCommand },
+  { channelsCommand },
+  { skillsCommand },
+  { reviewCommand },
+  { securityReviewCommand },
+  { tasksCommand },
+] = await Promise.all([
+  import('./cli/chat.js'),
+  import('./cli/config.js'),
+  import('./cli/edit.js'),
+  import('./cli/provider.js'),
+  import('./cli/agents.js'),
+  import('./cli/quick-analyze.js'),
+  import('./cli/docs.js'),
+  import('./cli/mcp.js'),
+  import('./cli/sessions.js'),
+  import('./cli/security.js'),
+  import('./cli/analytics.js'),
+  import('./cli/export-import.js'),
+  import('./cli/models.js'),
+  import('./cli/gateway.js'),
+  import('./cli/memory.js'),
+  import('./cli/channels.js'),
+  import('./cli/skills.js'),
+  import('./cli/review.js'),
+  import('./cli/security-review.js'),
+  import('./cli/tasks.js'),
+]);
+
 program.addCommand(chatCommand);
 program.addCommand(configCommand);
 program.addCommand(editCommand);
 program.addCommand(providerCommand);
 program.addCommand(agentsCommand);
 
-// Add quick analyze command
 const analyzeCommand = new Command('analyze')
   .description('🧠 Quick intelligent codebase analysis')
   .option('-s, --session <session-id>', 'Attach the analysis to an existing runtime session')
@@ -72,11 +103,15 @@ program.addCommand(tasksCommand);
 program.addCommand(analyticsCommand);
 program.addCommand(exportImportCommand);
 program.addCommand(modelsCommand);
-
-// New EchoAI Pro commands
 program.addCommand(gatewayCommand);
 program.addCommand(memoryCommand);
 program.addCommand(channelsCommand);
 program.addCommand(skillsCommand);
 
-program.parse();
+await program.parseAsync();
+
+function readVersion(): string {
+  const packageUrl = new URL('../package.json', import.meta.url);
+  const packageJson = JSON.parse(readFileSync(packageUrl, 'utf8')) as { version?: string };
+  return packageJson.version ?? '0.0.0';
+}

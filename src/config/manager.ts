@@ -78,8 +78,29 @@ export class ConfigManager {
   });
 
   private globalConfigPath = join(homedir(), '.aiconfig', 'config.json');
+  private cachedConfig?: Config;
+  private pendingConfig?: Promise<Config>;
 
   async getConfig(): Promise<Config> {
+    if (this.cachedConfig) {
+      return this.cachedConfig;
+    }
+
+    if (this.pendingConfig) {
+      return this.pendingConfig;
+    }
+
+    this.pendingConfig = this.loadConfig();
+    try {
+      const config = await this.pendingConfig;
+      this.cachedConfig = config;
+      return config;
+    } finally {
+      this.pendingConfig = undefined;
+    }
+  }
+
+  private async loadConfig(): Promise<Config> {
     // First try to load global config
     const globalConfig = this.loadGlobalConfig();
     
@@ -157,6 +178,8 @@ export class ConfigManager {
     }
 
     writeFileSync(this.globalConfigPath, JSON.stringify(mergedConfig, null, 2));
+    this.cachedConfig = mergedConfig;
+    this.pendingConfig = undefined;
   }
 
   async setProvider(name: string, config: ProviderConfig): Promise<void> {
