@@ -1,15 +1,12 @@
 /**
  * Vector Store Implementation
  *
- * SQLite-based vector storage with cosine similarity search.
- * Uses native SQLite for storage with in-memory vector operations.
+ * File-backed vector storage with cosine similarity and basic text search.
  */
 
-import Database, { Database as DatabaseType } from "better-sqlite3";
-import path from "node:path";
-import os from "node:os";
 import fs from "node:fs";
-import { generateId } from "@echoai/core";
+import path from "node:path";
+import { generateId, resolveStateDir } from "@echoai/core";
 
 // =============================================================================
 // Types
@@ -38,53 +35,29 @@ export interface VectorStoreConfig {
     tableName?: string;
 }
 
+interface PersistedState {
+    documents: VectorDocument[];
+}
+
 // =============================================================================
 // Vector Store Implementation
 // =============================================================================
 
 export class VectorStore {
-    private db: DatabaseType;
-    private tableName: string;
-    private embeddingCache = new Map<string, number[]>();
+    private readonly statePath: string;
+    private readonly tableName: string;
+    private readonly embeddingCache = new Map<string, number[]>();
+    private documents = new Map<string, VectorDocument>();
 
     constructor(config?: VectorStoreConfig) {
-        const stateDir = path.join(os.homedir(), ".echoai");
+        const stateDir = resolveStateDir();
         if (!fs.existsSync(stateDir)) {
             fs.mkdirSync(stateDir, { recursive: true });
         }
 
-        const dbPath = config?.dbPath || path.join(stateDir, "memory.db");
         this.tableName = config?.tableName || "documents";
-
-        this.db = new Database(dbPath);
-        this.initializeSchema();
-    }
-
-    private initializeSchema(): void {
-        // Create documents table
-        this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${this.tableName} (
-        id TEXT PRIMARY KEY,
-        content TEXT NOT NULL,
-        embedding BLOB,
-        metadata TEXT,
-        source TEXT,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    `);
-
-        // Create index on source
-        this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_${this.tableName}_source
-      ON ${this.tableName}(source)
-    `);
-
-        // Create FTS table for text search
-        this.db.exec(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS ${this.tableName}_fts
-      USING fts5(content, content='${this.tableName}', content_rowid='rowid')
-    `);
+        this.statePath = config?.dbPath || path.join(stateDir, `memory-${this.tableName}.json`);
+        this.load();
     }
 
     /**
@@ -93,31 +66,21 @@ export class VectorStore {
     add(doc: Omit<VectorDocument, "id" | "createdAt" | "updatedAt">): string {
         const id = generateId();
         const now = Date.now();
-
-        const stmt = this.db.prepare(`
-      INSERT INTO ${this.tableName} (id, content, embedding, metadata, source, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-        const embeddingBlob = doc.embedding
-            ? Buffer.from(new Float32Array(doc.embedding).buffer)
-            : null;
-
-        stmt.run(
+        const record: VectorDocument = {
             id,
-            doc.content,
-            embeddingBlob,
-            doc.metadata ? JSON.stringify(doc.metadata) : null,
-            doc.source || null,
-            now,
-            now
-        );
+            content: doc.content,
+            embedding: doc.embedding,
+            metadata: doc.metadata,
+            source: doc.source,
+            createdAt: now,
+            updatedAt: now,
+        };
 
-        // Cache embedding
-        if (doc.embedding) {
-            this.embeddingCache.set(id, doc.embedding);
+        this.documents.set(id, record);
+        if (record.embedding) {
+            this.embeddingCache.set(id, record.embedding);
         }
-
+        this.persist();
         return id;
     }
 
@@ -128,39 +91,11 @@ export class VectorStore {
         docs: Array<Omit<VectorDocument, "id" | "createdAt" | "updatedAt">>
     ): string[] {
         const ids: string[] = [];
-        const now = Date.now();
 
-        const stmt = this.db.prepare(`
-      INSERT INTO ${this.tableName} (id, content, embedding, metadata, source, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
+        for (const doc of docs) {
+            ids.push(this.add(doc));
+        }
 
-        const transaction = this.db.transaction(() => {
-            for (const doc of docs) {
-                const id = generateId();
-                ids.push(id);
-
-                const embeddingBlob = doc.embedding
-                    ? Buffer.from(new Float32Array(doc.embedding).buffer)
-                    : null;
-
-                stmt.run(
-                    id,
-                    doc.content,
-                    embeddingBlob,
-                    doc.metadata ? JSON.stringify(doc.metadata) : null,
-                    doc.source || null,
-                    now,
-                    now
-                );
-
-                if (doc.embedding) {
-                    this.embeddingCache.set(id, doc.embedding);
-                }
-            }
-        });
-
-        transaction();
         return ids;
     }
 
@@ -168,49 +103,23 @@ export class VectorStore {
      * Update a document's embedding.
      */
     updateEmbedding(id: string, embedding: number[]): void {
-        const embeddingBlob = Buffer.from(new Float32Array(embedding).buffer);
+        const record = this.documents.get(id);
+        if (!record) {
+            return;
+        }
 
-        const stmt = this.db.prepare(`
-      UPDATE ${this.tableName}
-      SET embedding = ?, updated_at = ?
-      WHERE id = ?
-    `);
-
-        stmt.run(embeddingBlob, Date.now(), id);
+        record.embedding = embedding;
+        record.updatedAt = Date.now();
+        this.documents.set(id, record);
         this.embeddingCache.set(id, embedding);
+        this.persist();
     }
 
     /**
      * Get a document by ID.
      */
     get(id: string): VectorDocument | null {
-        const stmt = this.db.prepare(`
-      SELECT * FROM ${this.tableName} WHERE id = ?
-    `);
-
-        const row = stmt.get(id) as {
-            id: string;
-            content: string;
-            embedding: Buffer | null;
-            metadata: string | null;
-            source: string | null;
-            created_at: number;
-            updated_at: number;
-        } | undefined;
-
-        if (!row) return null;
-
-        return {
-            id: row.id,
-            content: row.content,
-            embedding: row.embedding
-                ? Array.from(new Float32Array(row.embedding.buffer))
-                : undefined,
-            metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
-            source: row.source || undefined,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-        };
+        return this.documents.get(id) || null;
     }
 
     /**
@@ -219,121 +128,95 @@ export class VectorStore {
     search(queryEmbedding: number[], options?: { limit?: number; threshold?: number }): SearchResult[] {
         const limit = options?.limit ?? 10;
         const threshold = options?.threshold ?? 0.5;
-
-        // Get all documents with embeddings
-        const stmt = this.db.prepare(`
-      SELECT id, content, embedding, metadata, source
-      FROM ${this.tableName}
-      WHERE embedding IS NOT NULL
-    `);
-
-        const rows = stmt.all() as Array<{
-            id: string;
-            content: string;
-            embedding: Buffer;
-            metadata: string | null;
-            source: string | null;
-        }>;
-
-        // Calculate cosine similarity for each document
         const results: SearchResult[] = [];
 
-        for (const row of rows) {
-            // Get embedding from cache or parse from blob
-            let embedding = this.embeddingCache.get(row.id);
+        for (const doc of this.documents.values()) {
+            const embedding = doc.embedding || this.embeddingCache.get(doc.id);
             if (!embedding) {
-                embedding = Array.from(new Float32Array(row.embedding.buffer));
-                this.embeddingCache.set(row.id, embedding);
+                continue;
             }
 
             const score = this.cosineSimilarity(queryEmbedding, embedding);
-
             if (score >= threshold) {
                 results.push({
-                    id: row.id,
-                    content: row.content,
+                    id: doc.id,
+                    content: doc.content,
                     score,
-                    metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
-                    source: row.source || undefined,
+                    metadata: doc.metadata,
+                    source: doc.source,
                 });
             }
         }
 
-        // Sort by score descending and limit
-        return results
-            .sort((a, b) => b.score - a.score)
-            .slice(0, limit);
+        return results.sort((a, b) => b.score - a.score).slice(0, limit);
     }
 
     /**
      * Full-text search.
      */
     textSearch(query: string, options?: { limit?: number }): SearchResult[] {
+        const needle = query.trim().toLowerCase();
         const limit = options?.limit ?? 10;
 
-        const stmt = this.db.prepare(`
-      SELECT d.id, d.content, d.metadata, d.source
-      FROM ${this.tableName} d
-      JOIN ${this.tableName}_fts fts ON d.rowid = fts.rowid
-      WHERE fts.content MATCH ?
-      LIMIT ?
-    `);
+        if (!needle) {
+            return [];
+        }
 
-        const rows = stmt.all(query, limit) as Array<{
-            id: string;
-            content: string;
-            metadata: string | null;
-            source: string | null;
-        }>;
+        const results: SearchResult[] = [];
 
-        return rows.map((row) => ({
-            id: row.id,
-            content: row.content,
-            score: 1.0, // FTS doesn't provide scores easily
-            metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
-            source: row.source || undefined,
-        }));
+        for (const doc of this.documents.values()) {
+            const haystack = `${doc.content}\n${JSON.stringify(doc.metadata || {})}`.toLowerCase();
+            const occurrences = haystack.split(needle).length - 1;
+            if (occurrences <= 0) {
+                continue;
+            }
+
+            results.push({
+                id: doc.id,
+                content: doc.content,
+                score: Math.min(1, 0.5 + occurrences * 0.1),
+                metadata: doc.metadata,
+                source: doc.source,
+            });
+        }
+
+        return results.sort((a, b) => b.score - a.score).slice(0, limit);
     }
 
     /**
      * Delete a document.
      */
     delete(id: string): void {
-        const stmt = this.db.prepare(`DELETE FROM ${this.tableName} WHERE id = ?`);
-        stmt.run(id);
+        this.documents.delete(id);
         this.embeddingCache.delete(id);
+        this.persist();
     }
 
     /**
      * Delete all documents from a source.
      */
     deleteBySource(source: string): void {
-        const stmt = this.db.prepare(`DELETE FROM ${this.tableName} WHERE source = ?`);
-        stmt.run(source);
-
-        // Clear cache for these documents
-        for (const [id] of this.embeddingCache) {
-            const doc = this.get(id);
-            if (doc?.source === source) {
+        for (const [id, doc] of this.documents.entries()) {
+            if (doc.source === source) {
+                this.documents.delete(id);
                 this.embeddingCache.delete(id);
             }
         }
+        this.persist();
     }
 
     /**
      * Get document count.
      */
     count(): number {
-        const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM ${this.tableName}`);
-        const row = stmt.get() as { count: number };
-        return row.count;
+        return this.documents.size;
     }
 
     /**
-     * Close the database connection.
+     * Close the store.
      */
     close(): void {
-        this.db.close();
+        this.persist();
         this.embeddingCache.clear();
     }
 
@@ -359,6 +242,32 @@ export class VectorStore {
         if (magnitude === 0) return 0;
 
         return dotProduct / magnitude;
+    }
+
+    private load(): void {
+        if (!fs.existsSync(this.statePath)) {
+            return;
+        }
+
+        try {
+            const state = JSON.parse(fs.readFileSync(this.statePath, "utf8")) as PersistedState;
+            for (const doc of state.documents || []) {
+                this.documents.set(doc.id, doc);
+                if (doc.embedding) {
+                    this.embeddingCache.set(doc.id, doc.embedding);
+                }
+            }
+        } catch {
+            this.documents.clear();
+            this.embeddingCache.clear();
+        }
+    }
+
+    private persist(): void {
+        const state: PersistedState = {
+            documents: Array.from(this.documents.values()),
+        };
+        fs.writeFileSync(this.statePath, JSON.stringify(state, null, 2), "utf8");
     }
 }
 

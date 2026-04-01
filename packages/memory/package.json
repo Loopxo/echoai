@@ -16,11 +16,9 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@echoai/core": "^1.0.0",
-        "better-sqlite3": "^12.2.0"
+        "@echoai/core": "^1.0.0"
     },
     "devDependencies": {
-        "@types/better-sqlite3": "^7.6.13",
         "@types/node": "^20.8.0",
         "typescript": "^5.2.0"
     }

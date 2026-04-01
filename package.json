@@ -1,6 +1,6 @@
 {
   "name": "echoai",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "Echo - Intelligent AI terminal with autonomous agents, 6 providers (Claude, GPT, Groq, OpenRouter, Meta, Gemini), and advanced output optimization",
   "main": "dist/index.js",
   "bin": {
@@ -105,7 +105,6 @@
     "@types/js-yaml": "^4.0.9",
     "@types/ws": "^8.18.1",
     "axios": "^1.6.0",
-    "better-sqlite3": "^12.2.0",
     "commander": "^11.1.0",
     "cosmiconfig": "^9.0.0",
     "diff": "^8.0.2",
@@ -121,7 +120,6 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/eventsource": "^1.1.15",
     "@types/inquirer": "^9.0.0",
     "@types/node": "^20.8.0",
