@@ -193,6 +193,11 @@ export interface KernelRunResult {
   toolCalls: number;
 }
 
+export interface KernelShellTaskOptions {
+  title?: string;
+  cwd?: string;
+}
+
 export interface KernelEventPayloads {
   "session.created": KernelSession;
   "session.updated": KernelSession;
@@ -200,5 +205,7 @@ export interface KernelEventPayloads {
   "tool.started": { sessionId: string; call: KernelToolCall };
   "tool.completed": { sessionId: string; call: KernelToolCall; result: KernelToolResult };
   "approval.recorded": { sessionId: string; approval: KernelApprovalRecord };
+  "task.started": { sessionId: string; task: KernelTaskRecord };
+  "task.updated": { sessionId: string; task: KernelTaskRecord };
   "session.compacted": KernelSession;
 }

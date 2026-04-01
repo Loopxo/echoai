@@ -67,8 +67,8 @@ export function createCompletionProvider(
 }
 
 export function createCliKernel(
-  provider: AIProvider,
   options: {
+    provider?: AIProvider;
     model?: string;
     temperature?: number;
     maxTokens?: number;
@@ -78,10 +78,9 @@ export function createCliKernel(
   } = {}
 ): AgentKernel {
   const namespace = options.stateNamespace ?? "runtime";
-  return new AgentKernel({
+  const kernel = new AgentKernel({
     sessionRegistry: new SessionRegistry({ namespace }),
     auditLogStore: new AuditLogStore({ namespace }),
-    completionProvider: createCompletionProvider(provider, options),
     approvalResolver: async ({ permissionRequest }) => {
       const response = await permissionManager.requestPermission({
         action: `${permissionRequest.scope}:${permissionRequest.toolName}`,
@@ -96,6 +95,18 @@ export function createCliKernel(
       };
     },
   });
+
+  if (options.provider) {
+    kernel.setCompletionProvider(createCompletionProvider(options.provider, options));
+  }
+
+  return kernel;
+}
+
+export function createCliRuntimeKernel(
+  options: Omit<Parameters<typeof createCliKernel>[0], "provider"> = {}
+): AgentKernel {
+  return createCliKernel(options);
 }
 
 function flattenMessages(messages: Message[]): string {

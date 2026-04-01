@@ -5,6 +5,13 @@ import { SessionRegistry } from "./registry.js";
 import { AuditLogStore } from "./audit.js";
 import { createBuiltInTools } from "./builtin-tools.js";
 import {
+  createTaskRuntime,
+  readTaskLog,
+  refreshTaskRecordState,
+  stopTaskProcess,
+  type RuntimeTaskHandle,
+} from "./tasks.js";
+import {
   RuntimePermissionManager,
   type PermissionRequest,
 } from "./permissions.js";
@@ -21,6 +28,7 @@ import type {
   KernelRunOptions,
   KernelRunResult,
   KernelSession,
+  KernelShellTaskOptions,
   KernelTaskRecord,
   KernelToolCall,
   KernelToolResult,
@@ -51,6 +59,7 @@ export class AgentKernel extends EventEmitter {
   private readonly auditLogStore: AuditLogStore;
   private readonly permissionManager: RuntimePermissionManager;
   private readonly approvalResolver?: AgentKernelOptions["approvalResolver"];
+  private readonly taskRuntime: ReturnType<typeof createTaskRuntime>;
 
   constructor(options: AgentKernelOptions = {}) {
     super();
@@ -61,6 +70,7 @@ export class AgentKernel extends EventEmitter {
     this.auditLogStore = options.auditLogStore ?? new AuditLogStore(options.registryOptions);
     this.permissionManager = options.permissionManager ?? new RuntimePermissionManager();
     this.approvalResolver = options.approvalResolver;
+    this.taskRuntime = createTaskRuntime(options.registryOptions);
 
     if (options.registerBuiltInTools !== false) {
       for (const tool of createBuiltInTools()) {
@@ -197,6 +207,108 @@ export class AgentKernel extends EventEmitter {
     await this.sessions.save(session);
     this.emitTyped("session.updated", session);
     return record;
+  }
+
+  async startShellTask(
+    sessionId: string,
+    command: string,
+    options: KernelShellTaskOptions = {}
+  ): Promise<KernelTaskRecord> {
+    const session = await this.requireSession(sessionId);
+    const now = Date.now();
+    const task: KernelTaskRecord = {
+      id: randomUUID(),
+      kind: "shell",
+      title: options.title ?? deriveTaskTitle(command),
+      status: "running",
+      createdAt: now,
+      updatedAt: now,
+      detail: command,
+      metadata: {},
+    };
+
+    const handle = await this.taskRuntime.startShellTask(session.id, task.id, command, {
+      cwd: options.cwd,
+    });
+
+    task.outputPath = handle.logPath;
+    task.metadata = buildTaskMetadata(command, handle, options.cwd);
+    session.tasks.push(task);
+    session.background = {
+      status: "running",
+      processId: handle.pid,
+      logPath: handle.logPath,
+      startedAt: now,
+    };
+
+    await this.sessions.save(session);
+    this.emitTyped("task.started", { sessionId: session.id, task });
+    this.emitTyped("session.updated", session);
+    return task;
+  }
+
+  async listTasks(sessionId: string): Promise<KernelTaskRecord[]> {
+    const session = await this.requireSession(sessionId);
+    const changed = await this.refreshTaskStates(session);
+    if (changed) {
+      await this.sessions.save(session);
+      this.emitTyped("session.updated", session);
+    }
+    return session.tasks;
+  }
+
+  async getTaskLog(
+    sessionId: string,
+    taskId: string,
+    options: { maxBytes?: number } = {}
+  ): Promise<string> {
+    const session = await this.requireSession(sessionId);
+    const task = requireTask(session, taskId);
+    const logPath = readTaskLogPath(task);
+    if (!logPath) {
+      throw new Error(`Task ${taskId} does not have a log file`);
+    }
+    return readTaskLog(logPath, options.maxBytes);
+  }
+
+  async stopTask(
+    sessionId: string,
+    taskId: string,
+    signal: NodeJS.Signals = "SIGTERM"
+  ): Promise<boolean> {
+    const session = await this.requireSession(sessionId);
+    const task = requireTask(session, taskId);
+    const pid = readTaskPid(task);
+    if (!pid) {
+      return false;
+    }
+
+    const stopped = stopTaskProcess(pid, signal);
+    if (!stopped) {
+      return false;
+    }
+
+    task.status = "cancelled";
+    task.updatedAt = Date.now();
+    task.metadata = {
+      ...task.metadata,
+      stopSignal: signal,
+      stoppedAt: task.updatedAt,
+    };
+
+    if (session.background.processId === pid) {
+      session.background = {
+        status: "stopped",
+        processId: pid,
+        logPath: readTaskLogPath(task),
+        startedAt: session.background.startedAt,
+      };
+    }
+
+    await this.sessions.save(session);
+    this.emitTyped("task.updated", { sessionId: session.id, task });
+    this.emitTyped("session.updated", session);
+    return true;
   }
 
   async invokeTool(
@@ -358,6 +470,39 @@ export class AgentKernel extends EventEmitter {
     this.emitTyped("session.updated", session);
   }
 
+  private async refreshTaskStates(session: KernelSession): Promise<boolean> {
+    let changed = false;
+
+    for (const task of session.tasks) {
+      const refreshed = await refreshTaskRecordState(task);
+      if (!refreshed.changed) {
+        continue;
+      }
+
+      Object.assign(task, refreshed.task);
+      changed = true;
+
+      if (session.background.processId && session.background.processId === readTaskPid(task)) {
+        session.background = {
+          status: refreshed.task.status === "completed"
+            ? "stopped"
+            : refreshed.task.status === "failed"
+              ? "failed"
+              : refreshed.task.status === "cancelled"
+                ? "stopped"
+                : "running",
+          processId: readTaskPid(task),
+          logPath: readTaskLogPath(task),
+          startedAt: session.background.startedAt,
+        };
+      }
+
+      this.emitTyped("task.updated", { sessionId: session.id, task });
+    }
+
+    return changed;
+  }
+
   private emitTyped<K extends keyof KernelEventPayloads>(
     event: K,
     payload: KernelEventPayloads[K]
@@ -369,6 +514,11 @@ export class AgentKernel extends EventEmitter {
 function deriveSessionTitle(input: string): string {
   const normalized = input.replace(/\s+/g, " ").trim();
   return normalized.length > 60 ? `${normalized.slice(0, 57)}...` : normalized;
+}
+
+function deriveTaskTitle(command: string): string {
+  const normalized = command.replace(/\s+/g, " ").trim();
+  return normalized.length > 80 ? `${normalized.slice(0, 77)}...` : normalized;
 }
 
 function createMessage(
@@ -383,4 +533,37 @@ function createMessage(
     createdAt: Date.now(),
     ...extra,
   };
+}
+
+function buildTaskMetadata(
+  command: string,
+  handle: RuntimeTaskHandle,
+  cwd?: string
+): Record<string, unknown> {
+  return {
+    command,
+    cwd,
+    pid: handle.pid,
+    logPath: handle.logPath,
+    statusPath: handle.statusPath,
+    runnerPath: handle.runnerPath,
+  };
+}
+
+function readTaskPid(task: KernelTaskRecord): number | undefined {
+  const pid = task.metadata?.pid;
+  return typeof pid === "number" ? pid : undefined;
+}
+
+function readTaskLogPath(task: KernelTaskRecord): string | undefined {
+  const logPath = task.metadata?.logPath;
+  return typeof logPath === "string" ? logPath : task.outputPath;
+}
+
+function requireTask(session: KernelSession, taskId: string): KernelTaskRecord {
+  const task = session.tasks.find((entry) => entry.id === taskId);
+  if (!task) {
+    throw new Error(`Task ${taskId} not found in session ${session.id}`);
+  }
+  return task;
 }

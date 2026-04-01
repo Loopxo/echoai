@@ -85,7 +85,8 @@ Please provide the complete modified file content. Include only the code, no exp
 
       // Get AI response
       const provider = await providerManager.getProvider(context.provider!);
-      const kernel = createCliKernel(provider, {
+      const kernel = createCliKernel({
+        provider,
         model: context.model,
         temperature: context.temperature,
         maxTokens: context.maxTokens,

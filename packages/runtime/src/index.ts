@@ -6,3 +6,4 @@ export * from "./permissions.js";
 export * from "./audit.js";
 export * from "./builtin-tools.js";
 export * from "./kernel.js";
+export * from "./tasks.js";

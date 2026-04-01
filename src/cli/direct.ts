@@ -40,7 +40,8 @@ export default async function handleDirectPrompt(prompt: string, options: any) {
 
     const provider = await providerManager.getProvider(context.provider!);
 
-    const kernel = createCliKernel(provider, {
+    const kernel = createCliKernel({
+      provider,
       model: context.model,
       temperature: context.temperature,
       maxTokens: context.maxTokens,

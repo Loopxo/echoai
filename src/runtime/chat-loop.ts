@@ -33,7 +33,8 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
   const sessionTitle = existingSession?.title || options.title || 'Interactive Chat Session';
 
   const provider = await providerManager.getProvider(providerName);
-  const kernel = createCliKernel(provider, {
+  const kernel = createCliKernel({
+    provider,
     model: modelName,
     temperature,
     maxTokens,

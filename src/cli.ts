@@ -20,6 +20,7 @@ import { channelsCommand } from './cli/channels.js';
 import { skillsCommand } from './cli/skills.js';
 import { reviewCommand } from './cli/review.js';
 import { securityReviewCommand } from './cli/security-review.js';
+import { tasksCommand } from './cli/tasks.js';
 
 const program = new Command();
 
@@ -66,6 +67,7 @@ program.addCommand(sessionsCommand);
 program.addCommand(securityCommand);
 program.addCommand(reviewCommand);
 program.addCommand(securityReviewCommand);
+program.addCommand(tasksCommand);
 program.addCommand(analyticsCommand);
 program.addCommand(exportImportCommand);
 program.addCommand(modelsCommand);
