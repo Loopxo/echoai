@@ -12,6 +12,15 @@
     "README.md",
     "LICENSE"
   ],
+  "bundleDependencies": [
+    "@echoai/core",
+    "@echoai/gateway",
+    "@echoai/hooks",
+    "@echoai/memory",
+    "@echoai/runtime",
+    "@echoai/skills",
+    "@echoai/tui"
+  ],
   "workspaces": [
     "packages/*",
     "channels/*"
@@ -85,12 +94,13 @@
   "homepage": "https://github.com/vijeet-shah/echo-ai-cli#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
-    "@echoai/core": "workspace:*",
-    "@echoai/gateway": "workspace:*",
-    "@echoai/memory": "workspace:*",
-    "@echoai/runtime": "workspace:*",
-    "@echoai/skills": "workspace:*",
-    "@echoai/tui": "workspace:*",
+    "@echoai/core": "^1.0.0",
+    "@echoai/gateway": "^1.0.0",
+    "@echoai/hooks": "^1.0.0",
+    "@echoai/memory": "^1.0.0",
+    "@echoai/runtime": "^1.0.0",
+    "@echoai/skills": "^1.0.0",
+    "@echoai/tui": "^1.0.0",
     "@types/diff": "^7.0.2",
     "@types/js-yaml": "^4.0.9",
     "@types/ws": "^8.18.1",

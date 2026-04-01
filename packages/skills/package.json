@@ -14,7 +14,7 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@echoai/core": "workspace:*",
+        "@echoai/core": "^1.0.0",
         "js-yaml": "^4.1.0"
     },
     "devDependencies": {

@@ -19,8 +19,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@echoai/core": "workspace:*",
-    "@echoai/hooks": "workspace:*",
+    "@echoai/core": "^1.0.0",
+    "@echoai/hooks": "^1.0.0",
     "diff": "^8.0.3"
   },
   "devDependencies": {

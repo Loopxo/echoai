@@ -11,7 +11,7 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@echoai/runtime": "workspace:*",
+        "@echoai/runtime": "^1.0.0",
         "@alcalzone/ansi-tokenize": "^0.1.3",
         "auto-bind": "^5.0.1",
         "bidi-js": "^1.0.3",
