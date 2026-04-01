@@ -18,6 +18,8 @@ import { gatewayCommand } from './cli/gateway.js';
 import { memoryCommand } from './cli/memory.js';
 import { channelsCommand } from './cli/channels.js';
 import { skillsCommand } from './cli/skills.js';
+import { reviewCommand } from './cli/review.js';
+import { securityReviewCommand } from './cli/security-review.js';
 
 const program = new Command();
 
@@ -62,6 +64,8 @@ program.addCommand(docsCommand);
 program.addCommand(mcpCommand);
 program.addCommand(sessionsCommand);
 program.addCommand(securityCommand);
+program.addCommand(reviewCommand);
+program.addCommand(securityReviewCommand);
 program.addCommand(analyticsCommand);
 program.addCommand(exportImportCommand);
 program.addCommand(modelsCommand);
