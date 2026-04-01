@@ -71,6 +71,7 @@ export const HOOK_EVENTS = {
     MESSAGE_SEND: "message:send",
     SESSION_START: "session:start",
     SESSION_END: "session:end",
+    PERMISSION_RESOLVE: "permission:resolve",
     TOOL_BEFORE: "tool:before",
     TOOL_AFTER: "tool:after",
     AGENT_INIT: "agent:init",

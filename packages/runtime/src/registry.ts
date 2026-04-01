@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import type {
   KernelSession,
+  KernelSessionEventRecord,
   SessionExportOptions,
   SessionListFilter,
   SessionRegistryOptions,
@@ -43,10 +44,13 @@ function createDefaultSession(
 
 export class SessionRegistry {
   private readonly sessionsDir: string;
+  private readonly eventsDir: string;
 
   constructor(options?: SessionRegistryOptions) {
     const namespace = options?.namespace ?? "runtime";
-    this.sessionsDir = path.join(resolveStateDir(options), namespace, "sessions");
+    const stateRoot = path.join(resolveStateDir(options), namespace);
+    this.sessionsDir = path.join(stateRoot, "sessions");
+    this.eventsDir = path.join(stateRoot, "events");
   }
 
   async create(title: string, provider?: string, model?: string): Promise<KernelSession> {
@@ -76,6 +80,7 @@ export class SessionRegistry {
   async delete(sessionId: string): Promise<boolean> {
     try {
       await fs.unlink(this.getFilePath(sessionId));
+      await fs.rm(this.getEventLogPath(sessionId), { force: true });
       return true;
     } catch {
       return false;
@@ -157,7 +162,40 @@ export class SessionRegistry {
     return JSON.stringify(payload, null, 2);
   }
 
+  async appendEvent(
+    sessionId: string,
+    type: string,
+    payload: Record<string, unknown>
+  ): Promise<void> {
+    const event: KernelSessionEventRecord = {
+      id: randomUUID(),
+      sessionId,
+      type,
+      createdAt: Date.now(),
+      payload,
+    };
+
+    await fs.mkdir(this.eventsDir, { recursive: true });
+    await fs.appendFile(this.getEventLogPath(sessionId), `${JSON.stringify(event)}\n`, "utf8");
+  }
+
+  async readEventLog(sessionId: string): Promise<KernelSessionEventRecord[]> {
+    try {
+      const raw = await fs.readFile(this.getEventLogPath(sessionId), "utf8");
+      return raw
+        .split("\n")
+        .filter((line) => line.trim().length > 0)
+        .map((line) => JSON.parse(line) as KernelSessionEventRecord);
+    } catch {
+      return [];
+    }
+  }
+
   private getFilePath(sessionId: string): string {
     return path.join(this.sessionsDir, `${sessionId}.json`);
+  }
+
+  private getEventLogPath(sessionId: string): string {
+    return path.join(this.eventsDir, `${sessionId}.jsonl`);
   }
 }

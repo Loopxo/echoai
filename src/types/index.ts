@@ -4,6 +4,36 @@ export interface Message {
   timestamp?: Date;
 }
 
+export interface StructuredToolCall {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+export interface StructuredMessage {
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  timestamp?: Date;
+  name?: string;
+  toolCallId?: string;
+  toolCalls?: StructuredToolCall[];
+}
+
+export interface ProviderToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+export interface ProviderCompletionResult {
+  content: string;
+  toolCalls?: StructuredToolCall[];
+}
+
+export type ProviderStreamChunk =
+  | { type: 'text'; text: string }
+  | { type: 'tool_call'; toolCall: StructuredToolCall };
+
 export interface ChatOptions {
   model?: string;
   temperature?: number;
@@ -28,6 +58,15 @@ export interface AIProvider {
   authenticate(apiKey: string): Promise<boolean>;
   chat(messages: Message[], options: ChatOptions): AsyncGenerator<string>;
   complete(prompt: string, options: CompletionOptions): Promise<string>;
+  completeWithTools?(
+    messages: StructuredMessage[],
+    options: ChatOptions & { tools?: ProviderToolDefinition[] }
+  ): Promise<ProviderCompletionResult>;
+  streamWithTools?(
+    messages: StructuredMessage[],
+    options: ChatOptions & { tools?: ProviderToolDefinition[] },
+    onChunk: (chunk: ProviderStreamChunk) => void
+  ): Promise<ProviderCompletionResult>;
   validateConfig(config: ProviderConfig): ConfigValidation;
 }
 

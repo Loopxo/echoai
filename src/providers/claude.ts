@@ -5,7 +5,12 @@ import {
   ChatOptions, 
   CompletionOptions, 
   ProviderConfig, 
-  ConfigValidation 
+  ConfigValidation,
+  ProviderCompletionResult,
+  ProviderStreamChunk,
+  ProviderToolDefinition,
+  StructuredMessage,
+  StructuredToolCall,
 } from '../types/index.js';
 
 export class ClaudeProvider implements AIProvider {
@@ -124,6 +129,99 @@ export class ClaudeProvider implements AIProvider {
     }
   }
 
+  async completeWithTools(
+    messages: StructuredMessage[],
+    options: ChatOptions & { tools?: ProviderToolDefinition[] } = {}
+  ): Promise<ProviderCompletionResult> {
+    const model = (options.model || this.config.model || this.models[1]) as any;
+    const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
+    const temperature = options.temperature ?? this.config.temperature ?? 0.7;
+    const payload = this.buildStructuredPayload(messages);
+
+    const response = await this.client.messages.create({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system: payload.system,
+      messages: payload.messages,
+      tools: this.mapTools(options.tools),
+    } as any);
+
+    return this.parseStructuredResponse(response.content as any[]);
+  }
+
+  async streamWithTools(
+    messages: StructuredMessage[],
+    options: ChatOptions & { tools?: ProviderToolDefinition[] } = {},
+    onChunk: (chunk: ProviderStreamChunk) => void
+  ): Promise<ProviderCompletionResult> {
+    const model = (options.model || this.config.model || this.models[1]) as any;
+    const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
+    const temperature = options.temperature ?? this.config.temperature ?? 0.7;
+    const payload = this.buildStructuredPayload(messages);
+    const stream = await this.client.messages.create({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system: payload.system,
+      messages: payload.messages,
+      tools: this.mapTools(options.tools),
+      stream: true,
+    } as any);
+
+    let content = '';
+    const toolStates = new Map<number, { id: string; name: string; inputJson: string; input?: Record<string, unknown> }>();
+    const toolCalls: StructuredToolCall[] = [];
+
+    for await (const part of stream as any) {
+      if (part.type === 'content_block_delta' && part.delta?.type === 'text_delta') {
+        content += part.delta.text;
+        onChunk({ type: 'text', text: part.delta.text });
+        continue;
+      }
+
+      if (part.type === 'content_block_start' && part.content_block?.type === 'tool_use') {
+        toolStates.set(part.index, {
+          id: part.content_block.id,
+          name: part.content_block.name,
+          inputJson: '',
+          input: isRecord(part.content_block.input) ? part.content_block.input : undefined,
+        });
+        continue;
+      }
+
+      if (part.type === 'content_block_delta' && part.delta?.type === 'input_json_delta') {
+        const state = toolStates.get(part.index);
+        if (state) {
+          state.inputJson += part.delta.partial_json ?? '';
+        }
+        continue;
+      }
+
+      if (part.type === 'content_block_stop') {
+        const state = toolStates.get(part.index);
+        if (!state) {
+          continue;
+        }
+
+        const parsedInput = state.input ?? parseJsonObject(state.inputJson);
+        const toolCall: StructuredToolCall = {
+          id: state.id,
+          name: state.name,
+          input: parsedInput,
+        };
+        toolCalls.push(toolCall);
+        onChunk({ type: 'tool_call', toolCall });
+        toolStates.delete(part.index);
+      }
+    }
+
+    return {
+      content,
+      toolCalls,
+    };
+  }
+
   validateConfig(config: ProviderConfig): ConfigValidation {
     const errors: string[] = [];
 
@@ -149,5 +247,122 @@ export class ClaudeProvider implements AIProvider {
       isValid: errors.length === 0,
       errors,
     };
+  }
+
+  private buildStructuredPayload(messages: StructuredMessage[]): {
+    system?: string;
+    messages: Array<{ role: 'user' | 'assistant'; content: unknown }>;
+  } {
+    const system = messages
+      .filter((message) => message.role === 'system')
+      .map((message) => message.content)
+      .filter(Boolean)
+      .join('\n\n') || undefined;
+
+    const converted: Array<{ role: 'user' | 'assistant'; content: unknown }> = [];
+
+    for (const message of messages) {
+      if (message.role === 'system') {
+        continue;
+      }
+
+      if (message.role === 'tool') {
+        converted.push({
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: message.toolCallId,
+              content: message.content,
+            },
+          ],
+        });
+        continue;
+      }
+
+      if (message.role === 'assistant') {
+        const contentBlocks: any[] = [];
+        if (message.content) {
+          contentBlocks.push({ type: 'text', text: message.content });
+        }
+        for (const toolCall of message.toolCalls ?? []) {
+          contentBlocks.push({
+            type: 'tool_use',
+            id: toolCall.id,
+            name: toolCall.name,
+            input: toolCall.input,
+          });
+        }
+
+        converted.push({
+          role: 'assistant',
+          content: contentBlocks.length > 0 ? contentBlocks : '',
+        });
+        continue;
+      }
+
+      converted.push({
+        role: message.role,
+        content: message.content,
+      });
+    }
+
+    return {
+      system,
+      messages: converted,
+    };
+  }
+
+  private mapTools(tools?: ProviderToolDefinition[]) {
+    if (!tools || tools.length === 0) {
+      return undefined;
+    }
+
+    return tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.inputSchema,
+    }));
+  }
+
+  private parseStructuredResponse(contentBlocks: any[]): ProviderCompletionResult {
+    const textParts: string[] = [];
+    const toolCalls: StructuredToolCall[] = [];
+
+    for (const block of contentBlocks) {
+      if (block.type === 'text' && typeof block.text === 'string') {
+        textParts.push(block.text);
+      }
+
+      if (block.type === 'tool_use') {
+        toolCalls.push({
+          id: block.id,
+          name: block.name,
+          input: isRecord(block.input) ? block.input : {},
+        });
+      }
+    }
+
+    return {
+      content: textParts.join(''),
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    };
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseJsonObject(input: string): Record<string, unknown> {
+  if (!input.trim()) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(input) as unknown;
+    return isRecord(parsed) ? parsed : {};
+  } catch {
+    return {};
   }
 }

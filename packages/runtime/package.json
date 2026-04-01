@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@echoai/core": "workspace:*",
+    "@echoai/hooks": "workspace:*",
     "diff": "^8.0.3"
   },
   "devDependencies": {

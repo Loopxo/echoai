@@ -6,6 +6,7 @@ import type {
   KernelSession,
   KernelTool,
   KernelToolCall,
+  KernelPermissionRuleLayer,
   PermissionDecision,
 } from "./types.js";
 
@@ -18,6 +19,7 @@ export interface PermissionRule {
   pattern: string;
   decision: Exclude<PermissionDecision, "ask">;
   description: string;
+  layer?: KernelPermissionRuleLayer;
 }
 
 export interface PermissionProfile {
@@ -42,11 +44,37 @@ export interface PermissionRequest {
 export interface PermissionEvaluation {
   request: PermissionRequest;
   finalDecision: PermissionDecision;
+  matchedRule?: PermissionRule;
+  resolvedBy?: "rule" | "safe_path" | "default";
+}
+
+export interface PermissionResolverContext {
+  session: KernelSession;
+  tool: KernelTool;
+  toolCall: KernelToolCall;
+  permissionRequest: PermissionRequest;
+  workspaceRoot?: string;
+  abortSignal?: AbortSignal;
+}
+
+export interface PermissionResolverResult {
+  decision: "approved" | "denied";
+  reason?: string;
+  source?: string;
+  resolver?: string;
+}
+
+export interface PermissionResolver {
+  name: string;
+  resolve(context: PermissionResolverContext): Promise<PermissionResolverResult | null>;
 }
 
 export interface RuntimePermissionOptions {
   profile?: Partial<PermissionProfile>;
   rules?: PermissionRule[];
+  layeredRules?: Partial<Record<KernelPermissionRuleLayer, PermissionRule[]>>;
+  safeCommands?: RegExp[];
+  safeWriteGlobs?: RegExp[];
 }
 
 export const DEFAULT_PERMISSION_PROFILE: PermissionProfile = {
@@ -59,13 +87,17 @@ export const DEFAULT_PERMISSION_PROFILE: PermissionProfile = {
 export class RuntimePermissionManager {
   private readonly profile: PermissionProfile;
   private readonly rules: PermissionRule[];
+  private readonly safeCommands: RegExp[];
+  private readonly safeWriteGlobs: RegExp[];
 
   constructor(options: RuntimePermissionOptions = {}) {
     this.profile = {
       ...DEFAULT_PERMISSION_PROFILE,
       ...options.profile,
     };
-    this.rules = options.rules ?? [];
+    this.rules = flattenRules(options.rules ?? [], options.layeredRules);
+    this.safeCommands = options.safeCommands ?? DEFAULT_SAFE_COMMANDS;
+    this.safeWriteGlobs = options.safeWriteGlobs ?? DEFAULT_SAFE_WRITE_GLOBS;
   }
 
   evaluate(
@@ -75,24 +107,132 @@ export class RuntimePermissionManager {
     workspaceRoot?: string
   ): PermissionEvaluation {
     const request = createPermissionRequest(tool, call, session, workspaceRoot);
-    const matchingRule = this.rules.find((rule) => {
-      if (rule.scope !== request.scope) {
-        return false;
-      }
-
-      const pattern = new RegExp(rule.pattern, "i");
-      return pattern.test(request.resource ?? request.reason);
-    });
-
-    const finalDecision = matchingRule?.decision ?? request.decision;
+    const matchingRule = findMatchingRule(this.rules, request);
+    const safePathDecision = evaluateSafePathApproval(
+      request,
+      call.input,
+      workspaceRoot,
+      this.safeCommands,
+      this.safeWriteGlobs
+    );
+    const finalDecision = matchingRule?.decision ?? safePathDecision ?? request.decision;
     return {
       request: {
         ...request,
         decision: finalDecision,
       },
       finalDecision,
+      matchedRule: matchingRule,
+      resolvedBy: matchingRule
+        ? "rule"
+        : safePathDecision
+          ? "safe_path"
+          : "default",
     };
   }
+}
+
+const RULE_LAYER_PRIORITY: KernelPermissionRuleLayer[] = [
+  "policy",
+  "flag",
+  "local",
+  "project",
+  "user",
+  "safe_path",
+];
+
+const DEFAULT_SAFE_COMMANDS: RegExp[] = [
+  /^pwd$/i,
+  /^ls(?:\s|$)/i,
+  /^find(?:\s|$)/i,
+  /^cat(?:\s|$)/i,
+  /^head(?:\s|$)/i,
+  /^tail(?:\s|$)/i,
+  /^wc(?:\s|$)/i,
+  /^which(?:\s|$)/i,
+  /^git\s+status(?:\s|$)/i,
+  /^git\s+diff(?:\s|$)/i,
+  /^git\s+log(?:\s|$)/i,
+  /^rg(?:\s|$)/i,
+];
+
+const DEFAULT_CLASSIFIER_SAFE_COMMANDS: RegExp[] = [
+  /^git\s+(status|diff|log|show)(?:\s|$)/i,
+  /^npm\s+test(?:\s|$)/i,
+  /^pnpm\s+test(?:\s|$)/i,
+  /^pnpm\s+exec\s+(tsc|vitest)(?:\s|$)/i,
+  /^tsc(?:\s|$)/i,
+];
+
+const DEFAULT_SAFE_WRITE_GLOBS: RegExp[] = [
+  /\.md$/i,
+  /\.txt$/i,
+  /\.json$/i,
+  /\.ya?ml$/i,
+];
+
+function flattenRules(
+  rules: PermissionRule[],
+  layeredRules?: Partial<Record<KernelPermissionRuleLayer, PermissionRule[]>>
+): PermissionRule[] {
+  const merged = [...rules];
+  for (const layer of RULE_LAYER_PRIORITY) {
+    for (const rule of layeredRules?.[layer] ?? []) {
+      merged.push({
+        ...rule,
+        layer,
+      });
+    }
+  }
+
+  return merged.sort(
+    (left, right) =>
+      RULE_LAYER_PRIORITY.indexOf(left.layer ?? "user") -
+      RULE_LAYER_PRIORITY.indexOf(right.layer ?? "user")
+  );
+}
+
+function findMatchingRule(
+  rules: PermissionRule[],
+  request: PermissionRequest
+): PermissionRule | undefined {
+  return rules.find((rule) => {
+    if (rule.scope !== request.scope) {
+      return false;
+    }
+
+    const pattern = new RegExp(rule.pattern, "i");
+    return pattern.test(request.resource ?? request.reason);
+  });
+}
+
+function evaluateSafePathApproval(
+  request: PermissionRequest,
+  input: Record<string, unknown>,
+  workspaceRoot: string | undefined,
+  safeCommands: RegExp[],
+  safeWriteGlobs: RegExp[]
+): PermissionDecision | undefined {
+  if (request.scope === "read" && request.risk === "low") {
+    return "allow";
+  }
+
+  if (request.scope === "process") {
+    const command = String(input.command ?? request.resource ?? "").trim();
+    if (request.risk === "low" && safeCommands.some((pattern) => pattern.test(command))) {
+      return "allow";
+    }
+  }
+
+  if (request.scope === "write" && workspaceRoot && request.resource && request.risk === "medium") {
+    const resolved = resolveSafePath(request.resource, workspaceRoot);
+    const inWorkspace = resolved.startsWith(path.resolve(workspaceRoot));
+    if (inWorkspace && safeWriteGlobs.some((pattern) => pattern.test(resolved))) {
+      return "allow";
+    }
+  }
+
+  return undefined;
 }
 
 export function createPermissionRequest(
@@ -212,6 +352,110 @@ export function classifyCommandRisk(command: string): RiskLevel {
   }
 
   return "low";
+}
+
+export function createSafetyClassifierResolver(
+  safeCommands: RegExp[] = DEFAULT_CLASSIFIER_SAFE_COMMANDS
+): PermissionResolver {
+  return {
+    name: "safety-classifier",
+    async resolve(context) {
+      const { permissionRequest, toolCall } = context;
+      if (permissionRequest.scope !== "process") {
+        return permissionRequest.risk === "critical"
+          ? {
+              decision: "denied",
+              reason: permissionRequest.reason,
+              source: "classifier",
+              resolver: "safety-classifier",
+            }
+          : null;
+      }
+
+      const command = String(toolCall.input.command ?? permissionRequest.resource ?? "").trim();
+      if (!command) {
+        return null;
+      }
+
+      if (permissionRequest.risk === "critical") {
+        return {
+          decision: "denied",
+          reason: `Denied by automated safety classifier: ${command}`,
+          source: "classifier",
+          resolver: "safety-classifier",
+        };
+      }
+
+      if (safeCommands.some((pattern) => pattern.test(command))) {
+        return {
+          decision: "approved",
+          reason: `Approved by automated safety classifier: ${command}`,
+          source: "classifier",
+          resolver: "safety-classifier",
+        };
+      }
+
+      return null;
+    },
+  };
+}
+
+export class PermissionResolverOrchestrator {
+  constructor(private readonly resolvers: PermissionResolver[]) {}
+
+  async resolve(context: PermissionResolverContext): Promise<PermissionResolverResult | undefined> {
+    if (this.resolvers.length === 0) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const abortListener = () => controller.abort();
+    context.abortSignal?.addEventListener("abort", abortListener, { once: true });
+
+    try {
+      return await new Promise<PermissionResolverResult | undefined>((resolve) => {
+        let remaining = this.resolvers.length;
+        let claimed = false;
+
+        const finish = (result: PermissionResolverResult | undefined) => {
+          if (claimed) {
+            return;
+          }
+          claimed = true;
+          controller.abort();
+          resolve(result);
+        };
+
+        for (const resolver of this.resolvers) {
+          void resolver.resolve({
+            ...context,
+            abortSignal: controller.signal,
+          }).then((result) => {
+            if (claimed) {
+              return;
+            }
+
+            if (result) {
+              finish(result);
+              return;
+            }
+
+            remaining -= 1;
+            if (remaining === 0) {
+              finish(undefined);
+            }
+          }).catch(() => {
+            remaining -= 1;
+            if (!claimed && remaining === 0) {
+              finish(undefined);
+            }
+          });
+        }
+      });
+    } finally {
+      context.abortSignal?.removeEventListener("abort", abortListener);
+    }
+  }
 }
 
 function classifyFileRisk(resource: string | undefined, workspaceRoot?: string): RiskLevel {

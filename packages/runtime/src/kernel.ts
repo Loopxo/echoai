@@ -1,9 +1,15 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { createHookRegistry, HOOK_EVENTS, type HookRegistry } from "@echoai/hooks";
 import { compactSession } from "./compaction.js";
 import { SessionRegistry } from "./registry.js";
 import { AuditLogStore } from "./audit.js";
 import { createBuiltInTools } from "./builtin-tools.js";
+import { normalizeSystemPrompt, resolveSystemPrompt } from "./prompting.js";
+import { SessionMemoryStore } from "./session-memory.js";
 import {
   createTaskRuntime,
   readTaskLog,
@@ -12,26 +18,39 @@ import {
   type RuntimeTaskHandle,
 } from "./tasks.js";
 import {
+  createSafetyClassifierResolver,
+  PermissionResolver,
+  PermissionResolverOrchestrator,
   RuntimePermissionManager,
   type PermissionRequest,
 } from "./permissions.js";
 import {
-  DEFAULT_PERMISSION_POLICY,
   ToolRegistry,
   summarizeToolResult,
 } from "./tools.js";
 import type {
   KernelApprovalRecord,
+  KernelCompletionResponse,
+  KernelCompactionReport,
   KernelCompletionProvider,
   KernelEventPayloads,
+  KernelForkOptions,
+  KernelPermissionHookPayload,
+  KernelMessageHookPayload,
   KernelMessage,
+  KernelRunEvent,
   KernelRunOptions,
   KernelRunResult,
+  KernelSessionHookPayload,
   KernelSession,
   KernelShellTaskOptions,
   KernelTaskRecord,
+  KernelToolAfterHookPayload,
+  KernelToolBeforeHookPayload,
   KernelToolCall,
+  KernelToolExecutionMode,
   KernelToolResult,
+  KernelSystemPromptConfig,
   SessionRegistryOptions,
 } from "./types.js";
 
@@ -43,6 +62,9 @@ interface AgentKernelOptions {
   auditLogStore?: AuditLogStore;
   permissionManager?: RuntimePermissionManager;
   registerBuiltInTools?: boolean;
+  sessionMemoryStore?: SessionMemoryStore;
+  hookRegistry?: HookRegistry;
+  approvalResolvers?: PermissionResolver[];
   approvalResolver?: (request: {
     session: KernelSession;
     toolCall: KernelToolCall;
@@ -50,16 +72,36 @@ interface AgentKernelOptions {
   }) => Promise<{ decision: "approved" | "denied"; reason?: string }>;
 }
 
+interface PreparedToolCall {
+  call: KernelToolCall;
+  evaluation: ReturnType<RuntimePermissionManager["evaluate"]>;
+  executionMode: KernelToolExecutionMode;
+}
+
+interface ToolExecutionBatch {
+  mode: KernelToolExecutionMode;
+  entries: PreparedToolCall[];
+}
+
+interface ToolExecutionOutcome {
+  call: KernelToolCall;
+  result: KernelToolResult;
+  approval?: KernelApprovalRecord;
+}
+
 export class AgentKernel extends EventEmitter {
   readonly sessions: SessionRegistry;
   readonly tools: ToolRegistry;
+  readonly hooks: HookRegistry;
 
   private completionProvider?: KernelCompletionProvider;
   private readonly autoCompactMessages: number;
   private readonly auditLogStore: AuditLogStore;
   private readonly permissionManager: RuntimePermissionManager;
   private readonly approvalResolver?: AgentKernelOptions["approvalResolver"];
+  private readonly approvalResolvers: PermissionResolver[];
   private readonly taskRuntime: ReturnType<typeof createTaskRuntime>;
+  private readonly sessionMemoryStore: SessionMemoryStore;
 
   constructor(options: AgentKernelOptions = {}) {
     super();
@@ -71,6 +113,31 @@ export class AgentKernel extends EventEmitter {
     this.permissionManager = options.permissionManager ?? new RuntimePermissionManager();
     this.approvalResolver = options.approvalResolver;
     this.taskRuntime = createTaskRuntime(options.registryOptions);
+    this.sessionMemoryStore = options.sessionMemoryStore ?? new SessionMemoryStore(options.registryOptions);
+    this.hooks = options.hookRegistry ?? createHookRegistry();
+    this.approvalResolvers = [
+      this.createHookPermissionResolver(),
+      createSafetyClassifierResolver(),
+      ...(options.approvalResolvers ?? []),
+      ...(options.approvalResolver
+        ? [{
+            name: "interactive",
+            resolve: async ({ session, toolCall, permissionRequest }) => {
+              const result = await options.approvalResolver!({
+                session,
+                toolCall,
+                permissionRequest,
+              });
+              return {
+                decision: result.decision,
+                reason: result.reason,
+                source: "interactive",
+                resolver: "interactive",
+              };
+            },
+          } satisfies PermissionResolver]
+        : []),
+    ];
 
     if (options.registerBuiltInTools !== false) {
       for (const tool of createBuiltInTools()) {
@@ -85,6 +152,11 @@ export class AgentKernel extends EventEmitter {
 
   async createSession(title: string, provider?: string, model?: string): Promise<KernelSession> {
     const session = await this.sessions.create(title, provider, model);
+    await this.sessions.appendEvent(session.id, "session.created", {
+      title: session.title,
+      provider: session.provider ?? "",
+      model: session.model ?? "",
+    });
     this.emitTyped("session.created", session);
     return session;
   }
@@ -101,7 +173,92 @@ export class AgentKernel extends EventEmitter {
     return this.sessions.delete(sessionId);
   }
 
+  async forkSession(
+    parentSessionId: string,
+    options: KernelForkOptions = {}
+  ): Promise<KernelSession> {
+    const parent = await this.requireSession(parentSessionId);
+    const forked = await this.createSession(
+      options.title ?? `${parent.title} (Subagent)`,
+      options.provider ?? parent.provider,
+      options.model ?? parent.model
+    );
+
+    if (options.includeMessages !== false) {
+      forked.messages = parent.messages.map((message) => ({
+        ...message,
+        toolCalls: message.toolCalls?.map((toolCall) => ({ ...toolCall })),
+        attachments: message.attachments?.map((attachment) => ({ ...attachment })),
+        metadata: message.metadata ? { ...message.metadata } : undefined,
+      }));
+    }
+
+    if (options.includeMetadata !== false) {
+      forked.metadata = {
+        ...parent.metadata,
+      };
+    }
+
+    forked.metadata.parentSessionId = parent.id;
+    forked.metadata.cacheShared = options.includeMessages !== false;
+
+    if (options.worktree?.enabled) {
+      const sourceWorkspace = readStringMetadata(parent.metadata.workspaceRoot);
+      const worktreePath = options.worktree.path
+        ?? (sourceWorkspace ? await createIsolatedWorkspace(sourceWorkspace, forked.id) : undefined);
+
+      forked.worktree = {
+        enabled: true,
+        path: worktreePath,
+        branch: options.worktree.branch ?? `echoai/${forked.id.slice(0, 8)}`,
+      };
+
+      if (worktreePath) {
+        forked.metadata.workspaceRoot = worktreePath;
+        forked.metadata.workingDirectory = worktreePath;
+      }
+    }
+
+    await this.sessions.save(forked);
+    await this.sessions.appendEvent(forked.id, "session.forked", {
+      parentSessionId: parent.id,
+      cacheShared: options.includeMessages !== false,
+      worktree: forked.worktree as unknown as Record<string, unknown>,
+    });
+    return forked;
+  }
+
+  async runSubagent(
+    parentSessionId: string,
+    runOptions: Omit<KernelRunOptions, "sessionId">,
+    forkOptions: KernelForkOptions = {}
+  ): Promise<KernelRunResult> {
+    const session = await this.forkSession(parentSessionId, forkOptions);
+    return this.run({
+      ...runOptions,
+      sessionId: session.id,
+      workspaceRoot: session.worktree.path
+        ?? readStringMetadata(session.metadata.workspaceRoot)
+        ?? runOptions.workspaceRoot,
+    });
+  }
+
   async run(options: KernelRunOptions): Promise<KernelRunResult> {
+    let result: KernelRunResult | undefined;
+    for await (const event of this.runEvents(options)) {
+      if (event.type === "run.completed") {
+        result = event.result;
+      }
+    }
+
+    if (!result) {
+      throw new Error("Kernel run terminated before producing a result");
+    }
+
+    return result;
+  }
+
+  async *runEvents(options: KernelRunOptions): AsyncGenerator<KernelRunEvent, KernelRunResult> {
     const provider = options.provider;
     const model = options.model;
     let session = options.sessionId
@@ -122,10 +279,23 @@ export class AgentKernel extends EventEmitter {
     if (model) {
       session.model = model;
     }
+    session.metadata.provider = session.provider ?? session.metadata.provider;
+    session.metadata.model = session.model ?? session.metadata.model;
+    if (options.workspaceRoot) {
+      session.metadata.workspaceRoot = options.workspaceRoot;
+      session.metadata.workingDirectory = options.workspaceRoot;
+    }
+
+    yield { type: "run.started", session };
+    await this.hooks.trigger<KernelSessionHookPayload>(HOOK_EVENTS.SESSION_START, {
+      session,
+      options,
+    });
 
     const userMessage = createMessage("user", options.input);
     session.messages.push(userMessage);
     await this.saveAndEmitMessage(session, userMessage);
+    yield { type: "message.created", sessionId: session.id, message: userMessage };
 
     if (!this.completionProvider) {
       throw new Error("No completion provider configured for AgentKernel");
@@ -135,19 +305,37 @@ export class AgentKernel extends EventEmitter {
     let turns = 0;
     let toolCalls = 0;
     let responseText = "";
+    let compaction: KernelCompactionReport | undefined;
+    const promptConfig = normalizeSystemPrompt(options.systemPrompt);
 
     while (turns < maxTurns) {
       turns += 1;
+      const sessionMemory = await this.sessionMemoryStore.read(session.id);
+      const resolvedSystemPrompt = await this.resolveRunSystemPrompt(
+        session,
+        promptConfig,
+        options.workspaceRoot,
+        sessionMemory?.content
+      );
 
-      const completion = options.stream && this.completionProvider.stream
-        ? await this.runStreamingCompletion(session, options)
-        : await this.completionProvider.complete({
-            session,
-            messages: session.messages,
-            tools: this.tools.list(),
-            systemPrompt: options.systemPrompt,
-            abortSignal: options.abortSignal,
-          });
+      const completionIterator = this.streamCompletionEvents(session, {
+        ...options,
+        systemPrompt: resolvedSystemPrompt,
+      });
+      let completion: KernelCompletionResponse | undefined;
+
+      while (true) {
+        const step = await completionIterator.next();
+        if (step.done) {
+          completion = step.value;
+          break;
+        }
+        yield step.value;
+      }
+
+      if (!completion) {
+        throw new Error("Completion provider returned no response");
+      }
 
       const assistantMessage = createMessage("assistant", completion.content, {
         toolCalls: completion.toolCalls,
@@ -156,14 +344,31 @@ export class AgentKernel extends EventEmitter {
       responseText = completion.content;
       session.messages.push(assistantMessage);
       await this.saveAndEmitMessage(session, assistantMessage);
+      yield { type: "message.created", sessionId: session.id, message: assistantMessage };
 
       if (!completion.toolCalls || completion.toolCalls.length === 0) {
         break;
       }
 
-      for (const call of completion.toolCalls) {
+      const toolIterator = this.executeToolCallsWithEvents(
+        session,
+        completion.toolCalls,
+        options.workspaceRoot,
+        options.abortSignal
+      );
+      let outcomes: ToolExecutionOutcome[] = [];
+
+      while (true) {
+        const step = await toolIterator.next();
+        if (step.done) {
+          outcomes = step.value;
+          break;
+        }
+        yield step.value;
+      }
+
+      for (const { call, result } of outcomes) {
         toolCalls += 1;
-        const result = await this.executeToolCall(session, call, options.workspaceRoot, options.abortSignal);
         const toolMessage = createMessage(
           "tool",
           summarizeToolResult(result),
@@ -174,21 +379,51 @@ export class AgentKernel extends EventEmitter {
         );
         session.messages.push(toolMessage);
         await this.saveAndEmitMessage(session, toolMessage);
+        yield { type: "message.created", sessionId: session.id, message: toolMessage };
       }
     }
 
     if (session.messages.length > this.autoCompactMessages) {
-      compactSession(session, { maxMessages: this.autoCompactMessages });
-      await this.sessions.save(session);
-      this.emitTyped("session.compacted", session);
+      compaction = compactSession(session, { maxMessages: this.autoCompactMessages });
+      if (compaction.appliedStrategies.length > 0) {
+        await this.sessions.save(session);
+        await this.sessions.appendEvent(session.id, "session.compacted", {
+          report: compaction as unknown as Record<string, unknown>,
+        });
+        this.emitTyped("session.compacted", { session, report: compaction });
+        yield { type: "session.compacted", session, report: compaction };
+      }
     }
 
-    return {
+    await this.sessionMemoryStore.write(session);
+
+    const result: KernelRunResult = {
       session,
       response: responseText,
       turns,
       toolCalls,
+      compaction,
     };
+    await this.hooks.trigger<KernelSessionHookPayload>(HOOK_EVENTS.SESSION_END, {
+      session,
+      options,
+    });
+    yield { type: "run.completed", result };
+    return result;
+  }
+
+  private async resolveRunSystemPrompt(
+    session: KernelSession,
+    config: KernelSystemPromptConfig | undefined,
+    workspaceRoot: string | undefined,
+    sessionMemory: string | undefined
+  ): Promise<string | undefined> {
+    return resolveSystemPrompt(session, config, {
+      session,
+      workspaceRoot,
+      currentDate: new Date().toISOString(),
+      sessionMemory,
+    });
   }
 
   async addTask(
@@ -367,37 +602,50 @@ export class AgentKernel extends EventEmitter {
       input,
     };
 
-    const result = await this.executeToolCall(
+    const outcome = await this.executePreparedToolCall(
       session,
-      call,
+      this.prepareToolCall(session, call, options.workspaceRoot),
       options.workspaceRoot,
       options.abortSignal
     );
+    await this.finalizeToolOutcome(session, outcome.call, outcome.result);
 
-    const toolMessage = createMessage("tool", summarizeToolResult(result), {
+    const toolMessage = createMessage("tool", summarizeToolResult(outcome.result), {
       name,
       toolCallId: call.id,
     });
     session.messages.push(toolMessage);
     await this.saveAndEmitMessage(session, toolMessage);
-    return result;
+    return outcome.result;
   }
 
-  private async executeToolCall(
+  private prepareToolCall(
     session: KernelSession,
     call: KernelToolCall,
-    workspaceRoot?: string,
-    abortSignal?: AbortSignal
-  ): Promise<KernelToolResult> {
+    workspaceRoot?: string
+  ): PreparedToolCall {
     const tool = this.tools.get(call.name);
     if (!tool) {
       return {
-        success: false,
-        error: `Tool "${call.name}" is not registered`,
+        call,
+        evaluation: {
+          request: {
+            id: randomUUID(),
+            sessionId: session.id,
+            toolName: call.name,
+            scope: "process",
+            decision: "deny",
+            risk: "medium",
+            reason: `Tool "${call.name}" is not registered`,
+            metadata: {
+              input: call.input,
+            },
+          },
+          finalDecision: "deny",
+        },
+        executionMode: "serial",
       };
     }
-
-    this.emitTyped("tool.started", { sessionId: session.id, call });
 
     const evaluation = this.permissionManager.evaluate(
       tool,
@@ -405,18 +653,153 @@ export class AgentKernel extends EventEmitter {
       session,
       workspaceRoot
     );
+    return {
+      call,
+      evaluation,
+      executionMode: evaluation.request.scope === "read" && evaluation.finalDecision === "allow"
+        ? "parallel"
+        : "serial",
+    };
+  }
+
+  private buildToolExecutionBatches(
+    session: KernelSession,
+    calls: KernelToolCall[],
+    workspaceRoot?: string
+  ): ToolExecutionBatch[] {
+    const batches: ToolExecutionBatch[] = [];
+    let concurrentEntries: PreparedToolCall[] = [];
+
+    for (const call of calls) {
+      const prepared = this.prepareToolCall(session, call, workspaceRoot);
+      if (prepared.executionMode === "parallel") {
+        concurrentEntries.push(prepared);
+        continue;
+      }
+
+      if (concurrentEntries.length > 0) {
+        batches.push({ mode: "parallel", entries: concurrentEntries });
+        concurrentEntries = [];
+      }
+
+      batches.push({ mode: "serial", entries: [prepared] });
+    }
+
+    if (concurrentEntries.length > 0) {
+      batches.push({ mode: "parallel", entries: concurrentEntries });
+    }
+
+    return batches;
+  }
+
+  private async *executeToolCallsWithEvents(
+    session: KernelSession,
+    calls: KernelToolCall[],
+    workspaceRoot?: string,
+    abortSignal?: AbortSignal
+  ): AsyncGenerator<KernelRunEvent, ToolExecutionOutcome[]> {
+    const batches = this.buildToolExecutionBatches(session, calls, workspaceRoot);
+    const outcomes: ToolExecutionOutcome[] = [];
+
+    for (const batch of batches) {
+      const batchPayload = {
+        sessionId: session.id,
+        mode: batch.mode,
+        calls: batch.entries.map((entry) => entry.call),
+      };
+      this.emitTyped("tool.batch.started", batchPayload);
+      yield { type: "tool.batch.started", ...batchPayload };
+
+      if (batch.mode === "parallel") {
+        for (const entry of batch.entries) {
+          this.emitTyped("tool.started", { sessionId: session.id, call: entry.call });
+          yield { type: "tool.started", sessionId: session.id, call: entry.call };
+        }
+
+        const settled = await Promise.all(
+          batch.entries.map((entry) => this.executePreparedToolCall(session, entry, workspaceRoot, abortSignal))
+        );
+
+        for (const outcome of settled) {
+          await this.finalizeToolOutcome(session, outcome.call, outcome.result);
+          yield { type: "tool.completed", sessionId: session.id, call: outcome.call, result: outcome.result };
+          outcomes.push(outcome);
+        }
+        continue;
+      }
+
+      for (const entry of batch.entries) {
+        this.emitTyped("tool.started", { sessionId: session.id, call: entry.call });
+        yield { type: "tool.started", sessionId: session.id, call: entry.call };
+
+        const outcome = await this.executePreparedToolCall(session, entry, workspaceRoot, abortSignal);
+        if (outcome.approval) {
+          yield { type: "approval.recorded", sessionId: session.id, approval: outcome.approval };
+        }
+
+        await this.finalizeToolOutcome(session, outcome.call, outcome.result);
+        yield { type: "tool.completed", sessionId: session.id, call: outcome.call, result: outcome.result };
+        outcomes.push(outcome);
+      }
+    }
+
+    return outcomes;
+  }
+
+  private async executePreparedToolCall(
+    session: KernelSession,
+    prepared: PreparedToolCall,
+    workspaceRoot?: string,
+    abortSignal?: AbortSignal
+  ): Promise<ToolExecutionOutcome> {
+    let { call, evaluation } = prepared;
+    const tool = this.tools.get(call.name);
+
+    if (!tool) {
+      return {
+        call,
+        result: {
+          success: false,
+          error: `Tool "${call.name}" is not registered`,
+        },
+      };
+    }
+
+    const beforeHook = await this.hooks.trigger<KernelToolBeforeHookPayload>(HOOK_EVENTS.TOOL_BEFORE, {
+      session,
+      call,
+      workspaceRoot,
+      abortSignal,
+    });
+
+    if (beforeHook.call.id !== call.id || beforeHook.call.name !== call.name || beforeHook.call.input !== call.input) {
+      call = beforeHook.call;
+      evaluation = this.permissionManager.evaluate(tool, call, session, workspaceRoot);
+    }
+
+    if (beforeHook.skip) {
+      return {
+        call,
+        result: beforeHook.result ?? {
+          success: false,
+          error: `Tool "${call.name}" was blocked by a pre-tool hook`,
+        },
+      };
+    }
+
     await this.auditLogStore.logPermission(evaluation.request);
 
+    let approval: KernelApprovalRecord | undefined;
     if (evaluation.finalDecision !== "allow") {
-      const approval = await this.recordApproval(session, call, evaluation.request);
+      approval = await this.recordApproval(session, call, evaluation.request);
       if (approval.decision === "denied") {
-        await this.auditLogStore.logToolResult(session.id, call, {
-          success: false,
-          error: approval.reason ?? `Tool "${call.name}" was denied by policy`,
-        });
         return {
-          success: false,
-          error: approval.reason ?? `Tool "${call.name}" was denied by policy`,
+          call,
+          approval,
+          result: {
+            success: false,
+            error: approval.reason ?? `Tool "${call.name}" was denied by policy`,
+          },
         };
       }
     }
@@ -426,15 +809,31 @@ export class AgentKernel extends EventEmitter {
       workspaceRoot,
       abortSignal,
     });
+    const afterHook = await this.hooks.trigger<KernelToolAfterHookPayload>(HOOK_EVENTS.TOOL_AFTER, {
+      session,
+      call,
+      result,
+    });
 
+    return { call, result: afterHook.result, approval };
+  }
+
+  private async finalizeToolOutcome(
+    session: KernelSession,
+    call: KernelToolCall,
+    result: KernelToolResult
+  ): Promise<void> {
     if (result.artifacts?.length) {
       session.artifacts.push(...result.artifacts);
     }
 
     await this.sessions.save(session);
+    await this.sessions.appendEvent(session.id, "tool.completed", {
+      call: call as unknown as Record<string, unknown>,
+      result: result as unknown as Record<string, unknown>,
+    });
     this.emitTyped("tool.completed", { sessionId: session.id, call, result });
     await this.auditLogStore.logToolResult(session.id, call, result);
-    return result;
   }
 
   private async recordApproval(
@@ -443,14 +842,22 @@ export class AgentKernel extends EventEmitter {
     permissionRequest: PermissionRequest
   ): Promise<KernelApprovalRecord> {
     const resolved = permissionRequest.decision === "deny"
-      ? { decision: "denied" as const, reason: "Denied by tool permission policy" }
-      : await this.approvalResolver?.({
+      ? {
+          decision: "denied" as const,
+          reason: "Denied by tool permission policy",
+          source: "policy",
+          resolver: "policy",
+        }
+      : await new PermissionResolverOrchestrator(this.approvalResolvers).resolve({
           session,
+          tool: this.tools.get(call.name)!,
           toolCall: call,
           permissionRequest,
         }) ?? {
           decision: "denied" as const,
           reason: `No approval resolver configured for "${call.name}"`,
+          source: "default",
+          resolver: "default",
         };
 
     const approval: KernelApprovalRecord = {
@@ -458,23 +865,39 @@ export class AgentKernel extends EventEmitter {
       toolName: call.name,
       decision: resolved.decision,
       reason: resolved.reason,
+      source: resolved.source,
+      resolver: resolved.resolver,
       createdAt: Date.now(),
       input: call.input,
     };
     session.approvals.push(approval);
     await this.sessions.save(session);
+    await this.sessions.appendEvent(session.id, "approval.recorded", {
+      approval: approval as unknown as Record<string, unknown>,
+    });
     this.emitTyped("approval.recorded", { sessionId: session.id, approval });
     await this.auditLogStore.logApproval(session.id, approval);
     return approval;
   }
 
-  private async runStreamingCompletion(
+  private async *streamCompletionEvents(
     session: KernelSession,
-    options: KernelRunOptions
-  ) {
+    options: Omit<KernelRunOptions, "systemPrompt"> & { systemPrompt?: string }
+  ): AsyncGenerator<KernelRunEvent, KernelCompletionResponse> {
+    if (!(options.stream && this.completionProvider?.stream)) {
+      return this.completionProvider!.complete({
+        session,
+        messages: session.messages,
+        tools: this.tools.list(),
+        systemPrompt: options.systemPrompt,
+        abortSignal: options.abortSignal,
+      });
+    }
+
     const chunks: string[] = [];
     const toolCalls: KernelToolCall[] = [];
-    const response = await this.completionProvider!.stream!(
+    const queue = createAsyncQueue<KernelRunEvent>();
+    const responsePromise = this.completionProvider!.stream!(
       {
         session,
         messages: session.messages,
@@ -485,18 +908,28 @@ export class AgentKernel extends EventEmitter {
       (chunk) => {
         if (chunk.type === "text" && chunk.text) {
           chunks.push(chunk.text);
+          queue.push({ type: "assistant.delta", sessionId: session.id, text: chunk.text });
         }
         if (chunk.type === "tool_call" && chunk.toolCall) {
           toolCalls.push(chunk.toolCall);
+          queue.push({ type: "assistant.tool_call", sessionId: session.id, call: chunk.toolCall });
         }
       }
-    );
+    )
+      .then((response) => ({
+        ...response,
+        content: response.content || chunks.join(""),
+        toolCalls: response.toolCalls ?? toolCalls,
+      }))
+      .finally(() => {
+        queue.close();
+      });
 
-    return {
-      ...response,
-      content: response.content || chunks.join(""),
-      toolCalls: response.toolCalls ?? toolCalls,
-    };
+    for await (const event of queue.iterate()) {
+      yield event;
+    }
+
+    return await responsePromise;
   }
 
   private async requireSession(sessionId: string): Promise<KernelSession> {
@@ -508,9 +941,50 @@ export class AgentKernel extends EventEmitter {
   }
 
   private async saveAndEmitMessage(session: KernelSession, message: KernelMessage): Promise<void> {
+    const hookEvent = message.role === "assistant" || message.role === "tool"
+      ? HOOK_EVENTS.MESSAGE_RECEIVE
+      : HOOK_EVENTS.MESSAGE_SEND;
+    const hookPayload = await this.hooks.trigger<KernelMessageHookPayload>(hookEvent, {
+      session,
+      message,
+    });
+
+    if (hookPayload.message !== message) {
+      Object.assign(message, hookPayload.message);
+    }
     await this.sessions.save(session);
+    await this.sessions.appendEvent(session.id, "message.created", {
+      message: message as unknown as Record<string, unknown>,
+    });
     this.emitTyped("message.created", { sessionId: session.id, message });
     this.emitTyped("session.updated", session);
+  }
+
+  private createHookPermissionResolver(): PermissionResolver {
+    return {
+      name: "hook",
+      resolve: async ({ session, toolCall, permissionRequest }) => {
+        const payload = await this.hooks.trigger<KernelPermissionHookPayload>(
+          HOOK_EVENTS.PERMISSION_RESOLVE,
+          {
+            session,
+            call: toolCall,
+            permissionRequest,
+          }
+        );
+
+        if (!payload.decision) {
+          return null;
+        }
+
+        return {
+          decision: payload.decision.decision,
+          reason: payload.decision.reason,
+          source: payload.decision.source ?? "hook",
+          resolver: payload.decision.resolver ?? "hook",
+        };
+      },
+    };
   }
 
   private async refreshTaskStates(session: KernelSession): Promise<boolean> {
@@ -578,6 +1052,60 @@ function createMessage(
   };
 }
 
+function createAsyncQueue<T>() {
+  const values: T[] = [];
+  const waiters: Array<(value: IteratorResult<T>) => void> = [];
+  let closed = false;
+
+  return {
+    push(value: T): void {
+      if (closed) {
+        return;
+      }
+
+      const waiter = waiters.shift();
+      if (waiter) {
+        waiter({ value, done: false });
+        return;
+      }
+
+      values.push(value);
+    },
+    close(): void {
+      if (closed) {
+        return;
+      }
+      closed = true;
+
+      while (waiters.length > 0) {
+        waiters.shift()?.({ value: undefined as T, done: true });
+      }
+    },
+    async *iterate(): AsyncGenerator<T> {
+      while (true) {
+        if (values.length > 0) {
+          yield values.shift() as T;
+          continue;
+        }
+
+        if (closed) {
+          return;
+        }
+
+        const nextValue = await new Promise<IteratorResult<T>>((resolve) => {
+          waiters.push(resolve);
+        });
+
+        if (nextValue.done) {
+          return;
+        }
+
+        yield nextValue.value;
+      }
+    },
+  };
+}
+
 function buildTaskMetadata(
   command: string,
   handle: RuntimeTaskHandle,
@@ -609,4 +1137,23 @@ function requireTask(session: KernelSession, taskId: string): KernelTaskRecord {
     throw new Error(`Task ${taskId} not found in session ${session.id}`);
   }
   return task;
+}
+
+async function createIsolatedWorkspace(sourceWorkspace: string, sessionId: string): Promise<string> {
+  const targetRoot = path.join(os.tmpdir(), "echoai-worktrees");
+  const targetPath = path.join(targetRoot, sessionId);
+  await fs.mkdir(targetRoot, { recursive: true });
+  await fs.rm(targetPath, { recursive: true, force: true });
+  await fs.cp(sourceWorkspace, targetPath, {
+    recursive: true,
+    filter: (entry) => {
+      const base = path.basename(entry);
+      return !["node_modules", ".git", "dist", "coverage"].includes(base);
+    },
+  });
+  return targetPath;
+}
+
+function readStringMetadata(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }

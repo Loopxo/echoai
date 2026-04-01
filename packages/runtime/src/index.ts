@@ -7,3 +7,5 @@ export * from "./audit.js";
 export * from "./builtin-tools.js";
 export * from "./kernel.js";
 export * from "./tasks.js";
+export * from "./prompting.js";
+export * from "./session-memory.js";
