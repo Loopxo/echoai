@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { readFile } from 'node:fs/promises';
 import { createCliRuntimeKernel } from '../runtime/cli-kernel.js';
 import { getCliSessionRegistry } from '../runtime/session-bridge.js';
 
@@ -129,24 +128,11 @@ async function followTaskLogs(sessionId: string, taskId: string): Promise<void> 
   let offset = 0;
 
   while (true) {
-    const session = await sessionRegistry.load(sessionId);
-    const task = session?.tasks.find((entry) => entry.id === taskId);
-    const logPath = typeof task?.metadata?.logPath === 'string'
-      ? task.metadata.logPath
-      : task?.outputPath;
-
-    if (logPath) {
-      try {
-        const content = await readFile(logPath, 'utf8');
-        const nextChunk = content.slice(offset);
-        if (nextChunk.length > 0) {
-          process.stdout.write(nextChunk);
-          offset = content.length;
-        }
-      } catch {
-        // Wait for the task to create the log file.
-      }
-    }
+    await flushTaskLogChunk(sessionId, taskId, offset).then((nextOffset) => {
+      offset = nextOffset;
+    }).catch(() => {
+      // Wait for the task to create the log file.
+    });
 
     const tasks = await kernel.listTasks(sessionId);
     const current = tasks.find((entry) => entry.id === taskId);
@@ -155,17 +141,7 @@ async function followTaskLogs(sessionId: string, taskId: string): Promise<void> 
     }
 
     if (current.status !== 'running') {
-      if (logPath) {
-        try {
-          const content = await readFile(logPath, 'utf8');
-          const nextChunk = content.slice(offset);
-          if (nextChunk.length > 0) {
-            process.stdout.write(nextChunk);
-          }
-        } catch {
-          // Ignore final read failures.
-        }
-      }
+      offset = await flushTaskLogChunk(sessionId, taskId, offset).catch(() => offset);
 
       process.stdout.write(`\n[task ${current.status}]\n`);
       return;
@@ -173,6 +149,17 @@ async function followTaskLogs(sessionId: string, taskId: string): Promise<void> 
 
     await delay(300);
   }
+}
+
+async function flushTaskLogChunk(sessionId: string, taskId: string, offset: number): Promise<number> {
+  const content = await kernel.getTaskLog(sessionId, taskId, {
+    maxBytes: Math.max(64_000, offset + 64_000),
+  });
+  const nextChunk = content.slice(offset);
+  if (nextChunk.length > 0) {
+    process.stdout.write(nextChunk);
+  }
+  return content.length;
 }
 
 function writeLogChunk(log: string): void {
