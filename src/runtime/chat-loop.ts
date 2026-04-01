@@ -1,4 +1,5 @@
 import inquirer from 'inquirer';
+import { RuntimeEventRenderer } from '@echoai/tui';
 import { ConfigManager } from '../config/manager.js';
 import { ProviderManager } from '../core/provider-manager.js';
 import { createCliKernel } from './cli-kernel.js';
@@ -40,7 +41,6 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
     maxTokens,
     stream: true,
     stateNamespace: 'cli',
-    onTextChunk: (chunk) => process.stdout.write(chunk),
   });
 
   let currentSessionId = existingSession?.id;
@@ -73,8 +73,9 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
     }
 
     try {
-      process.stdout.write('AI: ');
-      const result = await kernel.run({
+      const renderer = new RuntimeEventRenderer();
+      let resultSessionId = currentSessionId;
+      for await (const event of kernel.runEvents({
         sessionId: currentSessionId,
         title: sessionTitle,
         input,
@@ -82,10 +83,15 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
         model: modelName,
         workspaceRoot: process.cwd(),
         stream: true,
-      });
-
-      currentSessionId = result.session.id;
-      process.stdout.write('\n\n');
+      })) {
+        renderer.consume(event);
+        if (event.type === 'run.completed') {
+          resultSessionId = event.result.session.id;
+        }
+      }
+      renderer.finish();
+      currentSessionId = resultSessionId;
+      process.stdout.write('\n');
     } catch (error) {
       console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error');
     }

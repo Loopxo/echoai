@@ -91,6 +91,7 @@
     "@echoai/memory": "workspace:*",
     "@echoai/runtime": "workspace:*",
     "@echoai/skills": "workspace:*",
+    "@echoai/tui": "workspace:*",
     "@types/diff": "^7.0.2",
     "@types/js-yaml": "^4.0.9",
     "@types/ws": "^8.18.1",

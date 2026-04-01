@@ -78,6 +78,9 @@ temp/
 # Optional REPL history
 .node_repl_history
 
+# Local source comparison workspace
+opensource-coding-anyone-can-copy/
+
 # Output of 'npm pack'
 *.tgz
 
