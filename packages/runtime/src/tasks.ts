@@ -11,6 +11,13 @@ export interface RuntimeTaskHandle {
   runnerPath: string;
 }
 
+export interface RuntimeTaskPaths {
+  taskDir: string;
+  logPath: string;
+  statusPath: string;
+  runnerPath: string;
+}
+
 interface RuntimeTaskStatusFile {
   exitCode: number;
   completedAt: number;
@@ -28,10 +35,7 @@ export function createTaskRuntime(options?: SessionRegistryOptions) {
       command: string,
       taskOptions: { cwd?: string } = {}
     ): Promise<RuntimeTaskHandle> {
-      const taskDir = path.join(tasksRoot, sessionId, taskId);
-      const logPath = path.join(taskDir, "task.log");
-      const statusPath = path.join(taskDir, "status.json");
-      const runnerPath = path.join(taskDir, "runner.sh");
+      const { taskDir, logPath, statusPath, runnerPath } = buildTaskPaths(tasksRoot, sessionId, taskId);
       const cwd = path.resolve(taskOptions.cwd ?? process.cwd());
 
       await fs.mkdir(taskDir, { recursive: true });
@@ -63,6 +67,9 @@ export function createTaskRuntime(options?: SessionRegistryOptions) {
         statusPath,
         runnerPath,
       };
+    },
+    getTaskPaths(sessionId: string, taskId: string): RuntimeTaskPaths {
+      return buildTaskPaths(tasksRoot, sessionId, taskId);
     },
   };
 }
@@ -136,6 +143,16 @@ function resolveStateDir(options?: SessionRegistryOptions): string {
   return configured && configured.length > 0
     ? path.resolve(configured)
     : path.join(os.homedir(), ".echoai");
+}
+
+function buildTaskPaths(tasksRoot: string, sessionId: string, taskId: string): RuntimeTaskPaths {
+  const taskDir = path.join(tasksRoot, sessionId, taskId);
+  return {
+    taskDir,
+    logPath: path.join(taskDir, "task.log"),
+    statusPath: path.join(taskDir, "status.json"),
+    runnerPath: path.join(taskDir, "runner.sh"),
+  };
 }
 
 function createRunnerScript(input: {

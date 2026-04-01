@@ -295,7 +295,7 @@ function normalizeSlashes(value: string): string {
 
 function resolveWorkspacePath(targetPath: string, workspaceRoot?: string): string {
   if (!workspaceRoot) {
-    return path.resolve(targetPath);
+    throw new Error("Workspace root is required for built-in file and shell tools");
   }
   ensurePathWithinWorkspace(targetPath, workspaceRoot);
   return resolveSafePath(targetPath, workspaceRoot);

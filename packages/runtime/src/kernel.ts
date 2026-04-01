@@ -23,6 +23,8 @@ import {
   PermissionResolverOrchestrator,
   RuntimePermissionManager,
   type PermissionRequest,
+  ensurePathWithinWorkspace,
+  resolveSafePath,
 } from "./permissions.js";
 import {
   ToolRegistry,
@@ -45,6 +47,7 @@ import type {
   KernelSession,
   KernelShellTaskOptions,
   KernelTaskRecord,
+  KernelTool,
   KernelToolAfterHookPayload,
   KernelToolBeforeHookPayload,
   KernelToolCall,
@@ -281,10 +284,9 @@ export class AgentKernel extends EventEmitter {
     }
     session.metadata.provider = session.provider ?? session.metadata.provider;
     session.metadata.model = session.model ?? session.metadata.model;
-    if (options.workspaceRoot) {
-      session.metadata.workspaceRoot = options.workspaceRoot;
-      session.metadata.workingDirectory = options.workspaceRoot;
-    }
+    const workspaceRoot = this.resolveWorkspaceRoot(session, options.workspaceRoot);
+    session.metadata.workspaceRoot = workspaceRoot;
+    session.metadata.workingDirectory = workspaceRoot;
 
     yield { type: "run.started", session };
     await this.hooks.trigger<KernelSessionHookPayload>(HOOK_EVENTS.SESSION_START, {
@@ -314,7 +316,7 @@ export class AgentKernel extends EventEmitter {
       const resolvedSystemPrompt = await this.resolveRunSystemPrompt(
         session,
         promptConfig,
-        options.workspaceRoot,
+        workspaceRoot,
         sessionMemory?.content
       );
 
@@ -353,7 +355,7 @@ export class AgentKernel extends EventEmitter {
       const toolIterator = this.executeToolCallsWithEvents(
         session,
         completion.toolCalls,
-        options.workspaceRoot,
+        workspaceRoot,
         options.abortSignal
       );
       let outcomes: ToolExecutionOutcome[] = [];
@@ -493,6 +495,34 @@ export class AgentKernel extends EventEmitter {
     options: KernelShellTaskOptions = {}
   ): Promise<KernelTaskRecord> {
     const session = await this.requireSession(sessionId);
+    const workspaceRoot = this.resolveWorkspaceRoot(session);
+    const cwd = options.cwd
+      ? resolveSafePath(options.cwd, workspaceRoot)
+      : workspaceRoot;
+
+    if (options.cwd) {
+      ensurePathWithinWorkspace(options.cwd, workspaceRoot);
+    }
+
+    const taskTool = createShellTaskTool();
+    const taskCall: KernelToolCall = {
+      id: randomUUID(),
+      name: taskTool.name,
+      input: {
+        command,
+        cwd,
+      },
+    };
+    const evaluation = this.permissionManager.evaluate(taskTool, taskCall, session, workspaceRoot);
+    await this.auditLogStore.logPermission(evaluation.request);
+
+    if (evaluation.finalDecision !== "allow") {
+      const approval = await this.recordApproval(session, taskCall, evaluation.request);
+      if (approval.decision === "denied") {
+        throw new Error(approval.reason ?? `Background task "${command}" was denied`);
+      }
+    }
+
     const now = Date.now();
     const task: KernelTaskRecord = {
       id: randomUUID(),
@@ -506,7 +536,7 @@ export class AgentKernel extends EventEmitter {
     };
 
     const handle = await this.taskRuntime.startShellTask(session.id, task.id, command, {
-      cwd: options.cwd,
+      cwd,
     });
 
     task.outputPath = handle.logPath;
@@ -546,6 +576,10 @@ export class AgentKernel extends EventEmitter {
     if (!logPath) {
       throw new Error(`Task ${taskId} does not have a log file`);
     }
+    const expected = this.taskRuntime.getTaskPaths(session.id, task.id).logPath;
+    if (path.resolve(logPath) !== path.resolve(expected)) {
+      throw new Error(`Task ${taskId} has an unmanaged log path`);
+    }
     return readTaskLog(logPath, options.maxBytes);
   }
 
@@ -559,6 +593,10 @@ export class AgentKernel extends EventEmitter {
     const pid = readTaskPid(task);
     if (!pid) {
       return false;
+    }
+    const paths = this.taskRuntime.getTaskPaths(session.id, task.id);
+    if (!isManagedTaskRecord(task, paths)) {
+      throw new Error(`Task ${taskId} metadata is not managed by the runtime`);
     }
 
     const stopped = stopTaskProcess(pid, signal);
@@ -596,6 +634,7 @@ export class AgentKernel extends EventEmitter {
     options: { workspaceRoot?: string; abortSignal?: AbortSignal } = {}
   ): Promise<KernelToolResult> {
     const session = await this.requireSession(sessionId);
+    const workspaceRoot = this.resolveWorkspaceRoot(session, options.workspaceRoot);
     const call: KernelToolCall = {
       id: randomUUID(),
       name,
@@ -604,8 +643,8 @@ export class AgentKernel extends EventEmitter {
 
     const outcome = await this.executePreparedToolCall(
       session,
-      this.prepareToolCall(session, call, options.workspaceRoot),
-      options.workspaceRoot,
+      this.prepareToolCall(session, call, workspaceRoot),
+      workspaceRoot,
       options.abortSignal
     );
     await this.finalizeToolOutcome(session, outcome.call, outcome.result);
@@ -940,6 +979,13 @@ export class AgentKernel extends EventEmitter {
     return session;
   }
 
+  private resolveWorkspaceRoot(session: KernelSession, requested?: string): string {
+    return requested
+      ?? session.worktree.path
+      ?? readStringMetadata(session.metadata.workspaceRoot)
+      ?? process.cwd();
+  }
+
   private async saveAndEmitMessage(session: KernelSession, message: KernelMessage): Promise<void> {
     const hookEvent = message.role === "assistant" || message.role === "tool"
       ? HOOK_EVENTS.MESSAGE_RECEIVE
@@ -1156,4 +1202,36 @@ async function createIsolatedWorkspace(sourceWorkspace: string, sessionId: strin
 
 function readStringMetadata(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function createShellTaskTool(): KernelTool {
+  return {
+    name: "run_shell_task",
+    description: "Run a background shell command inside the workspace",
+    inputSchema: {
+      type: "object",
+      properties: {
+        command: { type: "string" },
+        cwd: { type: "string" },
+      },
+      required: ["command"],
+    },
+    permission: { process: "ask" },
+    async execute() {
+      return { success: true };
+    },
+  };
+}
+
+function isManagedTaskRecord(
+  task: KernelTaskRecord,
+  expected: { logPath: string; statusPath: string; runnerPath: string }
+): boolean {
+  const logPath = readTaskLogPath(task);
+  const statusPath = typeof task.metadata?.statusPath === "string" ? task.metadata.statusPath : undefined;
+  const runnerPath = typeof task.metadata?.runnerPath === "string" ? task.metadata.runnerPath : undefined;
+
+  return path.resolve(logPath ?? "") === path.resolve(expected.logPath)
+    && path.resolve(statusPath ?? "") === path.resolve(expected.statusPath)
+    && path.resolve(runnerPath ?? "") === path.resolve(expected.runnerPath);
 }
