@@ -199,6 +199,35 @@ export class AgentKernel extends EventEmitter {
     return record;
   }
 
+  async invokeTool(
+    sessionId: string,
+    name: string,
+    input: Record<string, unknown>,
+    options: { workspaceRoot?: string; abortSignal?: AbortSignal } = {}
+  ): Promise<KernelToolResult> {
+    const session = await this.requireSession(sessionId);
+    const call: KernelToolCall = {
+      id: randomUUID(),
+      name,
+      input,
+    };
+
+    const result = await this.executeToolCall(
+      session,
+      call,
+      options.workspaceRoot,
+      options.abortSignal
+    );
+
+    const toolMessage = createMessage("tool", summarizeToolResult(result), {
+      name,
+      toolCallId: call.id,
+    });
+    session.messages.push(toolMessage);
+    await this.saveAndEmitMessage(session, toolMessage);
+    return result;
+  }
+
   private async executeToolCall(
     session: KernelSession,
     call: KernelToolCall,

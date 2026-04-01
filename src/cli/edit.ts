@@ -4,6 +4,7 @@ import { ConfigManager } from '../config/manager.js';
 import { ProviderManager } from '../core/provider-manager.js';
 import { FileManager } from '../integrations/file-manager.js';
 import { Message, CommandContext } from '../types/index.js';
+import { createCliKernel } from '../runtime/cli-kernel.js';
 
 export const editCommand = new Command('edit')
   .description('Edit files using AI assistance')
@@ -84,6 +85,12 @@ Please provide the complete modified file content. Include only the code, no exp
 
       // Get AI response
       const provider = await providerManager.getProvider(context.provider!);
+      const kernel = createCliKernel(provider, {
+        model: context.model,
+        temperature: context.temperature,
+        maxTokens: context.maxTokens,
+        stateNamespace: 'cli',
+      });
       
       console.log('🤖 Generating changes...');
       let modifiedContent = '';
@@ -135,7 +142,22 @@ Please provide the complete modified file content. Include only the code, no exp
 
       if (shouldApply) {
         try {
-          await fileManager.applyDiff(filePath, diff);
+          const session = await kernel.createSession(`Edit ${filePath}`, context.provider, context.model);
+          const result = await kernel.invokeTool(
+            session.id,
+            'write_file',
+            {
+              path: filePath,
+              content: modifiedContent,
+            },
+            {
+              workspaceRoot: process.cwd(),
+            }
+          );
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to write file');
+          }
           console.log(`✅ Successfully applied changes to ${filePath}`);
           
           // Show backup location if file was backed up

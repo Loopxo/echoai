@@ -1,7 +1,8 @@
 import { ConfigManager } from '../config/manager.js';
 import { ProviderManager } from '../core/provider-manager.js';
 import { FileManager } from '../integrations/file-manager.js';
-import { Message, CommandContext } from '../types/index.js';
+import { CommandContext } from '../types/index.js';
+import { createCliKernel } from '../runtime/cli-kernel.js';
 
 export default async function handleDirectPrompt(prompt: string, options: any) {
   try {
@@ -37,36 +38,30 @@ export default async function handleDirectPrompt(prompt: string, options: any) {
       fullPrompt = `${prompt}\n\nContext files:\n${fileContents.join('\n')}`;
     }
 
-    const messages: Message[] = [
-      {
-        role: 'user',
-        content: fullPrompt,
-        timestamp: new Date(),
-      },
-    ];
-
     const provider = await providerManager.getProvider(context.provider!);
-    
-    if (context.stream) {
-      const responseStream = provider.chat(messages, {
-        model: context.model,
-        temperature: context.temperature,
-        maxTokens: context.maxTokens,
-        stream: true,
-      });
 
-      for await (const chunk of responseStream) {
-        process.stdout.write(chunk);
-      }
-      console.log(); // New line at the end
+    const kernel = createCliKernel(provider, {
+      model: context.model,
+      temperature: context.temperature,
+      maxTokens: context.maxTokens,
+      stream: context.stream,
+      stateNamespace: 'cli',
+      onTextChunk: context.stream ? (chunk) => process.stdout.write(chunk) : undefined,
+    });
+
+    const result = await kernel.run({
+      input: fullPrompt,
+      title: prompt,
+      provider: context.provider,
+      model: context.model,
+      workspaceRoot: process.cwd(),
+      stream: context.stream,
+    });
+
+    if (context.stream) {
+      process.stdout.write('\n');
     } else {
-      const response = await provider.complete(fullPrompt, {
-        model: context.model,
-        temperature: context.temperature,
-        maxTokens: context.maxTokens,
-      });
-      
-      console.log(response);
+      console.log(result.response);
     }
   } catch (error) {
     console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error');
