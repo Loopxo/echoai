@@ -209,6 +209,49 @@ export class AgentKernel extends EventEmitter {
     return record;
   }
 
+  async updateTask(
+    sessionId: string,
+    taskId: string,
+    updates: Partial<Omit<KernelTaskRecord, "id" | "createdAt">>
+  ): Promise<KernelTaskRecord> {
+    const session = await this.requireSession(sessionId);
+    const task = requireTask(session, taskId);
+    Object.assign(task, updates, { updatedAt: Date.now() });
+    await this.sessions.save(session);
+    this.emitTyped("task.updated", { sessionId: session.id, task });
+    this.emitTyped("session.updated", session);
+    return task;
+  }
+
+  async appendMessage(
+    sessionId: string,
+    role: KernelMessage["role"],
+    content: string,
+    extra: Partial<KernelMessage> = {}
+  ): Promise<KernelMessage> {
+    const session = await this.requireSession(sessionId);
+    const message = createMessage(role, content, extra);
+    session.messages.push(message);
+    await this.saveAndEmitMessage(session, message);
+    return message;
+  }
+
+  async addArtifact(
+    sessionId: string,
+    artifact: Omit<KernelSession["artifacts"][number], "id" | "createdAt">
+  ): Promise<KernelSession["artifacts"][number]> {
+    const session = await this.requireSession(sessionId);
+    const record = {
+      ...artifact,
+      id: randomUUID(),
+      createdAt: Date.now(),
+    };
+    session.artifacts.push(record);
+    await this.sessions.save(session);
+    this.emitTyped("session.updated", session);
+    return record;
+  }
+
   async startShellTask(
     sessionId: string,
     command: string,

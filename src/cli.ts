@@ -58,7 +58,8 @@ program.addCommand(agentsCommand);
 // Add quick analyze command
 const analyzeCommand = new Command('analyze')
   .description('🧠 Quick intelligent codebase analysis')
-  .action(quickAnalyzeCommand);
+  .option('-s, --session <session-id>', 'Attach the analysis to an existing runtime session')
+  .action(async (options) => quickAnalyzeCommand({ session: options.session }));
 
 program.addCommand(analyzeCommand);
 program.addCommand(docsCommand);

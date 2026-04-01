@@ -2,17 +2,48 @@
 
 import { intelligentCodebaseAnalysis, generateCodebaseOverview } from '../utils/intelligent-codebase-analyzer.js';
 import { getProjectContext } from '../utils/project-context.js';
+import { ensureWorkflowSession, getWorkflowKernel } from '../runtime/workflow-session.js';
 
-export async function quickAnalyzeCommand(): Promise<void> {
+export async function quickAnalyzeCommand(options: { session?: string } = {}): Promise<void> {
   console.log('🔮 Echo AI - Quick Codebase Analysis\n');
   
   try {
+    const kernel = getWorkflowKernel();
+    const session = await ensureWorkflowSession('Repository Analysis', options.session);
+    const task = await kernel.addTask(session.id, {
+      kind: 'workflow',
+      title: 'Repository analysis',
+      status: 'running',
+      detail: 'Analyzing repository structure and generating overview',
+      metadata: {
+        workflow: 'analyze',
+      },
+    });
+
     const projectContext = getProjectContext();
     console.log(`📁 Analyzing: ${projectContext.projectName}`);
     console.log(`📍 Location: ${projectContext.workingDirectory}\n`);
     
     const analysis = await intelligentCodebaseAnalysis(projectContext.workingDirectory);
     const overview = generateCodebaseOverview(analysis);
+    await kernel.appendMessage(session.id, 'assistant', overview, {
+      metadata: {
+        workflow: 'analyze',
+      },
+    });
+    await kernel.addArtifact(session.id, {
+      label: 'Repository Analysis',
+      type: 'report',
+      content: overview,
+      metadata: {
+        workflow: 'analyze',
+        projectRoot: projectContext.workingDirectory,
+      },
+    });
+    await kernel.updateTask(session.id, task.id, {
+      status: 'completed',
+      detail: `Analyzed ${projectContext.projectName}`,
+    });
     
     console.log(overview);
     

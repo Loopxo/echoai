@@ -111,6 +111,43 @@ describe("AgentKernel", () => {
     const persisted = await registry.load(result.session.id);
     expect(persisted?.messages).toHaveLength(4);
   });
+
+  it("updates tasks and persists workflow messages and artifacts", async () => {
+    const stateDir = await createStateDir();
+    const registry = new SessionRegistry({ stateDir, namespace: "kernel-workflow-test" });
+    const kernel = new AgentKernel({
+      sessionRegistry: registry,
+      auditLogStore: new AuditLogStore({ stateDir, namespace: "kernel-workflow-test" }),
+      registerBuiltInTools: false,
+    });
+
+    const session = await kernel.createSession("Workflow Test", "system", "workflow");
+    const task = await kernel.addTask(session.id, {
+      kind: "workflow",
+      title: "Generate report",
+      status: "running",
+      detail: "Working",
+      metadata: {},
+    });
+
+    await kernel.appendMessage(session.id, "assistant", "Workflow finished");
+    await kernel.addArtifact(session.id, {
+      label: "Workflow Report",
+      type: "report",
+      content: "done",
+      metadata: { workflow: "test" },
+    });
+    await kernel.updateTask(session.id, task.id, {
+      status: "completed",
+      detail: "Done",
+    });
+
+    const persisted = await registry.load(session.id);
+    expect(persisted?.messages.at(-1)?.content).toBe("Workflow finished");
+    expect(persisted?.artifacts).toHaveLength(1);
+    expect(persisted?.tasks[0]?.status).toBe("completed");
+    expect(persisted?.tasks[0]?.detail).toBe("Done");
+  });
 });
 
 describe("compactSession", () => {
