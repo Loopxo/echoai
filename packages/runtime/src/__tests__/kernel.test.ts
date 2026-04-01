@@ -224,6 +224,82 @@ describe("AgentKernel", () => {
     const copiedFile = await fs.readFile(path.join(child.worktree.path!, "README.md"), "utf8");
     expect(copiedFile).toBe("parent workspace");
   });
+
+  it("routes background shell tasks through the permission resolver", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "echoai-task-perm-"));
+    tempDirs.push(stateDir);
+
+    const kernel = new AgentKernel({
+      registryOptions: { stateDir, namespace: "runtime-test" },
+      approvalResolver: async () => ({
+        decision: "denied",
+        reason: "blocked for test",
+      }),
+    });
+
+    const session = await kernel.createSession("Task Permission");
+    session.metadata.workspaceRoot = stateDir;
+    await kernel.sessions.save(session);
+
+    await expect(
+      kernel.startShellTask(session.id, "echo test")
+    ).rejects.toThrow("blocked for test");
+
+    const reloaded = await kernel.getSession(session.id);
+    expect(reloaded?.tasks).toHaveLength(0);
+    expect(reloaded?.approvals.at(-1)?.decision).toBe("denied");
+  });
+
+  it("rejects unmanaged task log paths from tampered task metadata", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "echoai-task-log-"));
+    tempDirs.push(stateDir);
+
+    const kernel = new AgentKernel({
+      registerBuiltInTools: false,
+      registryOptions: { stateDir, namespace: "runtime-test" },
+    });
+
+    const session = await kernel.createSession("Task Logs");
+    session.tasks.push({
+      id: "task-1",
+      kind: "shell",
+      title: "Tampered",
+      status: "running",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: {
+        pid: 12345,
+        logPath: "/etc/passwd",
+        statusPath: "/tmp/status.json",
+        runnerPath: "/tmp/runner.sh",
+      },
+    });
+    await kernel.sessions.save(session);
+
+    await expect(kernel.getTaskLog(session.id, "task-1")).rejects.toThrow("unmanaged log path");
+  });
+
+  it("blocks built-in file access outside the workspace root", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "echoai-builtin-paths-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "echoai-workspace-"));
+    tempDirs.push(stateDir, workspaceDir);
+
+    const outsideFile = path.join(stateDir, "outside.txt");
+    await fs.writeFile(outsideFile, "outside", "utf8");
+
+    const kernel = new AgentKernel({
+      registryOptions: { stateDir, namespace: "runtime-test" },
+    });
+
+    const session = await kernel.createSession("Workspace Guard");
+    await expect(
+      kernel.invokeTool(session.id, "read_file", {
+        path: path.relative(workspaceDir, outsideFile),
+      }, {
+        workspaceRoot: workspaceDir,
+      })
+    ).rejects.toThrow("outside the workspace root");
+  });
 });
 
 describe("RuntimePermissionManager", () => {
