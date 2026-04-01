@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { createFile, editFile } from './file-operations.js';
-import inquirer from 'inquirer';
 import { diffChars } from 'diff';
 import { shouldAutoApprove, setAutoApproveEdits, setAutoApproveCreations } from './session-state.js';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export interface EditOperation {
   type: 'create' | 'edit';
@@ -45,7 +46,7 @@ export async function handleClaudeStyleEdit(
         };
       }
 
-      const { action } = await inquirer.prompt([
+      const { action } = await promptWithInquirer([
         {
           type: 'list',
           name: 'action',
@@ -72,7 +73,7 @@ export async function handleClaudeStyleEdit(
         };
       } else {
         // Ask for feedback
-        const { feedback } = await inquirer.prompt([
+        const { feedback } = await promptWithInquirer([
           {
             type: 'input',
             name: 'feedback',
@@ -127,7 +128,7 @@ export async function handleClaudeStyleEdit(
         };
       }
       
-      const { action } = await inquirer.prompt([
+      const { action } = await promptWithInquirer([
         {
           type: 'list',
           name: 'action',
@@ -156,7 +157,7 @@ export async function handleClaudeStyleEdit(
         };
       } else {
         // Ask for feedback
-        const { feedback } = await inquirer.prompt([
+        const { feedback } = await promptWithInquirer([
           {
             type: 'input',
             name: 'feedback',

@@ -1,7 +1,8 @@
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import { ConfigManager } from '../config/manager.js';
 import { ProviderConfig } from '../types/index.js';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export const configCommand = new Command('config')
   .description('Manage AI CLI configuration');
@@ -83,7 +84,7 @@ configCommand
     
     console.log('🚀 AI CLI Setup Wizard\n');
     
-    const answers = await inquirer.prompt([
+    const answers = await promptWithInquirer([
       {
         type: 'list',
         name: 'provider',
@@ -149,7 +150,7 @@ configCommand
         name: 'temperature',
         message: 'Default temperature (0-1):',
         default: 0.7,
-        validate: (value) => value >= 0 && value <= 1,
+        validate: (value: number) => value >= 0 && value <= 1,
       },
       {
         type: 'confirm',

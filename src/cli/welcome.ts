@@ -1,4 +1,3 @@
-import inquirer from 'inquirer';
 import { loadConfig, saveConfig } from '../config/index.js';
 import { providerFactory } from '../providers/factory.js';
 import { EchoAgentManager } from '../agents/core/manager.js';
@@ -18,6 +17,8 @@ import { permissionManager } from '../utils/permission-prompt.js';
 import { initializeProject, parseProjectCreationRequest } from '../utils/project-initializer.js';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export default async function showWelcome(): Promise<void> {
   // ASCII Art Logo
@@ -92,7 +93,7 @@ async function setupProvider(): Promise<void> {
     };
   });
 
-  const { provider } = await inquirer.prompt([
+  const { provider } = await promptWithInquirer([
     {
       type: 'list',
       name: 'provider',
@@ -109,7 +110,7 @@ async function setupProvider(): Promise<void> {
     
     console.log(`\n✅ ${provider.toUpperCase()} is already configured with API key: ${maskedKey}`);
     
-    const { action } = await inquirer.prompt([
+    const { action } = await promptWithInquirer([
       {
         type: 'list',
         name: 'action',
@@ -135,7 +136,7 @@ async function setupProvider(): Promise<void> {
     // If 'reconfigure', continue with full setup below
   }
 
-  const { apiKey } = await inquirer.prompt([
+  const { apiKey } = await promptWithInquirer([
     {
       type: 'password',
       name: 'apiKey',
@@ -151,7 +152,7 @@ async function setupProvider(): Promise<void> {
 
   // Get model recommendations
   const modelChoices = getModelChoices(provider);
-  const { model } = await inquirer.prompt([
+  const { model } = await promptWithInquirer([
     {
       type: 'list',
       name: 'model',
@@ -205,7 +206,7 @@ async function setupProvider(): Promise<void> {
 }
 
 async function updateApiKey(provider: string, config: any): Promise<void> {
-  const { newApiKey } = await inquirer.prompt([
+  const { newApiKey } = await promptWithInquirer([
     {
       type: 'password',
       name: 'newApiKey',
@@ -245,7 +246,7 @@ async function updateApiKey(provider: string, config: any): Promise<void> {
 }
 
 async function showMainMenu(): Promise<void> {
-  const { action } = await inquirer.prompt([
+  const { action } = await promptWithInquirer([
     {
       type: 'list',
       name: 'action',
@@ -349,7 +350,7 @@ async function startInteractiveChat(): Promise<void> {
   
   while (true) {
     try {
-      const { prompt } = await inquirer.prompt([
+      const { prompt } = await promptWithInquirer([
         {
           type: 'input',
           name: 'prompt',
@@ -509,7 +510,7 @@ async function switchProvider(config: any): Promise<{provider: string, config: a
     };
   });
   
-  const { selectedProvider } = await inquirer.prompt([
+  const { selectedProvider } = await promptWithInquirer([
     {
       type: 'list',
       name: 'selectedProvider',
@@ -575,7 +576,7 @@ async function startCodeEditing(): Promise<void> {
   let currentConfig = config;
   
   while (true) {
-    const { prompt } = await inquirer.prompt([
+    const { prompt } = await promptWithInquirer([
       {
         type: 'input',
         name: 'prompt',
@@ -827,7 +828,7 @@ async function showAgentsMenu(): Promise<void> {
   
   console.log('\n💡 Agents automatically optimize your prompts for better results!\n');
   
-  const { action } = await inquirer.prompt([
+  const { action } = await promptWithInquirer([
     {
       type: 'list',
       name: 'action',
@@ -841,7 +842,7 @@ async function showAgentsMenu(): Promise<void> {
   ]);
 
   if (action === 'test') {
-    const { testPrompt } = await inquirer.prompt([
+    const { testPrompt } = await promptWithInquirer([
       {
         type: 'input',
         name: 'testPrompt',
@@ -879,7 +880,7 @@ async function showDocumentationMenu(): Promise<void> {
   console.log(`📁 Project: ${projectContext.projectName}`);
   console.log(`📍 Location: ${projectContext.workingDirectory}\n`);
 
-  const { action } = await inquirer.prompt([
+  const { action } = await promptWithInquirer([
     {
       type: 'list',
       name: 'action',
@@ -954,7 +955,7 @@ async function showDocumentationMenu(): Promise<void> {
         break;
       case 'custom':
         // Let user customize the documentation
-        const customChoices = await inquirer.prompt([
+        const customChoices = await promptWithInquirer([
           {
             type: 'checkbox',
             name: 'sections',
@@ -1043,7 +1044,7 @@ Please generate professional documentation that solves the problem of outdated, 
     console.log('\n\n📄 Documentation generated successfully!\n');
     
     // Ask if user wants to save the documentation
-    const { saveDoc } = await inquirer.prompt([
+    const { saveDoc } = await promptWithInquirer([
       {
         type: 'confirm',
         name: 'saveDoc',
@@ -1105,7 +1106,7 @@ Please generate professional documentation that solves the problem of outdated, 
   }
 
   // Ask if user wants to generate more documentation or return to main menu
-  const { nextAction } = await inquirer.prompt([
+  const { nextAction } = await promptWithInquirer([
     {
       type: 'list',
       name: 'nextAction',
@@ -1135,7 +1136,7 @@ async function showConfigMenu(): Promise<void> {
     console.log(`\n🤖 Currently Active: ${currentProvider.toUpperCase()} (${model})\n`);
   }
   
-  const { action } = await inquirer.prompt([
+  const { action } = await promptWithInquirer([
     {
       type: 'list',
       name: 'action',
@@ -1205,7 +1206,7 @@ async function showConfigMenu(): Promise<void> {
       await showTokenAnalytics();
       break;
     case 'reset':
-      const { confirm } = await inquirer.prompt([
+      const { confirm } = await promptWithInquirer([
         {
           type: 'confirm',
           name: 'confirm',
@@ -1332,7 +1333,7 @@ async function configureTokenLimits(): Promise<void> {
   const currentConfig = await loadConfig().catch(() => ({} as any));
   const currentLimits = (currentConfig as any).limits || {};
 
-  const limitsConfig = await inquirer.prompt([
+  const limitsConfig = await promptWithInquirer([
     {
       type: 'input',
       name: 'daily',
@@ -1429,7 +1430,7 @@ async function configureSoundSettings(): Promise<void> {
     completionNotifications: false
   };
 
-  const soundConfig = await inquirer.prompt([
+  const soundConfig = await promptWithInquirer([
     {
       type: 'confirm',
       name: 'enabled',
@@ -1472,7 +1473,7 @@ async function configureSoundSettings(): Promise<void> {
 
   // Test sound if enabled
   if (soundConfig.enabled) {
-    const { testSound } = await inquirer.prompt([
+    const { testSound } = await promptWithInquirer([
       {
         type: 'confirm',
         name: 'testSound',
@@ -1561,7 +1562,7 @@ async function showTokenAnalytics(): Promise<void> {
   }
 
   console.log('\n💡 Options:');
-  const { action } = await inquirer.prompt([
+  const { action } = await promptWithInquirer([
     {
       type: 'list',
       name: 'action',
@@ -1577,7 +1578,7 @@ async function showTokenAnalytics(): Promise<void> {
   if (action === 'refresh') {
     return showTokenAnalytics();
   } else if (action === 'reset') {
-    const { confirm } = await inquirer.prompt([
+    const { confirm } = await promptWithInquirer([
       {
         type: 'confirm',
         name: 'confirm',

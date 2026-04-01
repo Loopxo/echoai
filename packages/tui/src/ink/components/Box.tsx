@@ -1,5 +1,4 @@
 import { c as _c } from "./compiler-runtime-shim.js";
-import '../global.d.ts';
 import React, { type PropsWithChildren, type Ref } from 'react';
 import type { Except } from 'type-fest';
 import type { DOMElement } from '../dom.js';

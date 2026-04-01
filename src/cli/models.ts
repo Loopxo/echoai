@@ -3,7 +3,8 @@ import { modelsRegistry } from '../models/registry.js';
 import { universalProvider } from '../models/universal-provider.js';
 import { modelBenchmarks } from '../models/benchmarks.js';
 import { ModelInfo, ModelTestResult, ModelComparison } from '../types/models.js';
-import inquirer from 'inquirer';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export const modelsCommand = new Command()
   .name('models')
@@ -106,7 +107,7 @@ modelsCommand
   .command('search')
   .description('Advanced model search and filtering')
   .action(async () => {
-    const answers = await inquirer.prompt([
+    const answers = await promptWithInquirer([
       {
         type: 'input',
         name: 'query',
@@ -287,12 +288,12 @@ modelsCommand
         short: m.id,
       }));
 
-      const { selectedModels } = await inquirer.prompt([{
+      const { selectedModels } = await promptWithInquirer([{
         type: 'checkbox',
         name: 'selectedModels',
         message: 'Select models to compare (max 5):',
         choices,
-        validate: (input) => input.length > 0 && input.length <= 5 || 'Please select 1-5 models',
+        validate: (input: string[]) => input.length > 0 && input.length <= 5 || 'Please select 1-5 models',
       }]);
 
       modelIds = selectedModels;
@@ -426,7 +427,7 @@ modelsCommand
     let modelIds: string[] = [];
 
     if (!benchmarkName) {
-      const { selectedBenchmark } = await inquirer.prompt([{
+      const { selectedBenchmark } = await promptWithInquirer([{
         type: 'list',
         name: 'selectedBenchmark',
         message: 'Select benchmark to run:',
@@ -445,12 +446,12 @@ modelsCommand
         value: m.id,
       }));
 
-      const { selectedModels } = await inquirer.prompt([{
+      const { selectedModels } = await promptWithInquirer([{
         type: 'checkbox',
         name: 'selectedModels',
         message: 'Select models to benchmark (max 5):',
         choices,
-        validate: (input) => input.length > 0 && input.length <= 5 || 'Please select 1-5 models',
+        validate: (input: string[]) => input.length > 0 && input.length <= 5 || 'Please select 1-5 models',
       }]);
 
       modelIds = selectedModels;
@@ -531,7 +532,7 @@ modelsCommand
         value: m.id,
       }));
 
-      const { selectedModels } = await inquirer.prompt([{
+      const { selectedModels } = await promptWithInquirer([{
         type: 'checkbox',
         name: 'selectedModels',
         message: 'Select models for quick comparison:',

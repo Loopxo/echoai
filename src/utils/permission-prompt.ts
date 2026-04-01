@@ -1,5 +1,6 @@
-import inquirer from 'inquirer';
 import { echoPermission, echoSuccess, echoWarning } from './echo-sound.js';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export interface PermissionRequest {
   action: string;
@@ -74,7 +75,7 @@ export class PermissionManager {
         return { approved: false, reason: 'timeout' };
       }
     } else {
-      response = await inquirer.prompt([
+      response = await promptWithInquirer([
         {
           type: 'list',
           name: 'decision',
@@ -120,7 +121,7 @@ export class PermissionManager {
       }, timeoutSeconds * 1000);
 
       // Ask question
-      inquirer.prompt([
+      promptWithInquirer([
         {
           type: 'list',
           name: 'decision',

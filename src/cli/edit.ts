@@ -1,11 +1,12 @@
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import { ConfigManager } from '../config/manager.js';
 import { ProviderManager } from '../core/provider-manager.js';
 import { FileManager } from '../integrations/file-manager.js';
 import { Message, CommandContext } from '../types/index.js';
 import { createCliKernel } from '../runtime/cli-kernel.js';
 import { applyUnifiedDiff, extractUnifiedDiff } from '../utils/patch-utils.js';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export const editCommand = new Command('edit')
   .description('Edit files using AI assistance')
@@ -35,7 +36,7 @@ export const editCommand = new Command('edit')
       
       // Check if file exists
       if (!(await fileManager.fileExists(filePath))) {
-        const { createFile } = await inquirer.prompt([
+        const { createFile } = await promptWithInquirer([
           {
             type: 'confirm',
             name: 'createFile',
@@ -116,7 +117,7 @@ export const editCommand = new Command('edit')
       let shouldApply = options.autoApply;
       
       if (!shouldApply) {
-        const { apply } = await inquirer.prompt([
+        const { apply } = await promptWithInquirer([
           {
             type: 'confirm',
             name: 'apply',

@@ -1,6 +1,6 @@
 {
   "name": "echoai",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Echo - Intelligent AI terminal with autonomous agents, 6 providers (Claude, GPT, Groq, OpenRouter, Meta, Gemini), and advanced output optimization",
   "main": "dist/index.js",
   "bin": {
@@ -9,17 +9,33 @@
   },
   "files": [
     "dist/**/*",
+    "scripts/postinstall.mjs",
     "README.md",
     "LICENSE"
   ],
   "bundleDependencies": [
+    "@anthropic-ai/sdk",
     "@echoai/core",
     "@echoai/gateway",
     "@echoai/hooks",
     "@echoai/memory",
     "@echoai/runtime",
     "@echoai/skills",
-    "@echoai/tui"
+    "@echoai/tui",
+    "axios",
+    "commander",
+    "cosmiconfig",
+    "diff",
+    "dotenv",
+    "eventsource",
+    "groq-sdk",
+    "hono",
+    "inquirer",
+    "js-yaml",
+    "openai",
+    "uuid",
+    "ws",
+    "zod"
   ],
   "workspaces": [
     "packages/*",
@@ -53,7 +69,7 @@
     "type-check:watch": "tsc --noEmit --watch",
     "clean": "rm -rf dist coverage .nyc_output && pnpm --recursive run clean",
     "prepack": "npm run clean && npm run build",
-    "postinstall": "node -e \"console.log('\\n🔮 Echo AI CLI installed! Run: echoai\\n')\"",
+    "postinstall": "node scripts/postinstall.mjs",
     "prepublishOnly": "npm run clean && npm run build && npm run test",
     "publish:patch": "npm version patch && npm publish",
     "publish:minor": "npm version minor && npm publish",

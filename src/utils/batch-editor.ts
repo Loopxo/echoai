@@ -2,7 +2,8 @@ import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { handleClaudeStyleEdit } from './claude-style-editor.js';
 import { shouldAutoApprove, setAutoApproveEdits, setAutoApproveCreations } from './session-state.js';
-import inquirer from 'inquirer';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export interface BatchFileOperation {
   type: 'create' | 'edit' | 'delete';
@@ -50,7 +51,7 @@ export async function executeBatchOperations(
     });
     
     // Ask for batch approval
-    const { batchAction } = await inquirer.prompt([
+    const { batchAction } = await promptWithInquirer([
       {
         type: 'list',
         name: 'batchAction',

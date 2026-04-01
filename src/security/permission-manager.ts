@@ -12,7 +12,8 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { v4 as uuidv4 } from 'uuid';
-import inquirer from 'inquirer';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export class PermissionManager {
   private currentProfile: SecurityProfile;
@@ -197,7 +198,7 @@ export class PermissionManager {
       { name: '🔧 Create custom rule', value: 'custom_rule' },
     ];
 
-    const { choice } = await inquirer.prompt([{
+    const { choice } = await promptWithInquirer([{
       type: 'list',
       name: 'choice',
       message: 'What would you like to do?',
@@ -231,7 +232,7 @@ export class PermissionManager {
   }
 
   private async createCustomRule(request: PermissionRequest): Promise<PermissionRule> {
-    const { pattern, description, action } = await inquirer.prompt([
+    const { pattern, description, action } = await promptWithInquirer([
       {
         type: 'input',
         name: 'pattern',

@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import { generateProjectDocumentation, DocumentationConfig } from '../utils/documentation-generator.js';
 import { getProjectContext } from '../utils/project-context.js';
 import { loadConfig } from '../config/index.js';
@@ -8,6 +7,8 @@ import { EchoAgentManager } from '../agents/core/manager.js';
 import { AutoDocumentationAgent } from '../agents/specialized/auto-documentation-agent.js';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 function getDefaultProvider(config: any): string {
   if (!config.providers) return 'claude';
@@ -66,7 +67,7 @@ export const docsCommand = new Command('docs')
 
       // Interactive mode or handle different documentation types
       if (options.interactive) {
-        const interactiveConfig = await inquirer.prompt([
+        const interactiveConfig = await promptWithInquirer([
           {
             type: 'list',
             name: 'type',
@@ -85,7 +86,7 @@ export const docsCommand = new Command('docs')
         options.type = interactiveConfig.type;
 
         if (interactiveConfig.type === 'custom') {
-          const customConfig = await inquirer.prompt([
+          const customConfig = await promptWithInquirer([
             {
               type: 'checkbox',
               name: 'sections',

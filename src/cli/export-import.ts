@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import { ExportManager } from '../data/export-manager.js';
 import { ExportOptions, ImportOptions } from '../types/export.js';
-import inquirer from 'inquirer';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 const exportManager = new ExportManager();
 
@@ -50,7 +51,7 @@ const exportCommand = new Command()
       }
 
       if (options.encrypt) {
-        const { password } = await inquirer.prompt([{
+        const { password } = await promptWithInquirer([{
           type: 'password',
           name: 'password',
           message: 'Enter encryption password:',
@@ -132,7 +133,7 @@ const importCommand = new Command()
 
     // Check if password is needed
     if (file.includes('encrypted') || options.interactive) {
-      const { needPassword } = await inquirer.prompt([{
+      const { needPassword } = await promptWithInquirer([{
         type: 'confirm',
         name: 'needPassword',
         message: 'Is this file encrypted?',
@@ -140,7 +141,7 @@ const importCommand = new Command()
       }]);
 
       if (needPassword) {
-        const { password } = await inquirer.prompt([{
+        const { password } = await promptWithInquirer([{
           type: 'password',
           name: 'password',
           message: 'Enter decryption password:',
@@ -151,7 +152,7 @@ const importCommand = new Command()
     }
 
     // Confirm import
-    const { confirmed } = await inquirer.prompt([{
+    const { confirmed } = await promptWithInquirer([{
       type: 'confirm',
       name: 'confirmed',
       message: `Import data from ${file}? ${importOptions.backup ? '(Backup will be created)' : '(No backup will be created)'}`,
@@ -199,7 +200,7 @@ const importCommand = new Command()
   });
 
 async function configureExportInteractively(): Promise<ExportOptions> {
-  const answers = await inquirer.prompt([
+  const answers = await promptWithInquirer([
     {
       type: 'list',
       name: 'format',
@@ -218,7 +219,7 @@ async function configureExportInteractively(): Promise<ExportOptions> {
         { name: 'Security Settings', value: 'security' },
         { name: 'MCP Configuration', value: 'mcp' },
       ],
-      validate: (input) => input.length > 0 || 'Please select at least one data type',
+      validate: (input: string[]) => input.length > 0 || 'Please select at least one data type',
     },
     {
       type: 'confirm',
@@ -230,8 +231,8 @@ async function configureExportInteractively(): Promise<ExportOptions> {
       type: 'input',
       name: 'fromDate',
       message: 'From date (YYYY-MM-DD):',
-      when: (answers) => answers.dateRange,
-      validate: (input) => {
+      when: (answers: { dateRange?: boolean }) => answers.dateRange,
+      validate: (input: string) => {
         const date = new Date(input);
         return !isNaN(date.getTime()) || 'Invalid date format';
       },
@@ -240,9 +241,9 @@ async function configureExportInteractively(): Promise<ExportOptions> {
       type: 'input',
       name: 'toDate',
       message: 'To date (YYYY-MM-DD):',
-      when: (answers) => answers.dateRange,
+      when: (answers: { dateRange?: boolean }) => answers.dateRange,
       default: () => new Date().toISOString().split('T')[0],
-      validate: (input) => {
+      validate: (input: string) => {
         const date = new Date(input);
         return !isNaN(date.getTime()) || 'Invalid date format';
       },
@@ -263,7 +264,7 @@ async function configureExportInteractively(): Promise<ExportOptions> {
       type: 'password',
       name: 'password',
       message: 'Enter encryption password:',
-      when: (answers) => answers.encrypt,
+      when: (answers: { encrypt?: boolean }) => answers.encrypt,
       mask: '*',
     },
   ]);
@@ -286,7 +287,7 @@ async function configureExportInteractively(): Promise<ExportOptions> {
 }
 
 async function configureImportInteractively(defaultStrategy: string): Promise<ImportOptions> {
-  const answers = await inquirer.prompt([
+  const answers = await promptWithInquirer([
     {
       type: 'list',
       name: 'format',

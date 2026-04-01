@@ -1,9 +1,10 @@
-import inquirer from 'inquirer';
 import { RuntimeEventRenderer } from '@echoai/tui';
 import { ConfigManager } from '../config/manager.js';
 import { ProviderManager } from '../core/provider-manager.js';
 import { createCliKernel } from './cli-kernel.js';
 import { getCliSessionRegistry } from './session-bridge.js';
+
+const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
 export interface InteractiveChatOptions {
   provider?: string;
@@ -52,7 +53,7 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
   console.log('Type "exit" to quit, "clear" to start a new session\n');
 
   while (true) {
-    const { input } = await inquirer.prompt([
+    const { input } = await promptWithInquirer([
       {
         type: 'input',
         name: 'input',
