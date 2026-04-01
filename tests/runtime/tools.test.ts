@@ -82,6 +82,7 @@ describe("AgentKernel audit integration", () => {
     const kernel = new AgentKernel({
       sessionRegistry: registry,
       auditLogStore: auditLog,
+      registryOptions: { stateDir: workspaceRoot, namespace: "runtime-test" },
       registerBuiltInTools: false,
       completionProvider: {
         async complete(request) {

@@ -18,6 +18,10 @@ describe('background tasks', () => {
     const kernel = new AgentKernel({
       registryOptions: { stateDir, namespace: 'tasks-test' },
       registerBuiltInTools: false,
+      approvalResolver: async () => ({
+        decision: 'approved',
+        reason: 'approved in test',
+      }),
     });
 
     const session = await kernel.createSession('Tasks');
@@ -38,6 +42,10 @@ describe('background tasks', () => {
     const kernel = new AgentKernel({
       registryOptions: { stateDir, namespace: 'tasks-test-stop' },
       registerBuiltInTools: false,
+      approvalResolver: async () => ({
+        decision: 'approved',
+        reason: 'approved in test',
+      }),
     });
 
     const session = await kernel.createSession('Tasks');

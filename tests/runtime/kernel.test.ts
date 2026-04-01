@@ -47,6 +47,7 @@ describe("AgentKernel", () => {
     const kernel = new AgentKernel({
       sessionRegistry: registry,
       auditLogStore: new AuditLogStore({ stateDir, namespace: "kernel-test" }),
+      registryOptions: { stateDir, namespace: "kernel-test" },
       completionProvider: {
         async complete(request) {
           const hasToolResult = request.messages.some((message) => message.role === "tool");
@@ -172,14 +173,16 @@ describe("compactSession", () => {
       updatedAt: 1,
     };
 
-    const compacted = compactSession(session, {
+    const report = compactSession(session, {
       maxMessages: 8,
       preserveHead: 2,
       preserveTail: 3,
     });
 
-    expect(compacted.messages).toHaveLength(6);
-    expect(compacted.messages[2]?.content).toContain("Compacted session summary");
-    expect(compacted.compactedAt).toBeTypeOf("number");
+    expect(report.afterCount).toBe(8);
+    expect(report.appliedStrategies).toContain("summary");
+    expect(session.messages).toHaveLength(8);
+    expect(session.messages[2]?.content).toContain("Compacted session summary");
+    expect(session.compactedAt).toBeTypeOf("number");
   });
 });
