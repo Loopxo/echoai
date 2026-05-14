@@ -9,6 +9,7 @@ pnpm-debug.log*
 dist/
 build/
 *.tsbuildinfo
+*.vsix
 
 # Environment variables
 .env
@@ -42,6 +43,7 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+evals/runs/
 
 # Coverage directory used by tools like istanbul
 coverage/
@@ -68,6 +70,7 @@ temp/
 .astro/
 .vercel/
 .gradle/
+.pnpm-store/
 
 # Optional npm cache directory
 .npm
@@ -81,8 +84,16 @@ temp/
 # Local source comparison workspace
 opensource-coding-anyone-can-copy/
 
+# Private hosted SaaS workspace. Keep cloud billing/auth/server code out of the
+# open-source repo until it is moved to its own private repository.
+hosted/
+
 # Output of 'npm pack'
 *.tgz
 
 # Yarn Integrity file
 .yarn-integrity
+
+
+nvidia-nim
+cc-cc
