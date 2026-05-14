@@ -40,6 +40,10 @@ export class MCPClient {
     return Array.from(this.tools.values());
   }
 
+  isServerConnected(serverId: string): boolean {
+    return this.servers.has(serverId);
+  }
+
   async callTool(name: string, args: Record<string, any>): Promise<any> {
     const tool = this.tools.get(name);
     if (!tool) {
@@ -140,7 +144,7 @@ class MCPServerConnection {
       protocolVersion: '2024-11-05',
       capabilities,
       clientInfo: {
-        name: 'echo-ai',
+        name: 'EchoAI',
         version: '2.2.1',
       },
     };

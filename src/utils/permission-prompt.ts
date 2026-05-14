@@ -37,7 +37,7 @@ export class PermissionManager {
       console.log('🔔 *Echo asking for permission*');
     }
 
-    console.log(`\n🤖 Echo AI needs permission to proceed:`);
+    console.log(`\n🤖 EchoAI needs permission to proceed:`);
     console.log(`📋 Action: ${request.action}`);
     console.log(`📝 Description: ${request.description}`);
     

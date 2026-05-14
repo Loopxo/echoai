@@ -57,7 +57,7 @@ export class MCPManager {
       id,
       name: server.name,
       transport: server.transport,
-      connected: true, // TODO: Track actual connection status
+      connected: this.client.isServerConnected(id),
     }));
   }
 
@@ -84,7 +84,6 @@ export class MCPManager {
   private async startConfiguredServers(): Promise<void> {
     const serverEntries = Object.entries(this.config.servers);
     if (serverEntries.length === 0) {
-      await this.createDefaultConfig();
       return;
     }
 
@@ -100,29 +99,6 @@ export class MCPManager {
         console.error(`Failed to start MCP server ${id}:`, error);
       }
     }
-  }
-
-  private async createDefaultConfig(): Promise<void> {
-    // Add some common MCP servers as examples
-    const defaultServers = {
-      filesystem: {
-        id: 'filesystem',
-        name: 'File System Tools',
-        command: 'npx',
-        args: ['@modelcontextprotocol/server-filesystem', '/tmp'],
-        transport: 'stdio' as const,
-      },
-      brave_search: {
-        id: 'brave_search',
-        name: 'Brave Search',
-        command: 'npx',
-        args: ['@modelcontextprotocol/server-brave-search'],
-        transport: 'stdio' as const,
-      },
-    };
-
-    this.config.servers = defaultServers;
-    await this.saveConfig();
   }
 
   async shutdown(): Promise<void> {

@@ -20,16 +20,23 @@ export class PermissionManager {
   private auditLog: PermissionAuditEntry[] = [];
   private configPath: string;
   private auditPath: string;
+  private storageReady: Promise<void>;
+  private storageAvailable = true;
 
   constructor() {
-    const echoDir = join(homedir(), '.echo');
+    const echoDir = join(homedir(), '.echoai');
     this.configPath = join(echoDir, 'permissions.json');
     this.auditPath = join(echoDir, 'security-audit.json');
     this.currentProfile = this.getDefaultProfile();
-    this.ensureDirectories();
+    this.storageReady = this.ensureDirectories().catch(() => {
+      this.storageAvailable = false;
+    });
   }
 
   async initialize(): Promise<void> {
+    await this.storageReady;
+    if (!this.storageAvailable) return;
+
     await this.loadProfile();
     await this.loadAuditLog();
   }
@@ -403,13 +410,15 @@ export class PermissionManager {
   }
 
   private async ensureDirectories(): Promise<void> {
-    const echoDir = join(homedir(), '.echo');
+    const echoDir = join(homedir(), '.echoai');
     if (!existsSync(echoDir)) {
       await mkdir(echoDir, { recursive: true });
     }
   }
 
   private async loadProfile(): Promise<void> {
+    if (!this.storageAvailable) return;
+
     try {
       const configData = await readFile(this.configPath, 'utf8');
       this.currentProfile = JSON.parse(configData);
@@ -428,10 +437,14 @@ export class PermissionManager {
   }
 
   private async saveProfile(): Promise<void> {
+    if (!this.storageAvailable) return;
+
     await writeFile(this.configPath, JSON.stringify(this.currentProfile, null, 2));
   }
 
   private async loadAuditLog(): Promise<void> {
+    if (!this.storageAvailable) return;
+
     try {
       const auditData = await readFile(this.auditPath, 'utf8');
       const rawLog = JSON.parse(auditData);
@@ -447,6 +460,8 @@ export class PermissionManager {
   }
 
   private async saveAuditLog(): Promise<void> {
+    if (!this.storageAvailable) return;
+
     await writeFile(this.auditPath, JSON.stringify(this.auditLog, null, 2));
   }
 }
