@@ -1,0 +1,21 @@
+{
+  "id": "echoai",
+  "name": "EchoAI",
+  "version": "2.3.4",
+  "description": "Open-source coding-agent CLI with terminal sessions, runtime tools, permissions, ACP, and budget-aware model routing.",
+  "repository": "https://github.com/Loopxo/echoai",
+  "website": "https://github.com/Loopxo/echoai#readme",
+  "authors": [
+    "Vijeet Shah <vijeet@vijeetshah.com>"
+  ],
+  "license": "MIT",
+  "distribution": {
+    "npx": {
+      "package": "echoai@2.3.4",
+      "args": [
+        "acp",
+        "--stdio"
+      ]
+    }
+  }
+}
