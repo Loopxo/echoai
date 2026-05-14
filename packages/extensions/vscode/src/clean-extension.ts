@@ -181,8 +181,8 @@ class CLIService {
         }
 
         this.panel = vscode.window.createWebviewPanel(
-            'echo-ai-cli',
-            'Echo AI',
+            'echoai',
+            'EchoAI',
             vscode.ViewColumn.Beside,
             { enableScripts: true, retainContextWhenHidden: false }
         );
@@ -191,7 +191,7 @@ class CLIService {
         this.panel.onDidDispose(() => { this.panel = undefined; this.logs = []; });
         this.setupMessageHandling();
 
-        this.log('info', 'Echo AI CLI Ready - Type /help for commands');
+        this.log('info', 'EchoAI CLI Ready - Type /help for commands');
     }
 
     log(level: string, message: string): void {
@@ -325,7 +325,7 @@ class CLIService {
     </style>
 </head>
 <body>
-    <div class="header">Echo AI CLI</div>
+    <div class="header">EchoAI CLI</div>
     <div class="output" id="output">
         <div class="log log-info">Welcome! Type /help for commands or ask AI anything directly.</div>
     </div>
@@ -385,7 +385,7 @@ let statusBarItem: vscode.StatusBarItem;
 // MAIN EXTENSION ACTIVATION
 // ============================================================================
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('Echo AI extension activated');
+    console.log('EchoAI extension activated');
 
     try {
         // Initialize core services
@@ -411,25 +411,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Show welcome
         vscode.window.showInformationMessage(
-            'Echo AI Ready - Optimized for performance',
+            'EchoAI Ready - Optimized for performance',
             'Open CLI', 'Configure'
         ).then(selection => {
             if (selection === 'Open CLI') {
-                vscode.commands.executeCommand('echo-ai.showCLI');
+                vscode.commands.executeCommand('echoai.showCLI');
             } else if (selection === 'Configure') {
-                vscode.commands.executeCommand('echo-ai.configure');
+                vscode.commands.executeCommand('echoai.configure');
             }
         });
 
     } catch (error) {
-        console.error('Echo AI activation failed:', error);
-        vscode.window.showErrorMessage(`Echo AI activation failed: ${error}`);
+        console.error('EchoAI activation failed:', error);
+        vscode.window.showErrorMessage(`EchoAI activation failed: ${error}`);
     }
 }
 
 function registerCommands(context: vscode.ExtensionContext): void {
     // Explain command
-    const explainCommand = vscode.commands.registerCommand('echo-ai.explain', async () => {
+    const explainCommand = vscode.commands.registerCommand('echoai.explain', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.selection.isEmpty) {
             vscode.window.showInformationMessage('Please select code to explain');
@@ -456,7 +456,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Refactor command
-    const refactorCommand = vscode.commands.registerCommand('echo-ai.refactor', async () => {
+    const refactorCommand = vscode.commands.registerCommand('echoai.refactor', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.selection.isEmpty) {
             vscode.window.showInformationMessage('Please select code to refactor');
@@ -480,7 +480,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Generate tests command
-    const generateTestsCommand = vscode.commands.registerCommand('echo-ai.generateTests', async () => {
+    const generateTestsCommand = vscode.commands.registerCommand('echoai.generateTests', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showInformationMessage('No active editor');
@@ -509,9 +509,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // CLI command
-    const showCLICommand = vscode.commands.registerCommand('echo-ai.showCLI', async () => {
+    const showCLICommand = vscode.commands.registerCommand('echoai.showCLI', async () => {
         const terminal = vscode.window.createTerminal({
-            name: 'Echo AI',
+            name: 'EchoAI',
             iconPath: vscode.Uri.file(context.asAbsolutePath('icon.png')),
             location: { viewColumn: vscode.ViewColumn.Two, preserveFocus: false }
         });
@@ -522,8 +522,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Configure command
-    const configureCommand = vscode.commands.registerCommand('echo-ai.configure', async () => {
-        const providers = ['claude', 'openai', 'groq', 'openrouter', 'gemini', 'meta'];
+    const configureCommand = vscode.commands.registerCommand('echoai.configure', async () => {
+        const providers = ['claude', 'openai', 'groq', 'openrouter', 'meta'];
         const selectedProvider = await vscode.window.showQuickPick(providers, {
             placeHolder: 'Select AI Provider'
         });
@@ -537,16 +537,16 @@ function registerCommands(context: vscode.ExtensionContext): void {
             });
 
             if (apiKey) {
-                await context.secrets.store(`echo-ai-${selectedProvider}`, apiKey);
-                vscode.window.showInformationMessage(`Echo AI configured with ${selectedProvider}`);
+                await context.secrets.store(`echoai-`, apiKey);
+                vscode.window.showInformationMessage(`EchoAI configured with ${selectedProvider}`);
             }
         }
     });
 
     // Performance command
-    const performanceCommand = vscode.commands.registerCommand('echo-ai.performance', () => {
+    const performanceCommand = vscode.commands.registerCommand('echoai.performance', () => {
         const stats = memoryManager.getStats();
-        const info = `Echo AI Performance:\nMemory: ${stats.heapUsed}MB / ${stats.heapTotal}MB\nCache: ${stats.cacheItems} items\nProvider: ${configManager.get('provider', 'claude')}`;
+        const info = `EchoAI Performance:\nMemory: ${stats.heapUsed}MB / ${stats.heapTotal}MB\nCache: ${stats.cacheItems} items\nProvider: ${configManager.get('provider', 'claude')}`;
 
         vscode.workspace.openTextDocument({
             content: info,
@@ -555,7 +555,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Memory command - show/clear conversation context
-    const memoryCommand = vscode.commands.registerCommand('echo-ai.memory', async () => {
+    const memoryCommand = vscode.commands.registerCommand('echoai.memory', async () => {
         const action = await vscode.window.showQuickPick(
             ['Show Memory Context', 'Clear Memory', 'Export Memory'],
             { placeHolder: 'Memory Management' }
@@ -573,14 +573,14 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Sessions command - quick access to saved sessions
-    const sessionsCommand = vscode.commands.registerCommand('echo-ai.sessions', async () => {
+    const sessionsCommand = vscode.commands.registerCommand('echoai.sessions', async () => {
         const action = await vscode.window.showQuickPick(
             ['View Recent Sessions', 'Create New Session', 'Export Session', 'Open in CLI'],
             { placeHolder: 'Session Management' }
         );
 
         if (action === 'Open in CLI') {
-            const terminal = vscode.window.createTerminal({ name: 'Echo AI Sessions' });
+            const terminal = vscode.window.createTerminal({ name: 'EchoAI Sessions' });
             terminal.show();
             terminal.sendText('npx --yes echoai@latest sessions list');
         } else {
@@ -589,7 +589,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Docs command - generate documentation for current file
-    const docsCommand = vscode.commands.registerCommand('echo-ai.docs', async () => {
+    const docsCommand = vscode.commands.registerCommand('echoai.docs', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showInformationMessage('No active editor');
@@ -617,7 +617,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Skills command - list/activate available skills
-    const skillsCommand = vscode.commands.registerCommand('echo-ai.skills', async () => {
+    const skillsCommand = vscode.commands.registerCommand('echoai.skills', async () => {
         const skills = [
             { label: '$(code) Code Analysis', description: 'Analyze code patterns and suggest improvements' },
             { label: '$(shield) Security Audit', description: 'Check for security vulnerabilities' },
@@ -638,7 +638,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     // Gateway command - show connection status
-    const gatewayCommand = vscode.commands.registerCommand('echo-ai.gateway', async () => {
+    const gatewayCommand = vscode.commands.registerCommand('echoai.gateway', async () => {
         const status = {
             connected: false,
             endpoint: 'Not configured',
@@ -649,7 +649,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
         vscode.window.showInformationMessage(info, 'Open CLI').then(selection => {
             if (selection === 'Open CLI') {
-                const terminal = vscode.window.createTerminal({ name: 'Echo AI Gateway' });
+                const terminal = vscode.window.createTerminal({ name: 'EchoAI Gateway' });
                 terminal.show();
                 terminal.sendText('npx --yes echoai@latest gateway status');
             }
@@ -702,7 +702,7 @@ function startMemoryMonitoring(): void {
         const stats = memoryManager.getStats();
         if (stats.heapUsed > 200) {
             memoryManager.clear();
-            console.log('Echo AI: High memory usage, cleared cache');
+            console.log('EchoAI: High memory usage, cleared cache');
         }
     }, 30000);
 }
@@ -711,14 +711,14 @@ function updateStatusBar(): void {
     const stats = memoryManager.getStats();
     const isHighMemory = stats.heapUsed > 150;
 
-    statusBarItem.text = `$(echo-ai-icon) Echo AI (${stats.heapUsed}MB)`;
-    statusBarItem.tooltip = `Echo AI - Click to open CLI\nMemory: ${stats.heapUsed}MB, Cache: ${stats.cacheItems} items`;
-    statusBarItem.command = 'echo-ai.showCLI';
+    statusBarItem.text = `$(echoai-icon) EchoAI (${stats.heapUsed}MB)`;
+    statusBarItem.tooltip = `EchoAI - Click to open CLI\nMemory: ${stats.heapUsed}MB, Cache: ${stats.cacheItems} items`;
+    statusBarItem.command = 'echoai.showCLI';
     statusBarItem.backgroundColor = isHighMemory ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
 }
 
 export function deactivate() {
-    console.log('Echo AI extension deactivated');
+    console.log('EchoAI extension deactivated');
 
     if (memoryManager) memoryManager.dispose();
     if (cliService) cliService.dispose();

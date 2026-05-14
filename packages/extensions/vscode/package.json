@@ -1,7 +1,7 @@
 {
-  "name": "echo-ai-vscode",
-  "displayName": "Echo AI",
-  "description": "35+ specialized AI agents, quantum code understanding, predictive intelligence. The most advanced AI coding assistant with multi-provider support.",
+  "name": "echoai-vscode",
+  "displayName": "EchoAI",
+  "description": "EchoAI coding-agent workflows from VS Code.",
   "version": "1.2.1",
   "publisher": "LoopXo",
   "engines": {
@@ -42,8 +42,8 @@
   "main": "./out/clean-extension.js",
   "contributes": {
     "icons": {
-      "echo-ai-icon": {
-        "description": "Echo AI logo",
+      "echoai-icon": {
+        "description": "EchoAI logo",
         "default": {
           "fontPath": "./icon.png"
         }
@@ -51,65 +51,65 @@
     },
     "commands": [
       {
-        "command": "echo-ai.explain",
+        "command": "echoai.explain",
         "title": "Explain Code"
       },
       {
-        "command": "echo-ai.refactor",
+        "command": "echoai.refactor",
         "title": "Refactor Code"
       },
       {
-        "command": "echo-ai.generateTests",
+        "command": "echoai.generateTests",
         "title": "Generate Tests"
       },
       {
-        "command": "echo-ai.configure",
-        "title": "Configure Echo AI"
+        "command": "echoai.configure",
+        "title": "Configure EchoAI"
       },
       {
-        "command": "echo-ai.showCLI",
-        "title": "Open Echo AI Terminal",
-        "icon": "$(echo-ai-icon)"
+        "command": "echoai.showCLI",
+        "title": "Open EchoAI Terminal",
+        "icon": "$(echoai-icon)"
       },
       {
-        "command": "echo-ai.performance",
+        "command": "echoai.performance",
         "title": "Show Performance"
       },
       {
-        "command": "echo-ai.memory",
-        "title": "Echo AI: Memory Context"
+        "command": "echoai.memory",
+        "title": "EchoAI: Memory Context"
       },
       {
-        "command": "echo-ai.sessions",
-        "title": "Echo AI: Sessions"
+        "command": "echoai.sessions",
+        "title": "EchoAI: Sessions"
       },
       {
-        "command": "echo-ai.docs",
-        "title": "Echo AI: Generate Documentation"
+        "command": "echoai.docs",
+        "title": "EchoAI: Generate Documentation"
       },
       {
-        "command": "echo-ai.skills",
-        "title": "Echo AI: Skills"
+        "command": "echoai.skills",
+        "title": "EchoAI: Skills"
       },
       {
-        "command": "echo-ai.gateway",
-        "title": "Echo AI: Gateway Status"
+        "command": "echoai.gateway",
+        "title": "EchoAI: Gateway Status"
       }
     ],
     "keybindings": [
       {
-        "command": "echo-ai.explain",
+        "command": "echoai.explain",
         "key": "ctrl+shift+e",
         "when": "editorHasSelection"
       },
       {
-        "command": "echo-ai.showCLI",
+        "command": "echoai.showCLI",
         "key": "ctrl+shift+c",
         "when": "editorTextFocus"
       }
     ],
     "configuration": {
-      "title": "Echo AI",
+      "title": "EchoAI",
       "properties": {
         "echoAI.provider": {
           "type": "string",
@@ -119,7 +119,6 @@
             "openai",
             "groq",
             "openrouter",
-            "gemini",
             "meta"
           ],
           "description": "AI provider for completions"
@@ -149,69 +148,69 @@
     "menus": {
       "editor/title": [
         {
-          "command": "echo-ai.showCLI",
+          "command": "echoai.showCLI",
           "group": "navigation@1",
           "when": "resourceExtname =~ /\\.(js|ts|jsx|tsx|py|java|cpp|c|cs|php|rb|go|rs|swift|kt|dart|scala|clj|hs|ml|fs|pas|pl|r|jl|nim|zig|v)$/"
         }
       ],
       "editor/title/run": [
         {
-          "command": "echo-ai.showCLI",
+          "command": "echoai.showCLI",
           "group": "navigation@1"
         }
       ],
       "editor/context": [
         {
-          "command": "echo-ai.explain",
+          "command": "echoai.explain",
           "when": "editorHasSelection",
-          "group": "echo-ai"
+          "group": "EchoAI"
         },
         {
-          "command": "echo-ai.refactor",
+          "command": "echoai.refactor",
           "when": "editorHasSelection",
-          "group": "echo-ai"
+          "group": "EchoAI"
         },
         {
-          "command": "echo-ai.generateTests",
+          "command": "echoai.generateTests",
           "when": "editorTextFocus",
-          "group": "echo-ai"
+          "group": "EchoAI"
         },
         {
-          "command": "echo-ai.showCLI",
+          "command": "echoai.showCLI",
           "when": "editorTextFocus",
-          "group": "echo-ai"
+          "group": "EchoAI"
         }
       ],
       "view/title": [
         {
-          "command": "echo-ai.showCLI",
+          "command": "echoai.showCLI",
           "when": "view == workbench.explorer.fileView",
           "group": "navigation@1"
         }
       ],
       "commandPalette": [
         {
-          "command": "echo-ai.showCLI",
+          "command": "echoai.showCLI",
           "when": "true"
         },
         {
-          "command": "echo-ai.explain",
+          "command": "echoai.explain",
           "when": "editorHasSelection"
         },
         {
-          "command": "echo-ai.refactor",
+          "command": "echoai.refactor",
           "when": "editorHasSelection"
         },
         {
-          "command": "echo-ai.generateTests",
+          "command": "echoai.generateTests",
           "when": "true"
         },
         {
-          "command": "echo-ai.configure",
+          "command": "echoai.configure",
           "when": "true"
         },
         {
-          "command": "echo-ai.performance",
+          "command": "echoai.performance",
           "when": "true"
         }
       ]
