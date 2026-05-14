@@ -4,7 +4,6 @@
  * Multi-provider AI API integrations:
  * - Anthropic Claude
  * - OpenAI GPT
- * - Google Gemini
  * - AWS Bedrock
  * - Ollama (local)
  * - OpenRouter
@@ -24,14 +23,16 @@
 export type ProviderType =
     | "anthropic"
     | "openai"
-    | "google"
     | "bedrock"
     | "ollama"
     | "openrouter"
     | "azure"
     | "groq"
     | "together"
-    | "mistral";
+    | "mistral"
+    | "deepseek"
+    | "kimi"
+    | "nim";
 
 export interface ProviderConfig {
     type: ProviderType;
@@ -355,10 +356,13 @@ export class AnthropicProvider extends BaseProvider {
 // =============================================================================
 
 export class OpenAIProvider extends BaseProvider {
-    readonly type = "openai" as const;
+    readonly type: ProviderType;
+    protected defaultBaseUrl: string;
 
-    constructor(config: Omit<ProviderConfig, "type">) {
-        super({ ...config, type: "openai" });
+    constructor(config: Omit<ProviderConfig, "type"> & { type?: ProviderType }, defaultBaseUrl = "https://api.openai.com/v1") {
+        super({ ...config, type: config.type || "openai" });
+        this.type = config.type || "openai";
+        this.defaultBaseUrl = defaultBaseUrl;
     }
 
     async complete(request: CompletionRequest): Promise<CompletionResponse> {
@@ -532,151 +536,32 @@ export class OpenAIProvider extends BaseProvider {
 }
 
 // =============================================================================
-// Google Gemini Provider
+// DeepSeek Provider
 // =============================================================================
 
-export class GeminiProvider extends BaseProvider {
-    readonly type = "google" as const;
-
+export class DeepSeekProvider extends OpenAIProvider {
     constructor(config: Omit<ProviderConfig, "type">) {
-        super({ ...config, type: "google" });
+        super({ ...config, type: "deepseek" }, "https://api.deepseek.com");
     }
+}
 
-    async complete(request: CompletionRequest): Promise<CompletionResponse> {
-        const model = request.model || this.config.model || "gemini-2.5-flash";
-        const url = `${this.config.baseUrl || "https://generativelanguage.googleapis.com/v1beta"}/models/${model}:generateContent?key=${this.config.apiKey}`;
-        const body = this.buildRequestBody(request);
+// =============================================================================
+// Kimi Provider
+// =============================================================================
 
-        const response = await this.fetch(url, {
-            method: "POST",
-            body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Gemini API error: ${response.status} - ${error}`);
-        }
-
-        const data = await response.json() as Record<string, unknown>;
-        return this.parseResponse(data);
+export class KimiProvider extends OpenAIProvider {
+    constructor(config: Omit<ProviderConfig, "type">) {
+        super({ ...config, type: "kimi" }, "https://api.moonshot.cn/v1");
     }
+}
 
-    async stream(request: CompletionRequest, callback: StreamCallback): Promise<CompletionResponse> {
-        const model = request.model || this.config.model || "gemini-2.5-flash";
-        const url = `${this.config.baseUrl || "https://generativelanguage.googleapis.com/v1beta"}/models/${model}:streamGenerateContent?key=${this.config.apiKey}&alt=sse`;
-        const body = this.buildRequestBody(request);
+// =============================================================================
+// NIM Testing Provider
+// =============================================================================
 
-        const response = await this.fetch(url, {
-            method: "POST",
-            body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Gemini API error: ${response.status} - ${error}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("No response body");
-
-        let fullContent = "";
-        const decoder = new TextDecoder();
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split("\n");
-
-            for (const line of lines) {
-                if (!line.startsWith("data: ")) continue;
-                const data = line.slice(6);
-
-                try {
-                    const event = JSON.parse(data) as Record<string, unknown>;
-                    const candidates = event.candidates as Array<Record<string, unknown>>;
-                    if (candidates?.[0]) {
-                        const content = candidates[0].content as Record<string, unknown>;
-                        const parts = content.parts as Array<Record<string, unknown>>;
-                        if (parts?.[0]?.text) {
-                            const text = parts[0].text as string;
-                            fullContent += text;
-                            callback({ type: "text_delta", text });
-                        }
-                    }
-                } catch {
-                    // Skip malformed events
-                }
-            }
-        }
-
-        callback({ type: "message_end" });
-
-        return {
-            id: this.generateId(),
-            content: fullContent,
-        };
-    }
-
-    async listModels(): Promise<string[]> {
-        return [
-            "gemini-2.5-flash",
-            "gemini-2.5-pro",
-            "gemini-2.0-flash-exp",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
-        ];
-    }
-
-    private buildRequestBody(request: CompletionRequest): Record<string, unknown> {
-        const contents = request.messages
-            .filter(m => m.role !== "system")
-            .map(m => ({
-                role: m.role === "assistant" ? "model" : "user",
-                parts: [{ text: typeof m.content === "string" ? m.content : "" }],
-            }));
-
-        const systemPrompt = request.systemPrompt ||
-            request.messages.find(m => m.role === "system")?.content;
-
-        const body: Record<string, unknown> = {
-            contents,
-            generationConfig: {
-                maxOutputTokens: request.maxTokens || this.config.maxTokens || 4096,
-            },
-        };
-
-        if (systemPrompt) {
-            body.systemInstruction = { parts: [{ text: systemPrompt }] };
-        }
-
-        if (request.temperature !== undefined) {
-            (body.generationConfig as Record<string, unknown>).temperature = request.temperature;
-        }
-
-        return body;
-    }
-
-    private parseResponse(data: Record<string, unknown>): CompletionResponse {
-        const candidates = data.candidates as Array<Record<string, unknown>>;
-        const candidate = candidates?.[0];
-        const content = candidate?.content as Record<string, unknown>;
-        const parts = content?.parts as Array<Record<string, unknown>>;
-        const text = parts?.[0]?.text as string || "";
-
-        const usage = data.usageMetadata as Record<string, number> | undefined;
-
-        return {
-            id: this.generateId(),
-            content: text,
-            usage: usage ? {
-                inputTokens: usage.promptTokenCount,
-                outputTokens: usage.candidatesTokenCount,
-                totalTokens: usage.totalTokenCount,
-            } : undefined,
-            stopReason: candidate?.finishReason as string | undefined,
-        };
+export class NIMProvider extends OpenAIProvider {
+    constructor(config: Omit<ProviderConfig, "type">) {
+        super({ ...config, type: "nim" }, "http://localhost:8082");
     }
 }
 
@@ -813,8 +698,12 @@ export function createProvider(config: ProviderConfig): Provider {
             return new AnthropicProvider(config);
         case "openai":
             return new OpenAIProvider(config);
-        case "google":
-            return new GeminiProvider(config);
+        case "deepseek":
+            return new DeepSeekProvider(config);
+        case "kimi":
+            return new KimiProvider(config);
+        case "nim":
+            return new NIMProvider(config);
         case "ollama":
             return new OllamaProvider(config);
         default:

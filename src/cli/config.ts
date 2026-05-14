@@ -82,7 +82,7 @@ configCommand
   .action(async () => {
     const configManager = new ConfigManager();
     
-    console.log('🚀 AI CLI Setup Wizard\n');
+    console.log('EchoAI setup wizard\n');
     
     const answers = await promptWithInquirer([
       {
@@ -92,7 +92,6 @@ configCommand
         choices: [
           { name: 'Claude (Anthropic)', value: 'claude' },
           { name: 'OpenAI (GPT)', value: 'openai' },
-          { name: 'Google Gemini', value: 'gemini' },
           { name: 'Groq (Fast Inference)', value: 'groq' },
           { name: 'Meta AI (Llama)', value: 'meta' },
         ],
@@ -120,11 +119,6 @@ configCommand
                 'gpt-4-turbo-preview',
                 'gpt-4',
                 'gpt-3.5-turbo',
-              ];
-            case 'gemini':
-              return [
-                'gemini-pro',
-                'gemini-pro-vision',
               ];
             case 'groq':
               return [

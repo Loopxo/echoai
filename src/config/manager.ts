@@ -77,7 +77,7 @@ export class ConfigManager {
     ],
   });
 
-  private globalConfigPath = join(homedir(), '.aiconfig', 'config.json');
+  private globalConfigPath = join(homedir(), '.echoai', 'config.json');
   private cachedConfig?: Config;
   private pendingConfig?: Promise<Config>;
 
@@ -145,8 +145,8 @@ export class ConfigManager {
     return {
       providers: {},
       defaults: {
-        provider: 'claude',
-        model: 'claude-3-sonnet-20240229',
+        provider: 'echoai',
+        model: 'code',
         temperature: 0.7,
         maxTokens: 4096,
       },
@@ -172,7 +172,7 @@ export class ConfigManager {
     const existingConfig = await this.getConfig();
     const mergedConfig = this.mergeConfigs(existingConfig, config);
     
-    const configDir = join(homedir(), '.aiconfig');
+    const configDir = join(homedir(), '.echoai');
     if (!existsSync(configDir)) {
       mkdirSync(configDir, { recursive: true });
     }

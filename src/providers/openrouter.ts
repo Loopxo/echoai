@@ -26,11 +26,6 @@ export class OpenRouterProvider implements AIProvider {
     'meta-llama/llama-3.1-70b-instruct', 
     'meta-llama/llama-3.1-8b-instruct',
     'meta-llama/codellama-70b-instruct',
-    
-    // Google Models via OpenRouter
-    'google/gemini-pro-1.5',
-    'google/gemini-flash-1.5',
-    
     // Mistral Models via OpenRouter
     'mistralai/mixtral-8x7b-instruct',
     'mistralai/mistral-7b-instruct',
@@ -50,8 +45,8 @@ export class OpenRouterProvider implements AIProvider {
       apiKey: config.apiKey,
       baseURL: 'https://openrouter.ai/api/v1',
       defaultHeaders: {
-        'HTTP-Referer': 'https://echo-ai-cli.com', // Your app's URL
-        'X-Title': 'Echo AI CLI', // Your app's name
+        'HTTP-Referer': 'https://echoai.com', // Your app's URL
+        'X-Title': 'EchoAI CLI', // Your app's name
       },
     });
   }
@@ -62,8 +57,8 @@ export class OpenRouterProvider implements AIProvider {
         apiKey,
         baseURL: 'https://openrouter.ai/api/v1',
         defaultHeaders: {
-          'HTTP-Referer': 'https://echo-ai-cli.com',
-          'X-Title': 'Echo AI CLI',
+          'HTTP-Referer': 'https://echoai.com',
+          'X-Title': 'EchoAI CLI',
         },
       });
       

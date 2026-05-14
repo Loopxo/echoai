@@ -44,43 +44,59 @@ export class ProviderManager {
 
   private async loadProvider(name: string): Promise<void> {
     const config = await this.configManager.getProvider(name);
-    if (!config) {
-      throw new Error(`No configuration found for provider '${name}'. Run: echo config setup`);
+    if (!config && name !== 'echoai') {
+      throw new Error(`No configuration found for provider '${name}'. Run: echoai config setup`);
     }
 
     let provider: AIProvider;
+    const providerConfig = config ?? { apiKey: '', baseUrl: process.env.ECHOAI_API_URL };
 
     switch (name) {
+      case 'echoai':
+        const { EchoAIProvider } = await import('../providers/echoai.js');
+        provider = new EchoAIProvider(providerConfig);
+        break;
+
       case 'claude':
         const { ClaudeProvider } = await import('../providers/claude.js');
-        provider = new ClaudeProvider(config);
+        provider = new ClaudeProvider(providerConfig);
         break;
       
       case 'openai':
         const { OpenAIProvider } = await import('../providers/openai.js');
-        provider = new OpenAIProvider(config);
+        provider = new OpenAIProvider(providerConfig);
         break;
-      
-      case 'gemini':
-        const { GeminiProvider } = await import('../providers/gemini.js');
-        provider = new GeminiProvider(config);
+        
+      case 'deepseek':
+        const { DeepSeekProvider } = await import('../providers/deepseek.js');
+        provider = new DeepSeekProvider(providerConfig);
+        break;
+        
+      case 'kimi':
+        const { KimiProvider } = await import('../providers/kimi.js');
+        provider = new KimiProvider(providerConfig);
+        break;
+        
+      case 'nim':
+        const { NIMProvider } = await import('../providers/nim.js');
+        provider = new NIMProvider(providerConfig);
         break;
       
       case 'groq':
         const { GroqProvider } = await import('../providers/groq.js');
-        provider = new GroqProvider(config);
+        provider = new GroqProvider(providerConfig);
         break;
       
       case 'meta':
         const { MetaAIProvider } = await import('../providers/meta.js');
-        provider = new MetaAIProvider(config);
+        provider = new MetaAIProvider(providerConfig);
         break;
       
       default:
         throw new Error(`Unsupported provider: ${name}`);
     }
 
-    const isAuthenticated = await provider.authenticate(config.apiKey);
+    const isAuthenticated = await provider.authenticate(providerConfig.apiKey);
     if (!isAuthenticated) {
       throw new Error(`Authentication failed for provider '${name}'. Please check your API key.`);
     }
@@ -97,9 +113,9 @@ export class ProviderManager {
       const provider = await this.getProvider(name);
       const config = await this.configManager.getProvider(name);
       
-      if (!config) return false;
+      if (!config && name !== 'echoai') return false;
       
-      return await provider.authenticate(config.apiKey);
+      return await provider.authenticate(config?.apiKey ?? '');
     } catch (error) {
       return false;
     }

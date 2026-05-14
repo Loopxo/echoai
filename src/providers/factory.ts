@@ -1,7 +1,6 @@
 import { AIProvider, ProviderConfig } from '../types/index.js';
 import { ClaudeProvider } from './claude.js';
 import { OpenAIProvider } from './openai.js';
-import { GeminiProvider } from './gemini.js';
 import { GroqProvider } from './groq.js';
 import { MetaAIProvider } from './meta.js';
 import { OpenRouterProvider } from './openrouter.js';
@@ -13,8 +12,6 @@ export class ProviderFactory {
         return new ClaudeProvider(config);
       case 'openai':
         return new OpenAIProvider(config);
-      case 'gemini':
-        return new GeminiProvider(config);
       case 'groq':
         return new GroqProvider(config);
       case 'meta':
@@ -27,7 +24,7 @@ export class ProviderFactory {
   }
 
   getAvailableProviders(): string[] {
-    return ['claude', 'openai', 'gemini', 'groq', 'meta', 'openrouter'];
+    return ['claude', 'openai', 'groq', 'meta', 'openrouter'];
   }
 }
 

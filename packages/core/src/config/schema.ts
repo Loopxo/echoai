@@ -134,7 +134,7 @@ export const GatewayConfigSchema = z.object({
 
 export const MemorySearchConfigSchema = z.object({
     enabled: z.boolean().optional(),
-    provider: z.enum(["openai", "gemini", "voyage", "local"]).optional(),
+    provider: z.enum(["openai", "google", "voyage", "local"]).optional(),
     model: z.string().optional(),
     sources: z.array(z.enum(["memory", "sessions"])).optional(),
     extraPaths: z.array(z.string()).optional(),

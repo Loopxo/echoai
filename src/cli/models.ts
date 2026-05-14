@@ -8,7 +8,7 @@ const promptWithInquirer = async (questions: any[]) => (await import('inquirer')
 
 export const modelsCommand = new Command()
   .name('models')
-  .description('Discover, test, and manage AI models from 75+ providers')
+  .description('Inspect model registry entries and compare configured models')
   .hook('preAction', async () => {
     await modelsRegistry.initialize();
   });

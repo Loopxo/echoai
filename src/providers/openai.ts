@@ -5,7 +5,12 @@ import {
   ChatOptions, 
   CompletionOptions, 
   ProviderConfig, 
-  ConfigValidation 
+  ConfigValidation,
+  StructuredMessage,
+  ProviderToolDefinition,
+  ProviderCompletionResult,
+  ProviderStreamChunk,
+  StructuredToolCall
 } from '../types/index.js';
 
 export class OpenAIProvider implements AIProvider {
@@ -18,8 +23,8 @@ export class OpenAIProvider implements AIProvider {
     'gpt-3.5-turbo',
   ];
 
-  private client: OpenAI;
-  private config: ProviderConfig;
+  protected client: OpenAI;
+  protected config: ProviderConfig;
 
   constructor(config: ProviderConfig) {
     this.config = config;
@@ -37,7 +42,7 @@ export class OpenAIProvider implements AIProvider {
       });
       
       await testClient.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.getDefaultModel(),
         messages: [{ role: 'user', content: 'test' }],
         max_tokens: 10,
       });
@@ -96,8 +101,169 @@ export class OpenAIProvider implements AIProvider {
     }
   }
 
+  protected getDefaultModel(): string {
+    return this.config.model || this.models[4] || this.models[0] || 'gpt-3.5-turbo';
+  }
+
+  protected sanitizeToolSchema(schema: Record<string, unknown>): Record<string, unknown> {
+    return schema;
+  }
+
+  protected formatTools(tools?: ProviderToolDefinition[]): unknown[] | undefined {
+    if (!tools || tools.length === 0) return undefined;
+    return tools.map(t => ({
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: this.sanitizeToolSchema(t.inputSchema)
+      }
+    }));
+  }
+
+  protected parseToolInput(raw: string | undefined): Record<string, unknown> {
+    if (!raw?.trim()) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : { value: parsed };
+    } catch {
+      return { _raw: raw, _parseError: 'Invalid JSON arguments from provider' };
+    }
+  }
+
+  async completeWithTools(
+    messages: StructuredMessage[],
+    options: ChatOptions & { tools?: ProviderToolDefinition[] }
+  ): Promise<ProviderCompletionResult> {
+    const model = (options.model || this.getDefaultModel()) as any;
+    const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
+    const temperature = options.temperature ?? this.config.temperature ?? 0.7;
+
+    const formattedMessages = messages.map(m => {
+      const msg: any = { role: m.role, content: m.content || "" };
+      if (m.name) msg.name = m.name;
+      if (m.toolCallId) msg.tool_call_id = m.toolCallId;
+      if (m.toolCalls && m.toolCalls.length > 0) {
+        msg.tool_calls = m.toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function',
+          function: { name: tc.name, arguments: JSON.stringify(tc.input) }
+        }));
+      }
+      return msg;
+    });
+
+    const payload: any = {
+      model,
+      messages: formattedMessages,
+      max_tokens: maxTokens,
+      temperature,
+    };
+
+    const formattedTools = this.formatTools(options.tools);
+    if (formattedTools) payload.tools = formattedTools;
+
+    const response = await this.client.chat.completions.create(payload);
+    const choice = response.choices[0];
+    const message = choice?.message;
+
+    const toolCalls = message?.tool_calls?.map(tc => ({
+      id: tc.id,
+      name: tc.function.name,
+      input: this.parseToolInput(tc.function.arguments)
+    }));
+
+    return {
+      content: message?.content || '',
+      toolCalls,
+      metadata: extractProviderMetadata(message),
+    };
+  }
+
+  async streamWithTools(
+    messages: StructuredMessage[],
+    options: ChatOptions & { tools?: ProviderToolDefinition[] },
+    onChunk: (chunk: ProviderStreamChunk) => void
+  ): Promise<ProviderCompletionResult> {
+    const model = (options.model || this.getDefaultModel()) as any;
+    const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
+    const temperature = options.temperature ?? this.config.temperature ?? 0.7;
+
+    const formattedMessages = messages.map(m => {
+      const msg: any = { role: m.role, content: m.content || "" };
+      if (m.name) msg.name = m.name;
+      if (m.toolCallId) msg.tool_call_id = m.toolCallId;
+      if (m.toolCalls && m.toolCalls.length > 0) {
+        msg.tool_calls = m.toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function',
+          function: { name: tc.name, arguments: JSON.stringify(tc.input) }
+        }));
+      }
+      return msg;
+    });
+
+    const payload: any = {
+      model,
+      messages: formattedMessages,
+      max_tokens: maxTokens,
+      temperature,
+      stream: true,
+    };
+
+    const formattedTools = this.formatTools(options.tools);
+    if (formattedTools) payload.tools = formattedTools;
+
+    const stream = await this.client.chat.completions.create(payload) as any;
+    
+    let content = '';
+    const toolCallsMap = new Map<number, any>();
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta;
+      if (!delta) continue;
+
+      if (delta.content) {
+        content += delta.content;
+        onChunk({ type: 'text', text: delta.content });
+      }
+
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const index = tc.index;
+          if (!toolCallsMap.has(index)) {
+            toolCallsMap.set(index, {
+              id: tc.id,
+              name: tc.function?.name || '',
+              arguments: tc.function?.arguments || ''
+            });
+          } else {
+            const existing = toolCallsMap.get(index);
+            if (tc.id) existing.id = tc.id;
+            if (tc.function?.name) existing.name += tc.function.name;
+            if (tc.function?.arguments) {
+              existing.arguments += tc.function.arguments;
+            }
+          }
+        }
+      }
+    }
+
+    const toolCalls: StructuredToolCall[] = [];
+    for (const [_, tc] of toolCallsMap) {
+      const input = this.parseToolInput(tc.arguments);
+      const finalTc = { id: tc.id, name: tc.name, input };
+      toolCalls.push(finalTc);
+      onChunk({ type: 'tool_call', toolCall: finalTc });
+    }
+
+    return { content, toolCalls: toolCalls.length > 0 ? toolCalls : undefined };
+  }
+
   async complete(prompt: string, options: CompletionOptions = {}): Promise<string> {
-    const model = (options.model || this.config.model || this.models[4]) as any;
+    const model = (options.model || this.getDefaultModel()) as any;
     const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
@@ -144,4 +310,14 @@ export class OpenAIProvider implements AIProvider {
       errors,
     };
   }
+}
+
+function extractProviderMetadata(message: unknown): Record<string, unknown> | undefined {
+  if (!message || typeof message !== 'object') return undefined;
+  const record = message as Record<string, unknown>;
+  const metadata: Record<string, unknown> = {};
+  for (const key of ['reasoning_content', 'reasoning', 'reasoningContent']) {
+    if (record[key]) metadata[key] = record[key];
+  }
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
 }

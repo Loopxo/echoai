@@ -29,7 +29,7 @@ describe('ConfigManager', () => {
       expect(config).toHaveProperty('integrations');
       expect(config).toHaveProperty('features');
       
-      expect(config.defaults.provider).toBe('claude');
+      expect(config.defaults.provider).toBe('echoai');
       expect(config.defaults.temperature).toBe(0.7);
       expect(config.features.streaming).toBe(true);
     });

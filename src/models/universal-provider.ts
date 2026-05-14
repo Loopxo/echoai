@@ -276,8 +276,8 @@ export class UniversalModelProvider {
       headers['anthropic-version'] = '2023-06-01';
     } else if (provider.id === 'openrouter') {
       headers['Authorization'] = `Bearer ${apiKey}`;
-      headers['HTTP-Referer'] = 'https://echo-ai.dev';
-      headers['X-Title'] = 'Echo AI CLI';
+      headers['HTTP-Referer'] = 'https://echoai.dev';
+      headers['X-Title'] = 'EchoAI CLI';
     } else {
       // Default Bearer token
       headers['Authorization'] = `Bearer ${apiKey}`;

@@ -11,7 +11,7 @@ export class ModelsRegistry {
   private updateInterval = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {
-    const echoDir = join(homedir(), '.echo');
+    const echoDir = join(homedir(), '.echoai');
     this.registryPath = join(echoDir, 'models-registry.json');
   }
 
