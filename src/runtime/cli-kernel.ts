@@ -1,4 +1,13 @@
-import { AgentKernel, AuditLogStore, SessionRegistry, type KernelCompletionProvider, type KernelMessage } from "@echoai/runtime";
+import {
+  AgentKernel,
+  AuditLogStore,
+  RuntimePermissionManager,
+  SessionRegistry,
+  type KernelTool,
+  type KernelCompletionProvider,
+  type KernelMessage,
+  type KernelSessionMode,
+} from "@echoai/runtime";
 import type { AIProvider, Message, ProviderToolDefinition, StructuredMessage, StructuredToolCall } from "../types/index.js";
 import { permissionManager } from "../utils/permission-prompt.js";
 
@@ -178,13 +187,21 @@ export function createCliKernel(
     stream?: boolean;
     stateNamespace?: string;
     onTextChunk?: (chunk: string) => void;
+    registerBuiltInTools?: boolean;
+    runtimeMode?: KernelSessionMode;
   } = {}
 ): AgentKernel {
   const namespace = options.stateNamespace ?? "runtime";
-  const defaultSystemPrompt = createDefaultSystemPrompt();
+  const defaultSystemPrompt = createDefaultSystemPrompt(options.runtimeMode);
   const kernel = new AgentKernel({
     sessionRegistry: new SessionRegistry({ namespace }),
     auditLogStore: new AuditLogStore({ namespace }),
+    registerBuiltInTools: options.registerBuiltInTools,
+    permissionManager: new RuntimePermissionManager({
+      profile: options.runtimeMode === "plan"
+        ? { read: "allow", write: "deny", process: "ask", network: "ask" }
+        : undefined,
+    }),
     approvalResolver: async ({ permissionRequest }) => {
       const response = await permissionManager.requestPermission({
         action: `${permissionRequest.scope}:${permissionRequest.toolName}`,
@@ -225,18 +242,60 @@ export function createCliRuntimeKernel(
   return createCliKernel(options);
 }
 
+export async function registerConfiguredMcpTools(kernel: AgentKernel): Promise<void> {
+  const { MCPManager } = await import("../mcp/manager.js");
+  const manager = new MCPManager();
+  await manager.initialize();
+
+  for (const tool of manager.getAvailableTools()) {
+    const runtimeName = sanitizeRuntimeToolName(`mcp__${tool.name}`);
+    const runtimeTool: KernelTool = {
+      name: runtimeName,
+      description: `[MCP] ${tool.description || tool.name}`,
+      inputSchema: tool.inputSchema || { type: "object", properties: {} },
+      permission: {
+        process: "ask",
+        network: "ask",
+      },
+      execute: async (input) => {
+        try {
+          const result = await manager.callTool(tool.name, input);
+          return {
+            success: true,
+            output: typeof result === "string" ? result : JSON.stringify(result, null, 2),
+            summary: `MCP tool ${tool.name} completed`,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "MCP tool failed",
+          };
+        }
+      },
+    };
+    kernel.tools.register(runtimeTool);
+  }
+}
+
 function flattenMessages(messages: Message[]): string {
   return messages
     .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
     .join("\n\n");
 }
 
-function createDefaultSystemPrompt(): CliSystemPromptConfig {
+function sanitizeRuntimeToolName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+}
+
+function createDefaultSystemPrompt(runtimeMode: KernelSessionMode = "default"): CliSystemPromptConfig {
   return {
     basePrompt: [
       "You are EchoAI, a coding assistant operating inside the user's local workspace.",
       "Prefer concrete actions over vague guidance.",
       "Keep edits safe, incremental, and aligned with the current project.",
+      runtimeMode === "plan"
+        ? "You are in plan mode. Do not edit files. Inspect the workspace and propose exact changes only."
+        : "You are in build mode. You may edit files through approved tools when needed to complete the task.",
     ].join("\n"),
     sections: [
       {
@@ -245,8 +304,59 @@ function createDefaultSystemPrompt(): CliSystemPromptConfig {
         compute: () =>
           [
             "When tools are available, use them to inspect the workspace before making assumptions.",
+            "For coding tasks, follow inspect -> plan -> edit -> test -> review -> final.",
+            "Before edits, state a short plan unless the user explicitly asks to skip planning.",
+            "After edits, summarize changed files, checks run, remaining risks, and the next useful action.",
+            "Prefer apply_patch or multi_edit over whole-file rewrites when a focused patch is enough.",
+            "Use run_tests, run_lint, run_typecheck, and get_diagnostics when they are relevant instead of guessing raw shell commands.",
             "Prefer concise, high-signal responses and preserve user work.",
           ].join("\n"),
+      },
+      {
+        name: "project-instructions",
+        mode: "static",
+        compute: async ({ workspaceRoot }) => {
+          if (!workspaceRoot) return null;
+          try {
+            const fs = await import("fs/promises");
+            const path = await import("path");
+            const content = await fs.readFile(path.join(workspaceRoot, "ECHOAI.md"), "utf8");
+            return `Project Instructions (from ECHOAI.md):\n${content.trim()}`;
+          } catch {
+            return null;
+          }
+        }
+      },
+      {
+        name: "project-memory",
+        mode: "dynamic",
+        compute: async ({ workspaceRoot }) => {
+          if (!workspaceRoot) return null;
+          try {
+            const fs = await import("fs/promises");
+            const path = await import("path");
+            const content = await fs.readFile(path.join(workspaceRoot, ".echoai", "memory.jsonl"), "utf8");
+            const entries = content
+              .split("\n")
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .slice(-20)
+              .map((line) => {
+                try {
+                  const parsed = JSON.parse(line) as { content?: unknown; source?: unknown };
+                  return typeof parsed.content === "string"
+                    ? `- ${parsed.content}${typeof parsed.source === "string" ? ` (source: ${parsed.source})` : ""}`
+                    : null;
+                } catch {
+                  return null;
+                }
+              })
+              .filter(Boolean);
+            return entries.length > 0 ? `Project memory:\n${entries.join("\n")}` : null;
+          } catch {
+            return null;
+          }
+        },
       },
       {
         name: "environment",

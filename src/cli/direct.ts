@@ -2,7 +2,7 @@ import { ConfigManager } from '../config/manager.js';
 import { ProviderManager } from '../core/provider-manager.js';
 import { FileManager } from '../integrations/file-manager.js';
 import { CommandContext } from '../types/index.js';
-import { createCliKernel } from '../runtime/cli-kernel.js';
+import { createCliKernel, registerConfiguredMcpTools } from '../runtime/cli-kernel.js';
 import { RuntimeEventRenderer } from '@echoai/tui';
 
 export default async function handleDirectPrompt(prompt: string, options: any) {
@@ -52,6 +52,8 @@ export default async function handleDirectPrompt(prompt: string, options: any) {
       stream: context.stream,
       stateNamespace: 'cli',
     });
+    await registerConfiguredMcpTools(kernel);
+
     const runOptions = {
       input: fullPrompt,
       title: prompt,

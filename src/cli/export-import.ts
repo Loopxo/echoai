@@ -8,11 +8,11 @@ const exportManager = new ExportManager();
 
 export const exportImportCommand = new Command()
   .name('data')
-  .description('Export and import Echo AI data');
+  .description('Export and import EchoAI data');
 
 const exportCommand = new Command()
   .name('export')
-  .description('Export Echo AI data')
+  .description('Export EchoAI data')
   .option('-f, --format <format>', 'Export format (json, yaml, xml)', 'json')
   .option('-o, --output <file>', 'Output file path (optional)')
   .option('--configs', 'Include configuration data', false)
@@ -99,7 +99,7 @@ const exportCommand = new Command()
 
 const importCommand = new Command()
   .name('import')
-  .description('Import Echo AI data')
+  .description('Import EchoAI data')
   .argument('<file>', 'Import file path')
   .option('-f, --format <format>', 'Import format (json, yaml, xml)', 'json')
   .option('-s, --strategy <strategy>', 'Merge strategy (replace, merge, skip)', 'merge')

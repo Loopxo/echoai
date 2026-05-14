@@ -31,7 +31,7 @@ export default async function showWelcome(): Promise<void> {
 ╚══════╝  ╚═════╝╚═╝  ╚═╝ ╚═════╝ 
 `);
   
-  console.log('Welcome to Echo AI - Intelligent Terminal with Autonomous Agents');
+  console.log('Welcome to EchoAI - Intelligent Terminal with Autonomous Agents');
   console.log('═══════════════════════════════════════════════════════════════════\n');
 
   try {
@@ -78,7 +78,6 @@ async function setupProvider(): Promise<void> {
   const allProviders = [
     { name: '🤖 Claude (Anthropic) - Best for coding and analysis', value: 'claude' },
     { name: '🧠 GPT (OpenAI) - Great all-around performance', value: 'openai' },
-    { name: '🔍 Gemini (Google) - Strong reasoning capabilities', value: 'gemini' },
     { name: '⚡ Groq - Ultra-fast inference', value: 'groq' },
     { name: '🦙 Meta AI (Llama) - Open source models', value: 'meta' },
     { name: '🌐 OpenRouter - 100+ models via unified API', value: 'openrouter' },
@@ -283,7 +282,7 @@ async function showMainMenu(): Promise<void> {
       showHelp();
       break;
     case 'exit':
-      console.log('\n👋 Thanks for using Echo AI! Run `echoai` anytime to return.\n');
+      console.log('\n👋 Thanks for using EchoAI! Run `echoai` anytime to return.\n');
       process.exit(0);
       break;
   }
@@ -395,7 +394,7 @@ async function startInteractiveChat(): Promise<void> {
       const selectedProviderConfig = currentConfig.providers?.[selectedProvider];
       
       if (!selectedProviderConfig) {
-        throw new Error(`No configuration found for provider '${selectedProvider}'. Run: echo config setup`);
+        throw new Error(`No configuration found for provider '${selectedProvider}'. Run: echoai config setup`);
       }
       
       const provider = providerFactory.getProvider(selectedProvider, selectedProviderConfig);
@@ -709,7 +708,7 @@ async function startCodeEditing(): Promise<void> {
       // Get provider and send request with context
       const currentProviderConfig = currentConfig.providers?.[currentProvider];
       if (!currentProviderConfig) {
-        throw new Error(`No configuration found for provider '${currentProvider}'. Run: echo config setup`);
+        throw new Error(`No configuration found for provider '${currentProvider}'. Run: echoai config setup`);
       }
       const provider = providerFactory.getProvider(currentProvider, currentProviderConfig);
 
@@ -1230,7 +1229,7 @@ async function showConfigMenu(): Promise<void> {
 
 function showHelp(): void {
   console.log(`
-🔮 Echo AI CLI - Help & Documentation
+EchoAI CLI - Help & Documentation
 
 COMMANDS:
   echoai                     - Interactive welcome (this screen)
@@ -1248,13 +1247,13 @@ EXAMPLES:
   echoai agents optimize "write a function"
 
 FEATURES:
-  🤖 5 AI Providers (Claude, GPT, Gemini, Groq, Meta)
+  Hosted EchoAI routing plus configured Claude, OpenAI, Groq, Meta, and OpenRouter providers
   🧠 Intelligent Agents for prompt optimization
   📝 Code analysis and editing capabilities
   💬 Interactive chat sessions
   ⚙️  Flexible configuration system
 
-For more info: https://github.com/your-username/echo-ai-cli
+For more info: https://github.com/your-username/echoai
 `);
   
   console.log('\nPress Enter to continue...');
@@ -1277,12 +1276,6 @@ function getModelChoices(provider: string): Array<{ name: string; value: string 
         { name: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
         { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
       ];
-    case 'gemini':
-      return [
-        { name: '🏆 Gemini 1.5 Pro (Recommended)', value: 'gemini-1.5-pro' },
-        { name: 'Gemini 1.5 Flash', value: 'gemini-1.5-flash' },
-        { name: 'Gemini 1.0 Pro', value: 'gemini-1.0-pro' },
-      ];
     case 'groq':
       return [
         { name: '🏆 Llama 3 70B (Recommended)', value: 'llama3-70b-8192' },
@@ -1300,7 +1293,6 @@ function getModelChoices(provider: string): Array<{ name: string; value: string 
         { name: '🏆 Claude 3.5 Sonnet (Recommended)', value: 'anthropic/claude-3.5-sonnet' },
         { name: '🤖 GPT-4 Turbo', value: 'openai/gpt-4-turbo' },
         { name: '🦙 Llama 3.1 405B', value: 'meta-llama/llama-3.1-405b-instruct' },
-        { name: '🔍 Gemini Pro 1.5', value: 'google/gemini-pro-1.5' },
         { name: '⚡ Mixtral 8x7B', value: 'mistralai/mixtral-8x7b-instruct' },
         { name: '💻 Code Llama 70B', value: 'meta-llama/codellama-70b-instruct' },
       ];

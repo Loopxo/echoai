@@ -29,7 +29,7 @@ export const docsCommand = new Command('docs')
   .option('--no-architecture', 'Exclude architecture documentation')
   .option('-i, --interactive', 'Interactive mode for custom configuration')
   .action(async (options) => {
-    console.log('📚 Echo AI - Smart Auto-Documentation Generator\n');
+    console.log('📚 EchoAI - Smart Auto-Documentation Generator\n');
     console.log('🎯 Solving the problem of outdated, incomplete documentation');
     console.log('🔄 Generate developer-friendly docs that stay up-to-date\n');
 

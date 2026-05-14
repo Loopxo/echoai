@@ -1,8 +1,9 @@
 import { RuntimeEventRenderer } from '@echoai/tui';
 import { ConfigManager } from '../config/manager.js';
 import { ProviderManager } from '../core/provider-manager.js';
-import { createCliKernel } from './cli-kernel.js';
+import { createCliKernel, registerConfiguredMcpTools } from './cli-kernel.js';
 import { getCliSessionRegistry } from './session-bridge.js';
+import { handleSlashCommand } from './slash-commands.js';
 
 const promptWithInquirer = async (questions: any[]) => (await import('inquirer')).default.prompt(questions);
 
@@ -28,31 +29,23 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
     throw new Error(`Session ${options.sessionId} not found.`);
   }
 
-  const providerName = options.provider || existingSession?.provider || config.defaults.provider;
-  const modelName = options.model || existingSession?.model || config.defaults.model;
+  let providerName = options.provider || existingSession?.provider || config.defaults.provider;
+  let modelName = options.model || existingSession?.model || config.defaults.model;
   const temperature = options.temperature ?? config.defaults.temperature;
   const maxTokens = options.maxTokens ?? config.defaults.maxTokens;
   const sessionTitle = existingSession?.title || options.title || 'Interactive Chat Session';
 
-  const provider = await providerManager.getProvider(providerName);
-  const kernel = createCliKernel({
-    provider,
-    model: modelName,
-    temperature,
-    maxTokens,
-    stream: true,
-    stateNamespace: 'cli',
-  });
-
   let currentSessionId = existingSession?.id;
+  let runtimeMode: 'default' | 'plan' = existingSession?.mode === 'plan' ? 'plan' : 'default';
+  let isRunning = true;
 
   console.log(`🤖 AI Chat Session - Provider: ${providerName}, Model: ${modelName}`);
   if (currentSessionId) {
     console.log(`Resuming session ${currentSessionId}`);
   }
-  console.log('Type "exit" to quit, "clear" to start a new session\n');
+  console.log('Type "/help" for commands, or "/exit" to quit.\n');
 
-  while (true) {
+  while (isRunning) {
     const { input } = await promptWithInquirer([
       {
         type: 'input',
@@ -61,17 +54,34 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
       },
     ]);
 
-    const normalizedInput = input.trim().toLowerCase();
-    if (normalizedInput === 'exit') {
-      console.log('Goodbye! 👋');
-      break;
-    }
+    const wasCommand = await handleSlashCommand(input, {
+      currentSessionId,
+      providerName,
+      modelName,
+      runtimeMode,
+      configManager,
+      providerManager,
+      setSessionId: (id) => currentSessionId = id,
+      setModel: (model) => modelName = model,
+      setProvider: (provider) => providerName = provider,
+      setRuntimeMode: (mode) => runtimeMode = mode,
+      exit: () => isRunning = false,
+    });
 
-    if (normalizedInput === 'clear') {
-      currentSessionId = undefined;
-      console.log('Started a new session.\n');
-      continue;
-    }
+    if (wasCommand) continue;
+
+    // Refresh kernel if provider/model changed
+    const provider = await providerManager.getProvider(providerName);
+    const kernel = createCliKernel({
+      provider,
+      model: modelName,
+      temperature,
+      maxTokens,
+      stream: true,
+      stateNamespace: 'cli',
+      runtimeMode,
+    });
+    await registerConfiguredMcpTools(kernel);
 
     try {
       const renderer = new RuntimeEventRenderer();
@@ -82,6 +92,7 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
         input,
         provider: providerName,
         model: modelName,
+        mode: runtimeMode,
         workspaceRoot: process.cwd(),
         stream: true,
       })) {

@@ -2,6 +2,9 @@
 
 import { Command } from 'commander';
 import { readFileSync } from 'fs';
+import { migrateUnifiedState } from './config/migration.js';
+
+migrateUnifiedState();
 
 const VERSION = readVersion();
 const args = process.argv.slice(2);
@@ -15,12 +18,12 @@ const program = new Command();
 
 program
   .name('echoai')
-  .description('🔮 Echo AI - Intelligent Terminal with Autonomous Agents')
+  .description('EchoAI - coding agents with sessions, permissions, BYOK providers, and optional hosted routing')
   .version(VERSION);
 
 program
   .argument('[prompt]', 'Direct prompt to send to AI')
-  .option('-p, --provider <provider>', 'AI provider to use (claude, openai, gemini, groq, meta)')
+  .option('-p, --provider <provider>', 'AI provider to use (echoai, deepseek, kimi, nim, claude, openai, groq, meta)')
   .option('-m, --model <model>', 'Specific model to use')
   .option('-t, --temperature <number>', 'Temperature for generation (0-1)', parseFloat)
   .option('--max-tokens <number>', 'Maximum tokens to generate', parseInt)
@@ -58,6 +61,12 @@ const [
   { reviewCommand },
   { securityReviewCommand },
   { tasksCommand },
+  { initCommand },
+  { serviceCommand },
+  { loginCommand, usageCommand },
+  { diagnoseCommand },
+  { evalCommand },
+  { acpCommand },
 ] = await Promise.all([
   import('./cli/chat.js'),
   import('./cli/config.js'),
@@ -79,6 +88,12 @@ const [
   import('./cli/review.js'),
   import('./cli/security-review.js'),
   import('./cli/tasks.js'),
+  import('./cli/init.js'),
+  import('./cli/service.js'),
+  import('./cli/auth.js'),
+  import('./cli/diagnose.js'),
+  import('./cli/eval.js'),
+  import('./cli/acp.js'),
 ]);
 
 program.addCommand(chatCommand);
@@ -86,6 +101,8 @@ program.addCommand(configCommand);
 program.addCommand(editCommand);
 program.addCommand(providerCommand);
 program.addCommand(agentsCommand);
+program.addCommand(loginCommand);
+program.addCommand(usageCommand);
 
 const analyzeCommand = new Command('analyze')
   .description('🧠 Quick intelligent codebase analysis')
@@ -100,6 +117,11 @@ program.addCommand(securityCommand);
 program.addCommand(reviewCommand);
 program.addCommand(securityReviewCommand);
 program.addCommand(tasksCommand);
+program.addCommand(initCommand);
+program.addCommand(serviceCommand);
+program.addCommand(diagnoseCommand);
+program.addCommand(evalCommand);
+program.addCommand(acpCommand);
 program.addCommand(analyticsCommand);
 program.addCommand(exportImportCommand);
 program.addCommand(modelsCommand);

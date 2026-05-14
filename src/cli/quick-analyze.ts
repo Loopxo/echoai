@@ -5,7 +5,7 @@ import { getProjectContext } from '../utils/project-context.js';
 import { ensureWorkflowSession, getWorkflowKernel } from '../runtime/workflow-session.js';
 
 export async function quickAnalyzeCommand(options: { session?: string } = {}): Promise<void> {
-  console.log('🔮 Echo AI - Quick Codebase Analysis\n');
+  console.log('🔮 EchoAI - Quick Codebase Analysis\n');
   
   try {
     const kernel = getWorkflowKernel();
