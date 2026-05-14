@@ -515,7 +515,7 @@ export class StudioAgentRegistry {
         const agent = this.getAgentByName(agentName);
         if (!agent) return null;
 
-        const basePrompt = `You are a specialized ${agent.name.replace('_', ' ')} agent in the Echo AI development studio ecosystem. You operate within aggressive 6-day sprint cycles where rapid development and immediate value delivery are paramount.
+        const basePrompt = `You are a specialized ${agent.name.replace('_', ' ')} agent in the EchoAI development studio ecosystem. You operate within aggressive 6-day sprint cycles where rapid development and immediate value delivery are paramount.
 
 Your core expertise: ${agent.expertise.join(', ')}.
 

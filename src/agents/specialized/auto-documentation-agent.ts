@@ -22,7 +22,7 @@ export class AutoDocumentationAgent implements Agent {
       name: 'workflow-documentation',
       description: 'Documents SaaS workflows, processes, and user journeys',
       category: 'documentation',
-      supportedProviders: ['claude', 'gemini'],
+      supportedProviders: ['claude', 'openai'],
     },
     {
       name: 'sdk-documentation',
@@ -338,9 +338,8 @@ DOCUMENTATION EXCELLENCE GUIDELINES:
       return 'openai';
     }
 
-    // Gemini is good for technical accuracy and detailed explanations
     if (docType === 'codebase' || input.toLowerCase().includes('technical')) {
-      return 'gemini';
+      return 'claude';
     }
 
     return context.provider; // Keep existing provider if no specific preference
@@ -350,7 +349,6 @@ DOCUMENTATION EXCELLENCE GUIDELINES:
     const modelMap: Record<string, string> = {
       'claude': 'claude-3-5-sonnet-20241022',
       'openai': 'gpt-4o',
-      'gemini': 'gemini-1.5-pro',
       'groq': 'llama3-70b-8192',
     };
 
@@ -434,6 +432,6 @@ DOCUMENTATION EXCELLENCE GUIDELINES:
 
   private addLastUpdatedSection(result: string): string {
     const timestamp = new Date().toISOString().split('T')[0];
-    return result + `\n\n---\n\n*Last updated: ${timestamp}*\n*This documentation is auto-maintained by Echo AI*`;
+    return result + `\n\n---\n\n*Last updated: ${timestamp}*\n*This documentation is auto-maintained by EchoAI*`;
   }
 }
