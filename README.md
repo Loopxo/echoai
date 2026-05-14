@@ -1,6 +1,6 @@
-# Echo AI
+# EchoAI
 
-Echo AI is a local-first AI coding assistant with a CLI runtime, session persistence, tool orchestration, layered permissions, background task execution, and a VS Code extension.
+EchoAI is an open-source coding-agent CLI with a professional runtime, session persistence, tool orchestration, layered permissions, local BYOK providers, and optional EchoAI Cloud credits.
 
 [![NPM Version](https://img.shields.io/npm/v/echoai.svg)](https://www.npmjs.com/package/echoai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -8,17 +8,23 @@ Echo AI is a local-first AI coding assistant with a CLI runtime, session persist
 
 ## What It Does
 
-Echo AI combines a terminal-first developer workflow with an AI-native runtime:
+EchoAI combines a terminal-first developer workflow with an AI-native runtime:
 
 - Fast CLI startup with lazy initialization and memoized config/provider loading
 - Streamed model output and structured tool-call execution
 - Parallel read-only tool batches and serialized mutating tool execution
+- First-class coding tools for ranged file reads, ripgrep search, patch edits, test/lint/typecheck, diagnostics, symbols, and references
 - Layered permission rules with automated safe-path approvals
 - Persistent sessions, event logs, approvals, artifacts, and session memory
+- Project memory through `ECHOAI.md` and `.echoai/memory.jsonl`
 - Background shell tasks with logs, status tracking, and stop controls
 - Subagent session forking with optional isolated worktrees
-- MCP tool/server integration
-- VS Code extension for editor-triggered Echo AI workflows
+- Optional hosted device-code login and usage ledger
+- Local BYOK support for DeepSeek, Kimi, and local NIM
+- MCP tool/server integration through the runtime permission layer
+- SDK-backed Agent Client Protocol server through `echoai acp --stdio`
+- LSP-backed diagnostics, definitions, references, and workspace symbols with ripgrep fallbacks
+- VS Code extension for editor-triggered EchoAI workflows
 
 ## Architecture Highlights
 
@@ -32,7 +38,7 @@ The runtime is built around a streamed event loop:
 
 ### Security Model
 
-Echo AI treats permissions as a runtime concern, not a UI afterthought:
+EchoAI treats permissions as a runtime concern, not a UI afterthought:
 
 - layered rules: `policy -> flag -> local -> project -> user`
 - safe-path approvals for known low-risk reads and writes
@@ -58,6 +64,22 @@ Run it:
 
 ```bash
 echoai
+```
+
+Use EchoAI Cloud credits:
+
+```bash
+echoai login
+echoai usage
+echoai chat
+```
+
+Use your own provider keys locally:
+
+```bash
+echoai config setup
+echoai chat --provider deepseek
+echoai chat --provider kimi
 ```
 
 Local development install:
@@ -86,7 +108,19 @@ echoai "Explain how this repository is structured"
 Run with explicit provider/model:
 
 ```bash
-echoai "Refactor this TypeScript utility" --provider claude --model claude-3-5-sonnet
+echoai "Refactor this TypeScript utility" --provider echoai --model code
+```
+
+Interactive slash commands:
+
+```text
+/login      connect this terminal to an EchoAI account
+/usage      show plan, remaining credit, and recent model cost
+/mode plan  inspect only; file writes are denied
+/mode build normal coding mode
+/mode fast  DeepSeek chat preset
+/mode code  Kimi 32k preset
+/mode reason DeepSeek reasoner preset
 ```
 
 Session workflows:
@@ -114,6 +148,50 @@ echoai security audit
 echoai security permissions
 ```
 
+Project memory and diagnostics:
+
+```bash
+echoai init
+echoai memory add "Use pnpm for package scripts" --tag convention
+echoai memory show
+echoai diagnose
+```
+
+Coding evals:
+
+```bash
+echoai eval list
+echoai eval run --task eval-bugfix-divide-zero
+echoai eval run --all --agent echoai --command "echoai chat \"$ECHOAI_EVAL_PROMPT\""
+echoai eval report
+```
+
+IDE protocol bridge:
+
+```bash
+echoai acp --capabilities
+echoai acp --stdio
+```
+
+`echoai acp --stdio` uses `@agentclientprotocol/sdk` over newline-delimited JSON stdio. It exposes session lifecycle, prompt turns, streamed session updates, plans, mode changes, and persisted EchoAI sessions for ACP-compatible editors. Registry notes live in [`docs/acp-registry.md`](docs/acp-registry.md).
+
+LSP-backed code intelligence:
+
+```bash
+echoai diagnose
+```
+
+Install the language servers you need locally:
+
+```bash
+pnpm add -D typescript typescript-language-server
+python3 -m pip install pyright
+go install golang.org/x/tools/gopls@latest
+rustup component add rust-analyzer
+```
+
+EchoAI does not bundle every language server into the npm package. Runtime tools use LSP when available and fall back to ripgrep/project commands when a server is missing. Setup details live in [`docs/lsp.md`](docs/lsp.md).
+
 ## VS Code Extension
 
 The VS Code extension lives in [`packages/extensions/vscode`](packages/extensions/vscode).
@@ -127,11 +205,11 @@ npm run package
 
 That produces a `.vsix` file you can upload in the Visual Studio Marketplace publisher dashboard.
 
-The extension currently shells out to the latest published Echo AI CLI, so keep the CLI release and extension release aligned.
+The extension currently shells out to the latest published EchoAI CLI, so keep the CLI release and extension release aligned.
 
 ## MCP Support
 
-Echo AI supports MCP-compatible tools and servers.
+EchoAI supports MCP-compatible tools and servers.
 
 Common commands:
 
@@ -143,6 +221,19 @@ echoai mcp call calculator expression="2+2*3"
 ```
 
 Treat MCP configuration as trusted configuration. A malicious stdio command or remote MCP endpoint can execute code or expose data.
+
+## Open Source And EchoAI Cloud
+
+This public repository contains the open-source product: CLI, runtime, tools, MCP integration, local gateway, provider adapters, sessions, permissions, and editor/native clients.
+
+EchoAI supports two model-access modes:
+
+- **Local BYOK:** users store their own provider API keys locally through `echoai config setup`. Those keys are not sent to EchoAI Cloud.
+- **EchoAI Cloud credits:** users run `echoai login`, authenticate through the hosted site, and use the `echoai` provider. The CLI stores only EchoAI access/refresh tokens in `~/.echoai/auth.json`.
+
+The paid hosted web app, billing system, credit ledger, managed provider keys, hosted BYOK storage, and production model-routing API live outside the open-source workspace. During development that private SaaS workspace is kept under ignored `hosted/echoai-cloud/` and should be moved to its own private repository before launch.
+
+`packages/gateway` is the local/remote-control gateway used by EchoAI clients and channels. It is not the paid hosted billing/model API.
 
 ## Development
 
@@ -162,6 +253,14 @@ Run tests:
 
 ```bash
 pnpm exec vitest run --passWithNoTests
+```
+
+Run the coding eval harness:
+
+```bash
+pnpm run build
+node dist/cli.js eval list
+node dist/cli.js eval run --task eval-bugfix-divide-zero
 ```
 
 Validate release readiness:
