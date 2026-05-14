@@ -282,6 +282,9 @@ export class AgentKernel extends EventEmitter {
     if (model) {
       session.model = model;
     }
+    if (options.mode) {
+      session.mode = options.mode;
+    }
     session.metadata.provider = session.provider ?? session.metadata.provider;
     session.metadata.model = session.model ?? session.metadata.model;
     const workspaceRoot = this.resolveWorkspaceRoot(session, options.workspaceRoot);
@@ -386,11 +389,12 @@ export class AgentKernel extends EventEmitter {
     }
 
     if (session.messages.length > this.autoCompactMessages) {
-      compaction = compactSession(session, { maxMessages: this.autoCompactMessages });
+      compaction = await compactSession(session, { maxMessages: this.autoCompactMessages }, this.completionProvider);
       if (compaction.appliedStrategies.length > 0) {
         await this.sessions.save(session);
         await this.sessions.appendEvent(session.id, "session.compacted", {
           report: compaction as unknown as Record<string, unknown>,
+          messages: session.messages,
         });
         this.emitTyped("session.compacted", { session, report: compaction });
         yield { type: "session.compacted", session, report: compaction };
@@ -804,6 +808,18 @@ export class AgentKernel extends EventEmitter {
       };
     }
 
+    const loopGuard = this.checkToolLoopGuard(session, call);
+    if (loopGuard) {
+      return {
+        call,
+        result: {
+          success: false,
+          error: loopGuard,
+          summary: "Stopped repeated tool call",
+        },
+      };
+    }
+
     const beforeHook = await this.hooks.trigger<KernelToolBeforeHookPayload>(HOOK_EVENTS.TOOL_BEFORE, {
       session,
       call,
@@ -848,6 +864,7 @@ export class AgentKernel extends EventEmitter {
       workspaceRoot,
       abortSignal,
     });
+    this.recordToolLoopOutcome(session, call, result);
     const afterHook = await this.hooks.trigger<KernelToolAfterHookPayload>(HOOK_EVENTS.TOOL_AFTER, {
       session,
       call,
@@ -855,6 +872,27 @@ export class AgentKernel extends EventEmitter {
     });
 
     return { call, result: afterHook.result, approval };
+  }
+
+  private checkToolLoopGuard(session: KernelSession, call: KernelToolCall): string | undefined {
+    const signature = toolCallSignature(call);
+    const state = getLoopGuardState(session);
+    const seen = state.calls[signature] ?? 0;
+    if (seen >= 3) {
+      return `Repeated tool call blocked after ${seen} attempts: ${call.name}`;
+    }
+    if ((state.failures[signature] ?? 0) >= 2) {
+      return `Repeated failing tool call blocked: ${call.name}`;
+    }
+    state.calls[signature] = seen + 1;
+    return undefined;
+  }
+
+  private recordToolLoopOutcome(session: KernelSession, call: KernelToolCall, result: KernelToolResult): void {
+    if (result.success) return;
+    const signature = toolCallSignature(call);
+    const state = getLoopGuardState(session);
+    state.failures[signature] = (state.failures[signature] ?? 0) + 1;
   }
 
   private async finalizeToolOutcome(
@@ -1202,6 +1240,33 @@ async function createIsolatedWorkspace(sourceWorkspace: string, sessionId: strin
 
 function readStringMetadata(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function toolCallSignature(call: KernelToolCall): string {
+  return `${call.name}:${stableJson(call.input)}`;
+}
+
+function stableJson(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(stableJson).join(",")}]`;
+  }
+  return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${stableJson((value as Record<string, unknown>)[key])}`).join(",")}}`;
+}
+
+function getLoopGuardState(session: KernelSession): { calls: Record<string, number>; failures: Record<string, number> } {
+  const existing = session.metadata.loopGuard;
+  if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+    const state = existing as { calls?: Record<string, number>; failures?: Record<string, number> };
+    state.calls ??= {};
+    state.failures ??= {};
+    return state as { calls: Record<string, number>; failures: Record<string, number> };
+  }
+  const state = { calls: {}, failures: {} };
+  session.metadata.loopGuard = state;
+  return state;
 }
 
 function createShellTaskTool(): KernelTool {

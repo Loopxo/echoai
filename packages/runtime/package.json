@@ -21,6 +21,7 @@
   "dependencies": {
     "@echoai/core": "^1.0.0",
     "@echoai/hooks": "^1.0.0",
+    "@echoai/lsp": "^1.0.0",
     "diff": "^8.0.3"
   },
   "devDependencies": {

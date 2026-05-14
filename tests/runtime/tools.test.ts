@@ -16,7 +16,17 @@ async function createWorkspace(): Promise<string> {
   tempDirs.push(dir);
   await fs.writeFile(path.join(dir, "hello.txt"), "hello world\n", "utf8");
   await fs.mkdir(path.join(dir, "nested"), { recursive: true });
-  await fs.writeFile(path.join(dir, "nested", "example.ts"), "export const value = 1;\n", "utf8");
+  await fs.writeFile(path.join(dir, "nested", "example.ts"), "export function runtimeValue() { return 1; }\nexport const value = runtimeValue();\n", "utf8");
+  await fs.mkdir(path.join(dir, "scripts"), { recursive: true });
+  await fs.writeFile(path.join(dir, "scripts", "check.mjs"), "console.log('workspace check passed');\n", "utf8");
+  await fs.writeFile(path.join(dir, "package.json"), JSON.stringify({
+    type: "module",
+    scripts: {
+      test: "node scripts/check.mjs",
+      lint: "node scripts/check.mjs",
+      "type-check": "node scripts/check.mjs",
+    },
+  }), "utf8");
   return dir;
 }
 
@@ -51,12 +61,32 @@ describe("createBuiltInTools", () => {
     const read = tools.find((tool) => tool.name === "read_file");
     const grep = tools.find((tool) => tool.name === "grep_search");
     const patch = tools.find((tool) => tool.name === "apply_patch");
+    const runTests = tools.find((tool) => tool.name === "run_tests");
+    const symbolSearch = tools.find((tool) => tool.name === "symbol_search");
+    const workspaceSymbols = tools.find((tool) => tool.name === "workspace_symbols");
+    const references = tools.find((tool) => tool.name === "find_references");
 
     const readResult = await read!.execute({ path: "hello.txt" }, context);
     expect(readResult.output).toContain("hello world");
 
+    const rangedRead = await read!.execute({ path: "hello.txt", startLine: 1, lineCount: 1 }, context);
+    expect(rangedRead.output).toContain("1\thello world");
+
     const grepResult = await grep!.execute({ pattern: "value", basePath: "." }, context);
-    expect(grepResult.output).toContain("nested/example.ts:1");
+    expect(grepResult.output).toContain("nested/example.ts:2");
+
+    const symbolResult = await symbolSearch!.execute({ query: "runtimeValue" }, context);
+    expect(symbolResult.output).toContain("runtimeValue");
+
+    const workspaceSymbolsResult = await workspaceSymbols!.execute({ query: "runtimeValue" }, context);
+    expect(workspaceSymbolsResult.output).toContain("runtimeValue");
+
+    const referencesResult = await references!.execute({ symbol: "runtimeValue" }, context);
+    expect(referencesResult.summary).toContain("references");
+
+    const testResult = await runTests!.execute({}, context);
+    expect(testResult.success).toBe(true);
+    expect(testResult.output).toContain("workspace check passed");
 
     const patchText = [
       "--- hello.txt",
@@ -71,6 +101,8 @@ describe("createBuiltInTools", () => {
 
     const updated = await fs.readFile(path.join(workspaceRoot, "hello.txt"), "utf8");
     expect(updated).toContain("hello runtime");
+    expect(Array.isArray(session.metadata.undoStack)).toBe(true);
+    expect((session.metadata.undoStack as unknown[]).length).toBeGreaterThan(0);
   });
 });
 

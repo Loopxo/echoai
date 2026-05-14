@@ -64,14 +64,45 @@ export class SessionRegistry {
     await fs.mkdir(this.sessionsDir, { recursive: true });
     const filePath = this.getFilePath(session.id);
     const tmpPath = `${filePath}.${randomUUID()}.tmp`;
-    await fs.writeFile(tmpPath, JSON.stringify(session, null, 2), "utf8");
+    
+    // Extract metadata to save in JSON
+    // We only strip messages because tasks, artifacts, and approvals are modified in-place
+    // and aren't fully event-sourced in the current architecture. Messages are fully event-sourced.
+    const metadataSession = {
+      ...session,
+      messages: [], 
+    };
+    
+    await fs.writeFile(tmpPath, JSON.stringify(metadataSession, null, 2), "utf8");
     await fs.rename(tmpPath, filePath);
+    
+    // Sync full state to events (Snapshot pattern)
+    // We could optimize this later by only appending new events instead of full state,
+    // but for now we'll ensure the JSONL log has the complete event state.
+    // In kernel.ts, message.created events are already appended.
   }
 
   async load(sessionId: string): Promise<KernelSession | null> {
     try {
       const raw = await fs.readFile(this.getFilePath(sessionId), "utf8");
-      return JSON.parse(raw) as KernelSession;
+      const metadata = JSON.parse(raw) as KernelSession;
+      
+      // Reconstruct state from JSONL events
+      const events = await this.readEventLog(sessionId);
+      
+      // Replay events to rebuild messages
+      for (const event of events) {
+        if (event.type === 'message.created') {
+           const payload = event.payload as { message: any };
+           if (payload.message) metadata.messages.push(payload.message);
+        } else if (event.type === 'session.compacted') {
+           // Handle compaction event
+           const payload = event.payload as { messages: any[] };
+           if (payload.messages) metadata.messages = payload.messages;
+        }
+      }
+      
+      return metadata;
     } catch {
       return null;
     }

@@ -455,7 +455,7 @@ describe("PermissionResolverOrchestrator", () => {
 });
 
 describe("compactSession", () => {
-  it("uses microcompact before summary collapse", () => {
+  it("uses microcompact before summary collapse", async () => {
     const now = Date.now();
     const makeMessage = (offset: number, role: KernelSession["messages"][number]["role"], content: string) => ({
       id: `msg-${offset}`,
@@ -491,7 +491,7 @@ describe("compactSession", () => {
       updatedAt: now,
     };
 
-    const report = compactSession(session, {
+    const report = await compactSession(session, {
       maxMessages: 6,
       preserveHead: 2,
       preserveTail: 2,

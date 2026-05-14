@@ -5,6 +5,7 @@ export * from "./compaction.js";
 export * from "./permissions.js";
 export * from "./audit.js";
 export * from "./builtin-tools.js";
+export * from "./tools-todo.js";
 export * from "./kernel.js";
 export * from "./tasks.js";
 export * from "./prompting.js";

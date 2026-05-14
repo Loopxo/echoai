@@ -38,6 +38,26 @@ describe("SessionRegistry", () => {
     expect(sessions).toHaveLength(1);
     expect(sessions[0]?.id).toBe(session.id);
   });
+
+  it("replays compacted sessions from JSONL events", async () => {
+    const stateDir = await createStateDir();
+    const registry = new SessionRegistry({ stateDir, namespace: "kernel-compact-test" });
+    const session = await registry.create("Compacted Runtime Test", "echoai", "code");
+
+    await registry.appendEvent(session.id, "message.created", {
+      message: { id: "msg-1", role: "user", content: "large original context", createdAt: 1 },
+    });
+    await registry.appendEvent(session.id, "session.compacted", {
+      report: { beforeCount: 1, afterCount: 1, removedMessages: 0, summarizedMessages: 1, appliedStrategies: ["summary"] },
+      messages: [{ id: "summary-1", role: "system", content: "Compacted session summary", createdAt: 2 }],
+    });
+
+    const loaded = await registry.load(session.id);
+
+    expect(loaded?.messages).toEqual([
+      { id: "summary-1", role: "system", content: "Compacted session summary", createdAt: 2 },
+    ]);
+  });
 });
 
 describe("AgentKernel", () => {
@@ -152,7 +172,7 @@ describe("AgentKernel", () => {
 });
 
 describe("compactSession", () => {
-  it("replaces middle messages with a summary when sessions get too large", () => {
+  it("replaces middle messages with a summary when sessions get too large", async () => {
     const session = {
       id: "session-1",
       title: "Compaction Test",
@@ -173,10 +193,10 @@ describe("compactSession", () => {
       updatedAt: 1,
     };
 
-    const report = compactSession(session, {
+    const report = await compactSession(session, {
       maxMessages: 8,
       preserveHead: 2,
-      preserveTail: 3,
+      preserveTail: 2,
     });
 
     expect(report.afterCount).toBe(8);

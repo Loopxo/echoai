@@ -185,6 +185,7 @@ export interface KernelRunOptions {
   input: string;
   provider?: string;
   model?: string;
+  mode?: KernelSessionMode;
   systemPrompt?: string | KernelSystemPromptConfig;
   maxTurns?: number;
   workspaceRoot?: string;

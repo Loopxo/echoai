@@ -3,6 +3,7 @@ import type {
   KernelCompactionReport,
   KernelMessage,
   KernelSession,
+  KernelCompletionProvider,
 } from "./types.js";
 
 export interface CompactionOptions {
@@ -11,16 +12,49 @@ export interface CompactionOptions {
   preserveTail?: number;
 }
 
-function buildSummaryMessage(messages: KernelMessage[]): KernelMessage {
+const TIME_BASED_MC_CLEARED_MESSAGE = '[Old tool result content cleared]';
+
+async function buildSummaryMessage(messages: KernelMessage[], provider?: KernelCompletionProvider, model?: string): Promise<KernelMessage> {
   const sampled = messages
     .map((message) => `${message.role}: ${message.content}`)
     .join("\n")
-    .slice(0, 4000);
+    .slice(0, 15000); // Send more to the model
+
+  let summaryContent = `Compacted session summary:\n${sampled.slice(0, 4000)}`;
+
+  if (provider && model) {
+    try {
+      const response = await provider.complete({
+        session: { id: "ephemeral", title: "summary", mode: "default", messages: [], approvals: [], tasks: [], artifacts: [], background: { status: "idle" }, worktree: { enabled: false }, metadata: {}, createdAt: Date.now(), updatedAt: Date.now() },
+        messages: [
+          {
+            id: randomUUID(),
+            role: 'system',
+            content: 'You are an expert context compactor. Summarize the following conversation turn history strictly focusing on: current task, tool decisions made, user constraints discovered, and unresolved errors. Keep it extremely concise.',
+            createdAt: Date.now(),
+          },
+          { 
+            id: randomUUID(),
+            role: 'user', 
+            content: sampled,
+            createdAt: Date.now(),
+          }
+        ],
+        tools: [],
+        systemPrompt: '',
+      });
+      if (response.content) {
+        summaryContent = `[Context Compaction Summary]\n${response.content}`;
+      }
+    } catch (e) {
+      console.error('Compaction summary generation failed, falling back to basic summary.', e);
+    }
+  }
 
   return {
     id: randomUUID(),
     role: "system",
-    content: `Compacted session summary:\n${sampled}`,
+    content: summaryContent,
     createdAt: Date.now(),
     metadata: {
       compacted: true,
@@ -29,10 +63,11 @@ function buildSummaryMessage(messages: KernelMessage[]): KernelMessage {
   };
 }
 
-export function compactSession(
+export async function compactSession(
   session: KernelSession,
-  options: CompactionOptions = {}
-): KernelCompactionReport {
+  options: CompactionOptions = {},
+  provider?: KernelCompletionProvider
+): Promise<KernelCompactionReport> {
   const maxMessages = options.maxMessages ?? 40;
   const preserveHead = options.preserveHead ?? 4;
   const preserveTail = options.preserveTail ?? 20;
@@ -64,7 +99,8 @@ export function compactSession(
     if (toSummarize.length > 0) {
       report.appliedStrategies.push("summary");
       report.summarizedMessages += toSummarize.length;
-      middle = [buildSummaryMessage(toSummarize), ...retained];
+      const summaryMsg = await buildSummaryMessage(toSummarize, provider, session.model);
+      middle = [summaryMsg, ...retained];
     }
   }
 
@@ -91,21 +127,37 @@ function removeOldToolMessages(
   maxMessages: number,
   report: KernelCompactionReport
 ): KernelMessage[] {
-  const overflow = head.length + middle.length + tail.length - maxMessages;
-  if (overflow <= 0) {
-    return middle;
-  }
+  let overflow = head.length + middle.length + tail.length - maxMessages;
+  if (overflow <= 0) return middle;
+
+  let didMicroCompact = false;
+  middle = middle.map((msg) => {
+    if (msg.role === 'tool' && msg.content.length > 2000) {
+      didMicroCompact = true;
+      return { ...msg, content: TIME_BASED_MC_CLEARED_MESSAGE };
+    }
+    return msg;
+  });
+
+  if (didMicroCompact) report.appliedStrategies.push("microcompact");
+
+  overflow = head.length + middle.length + tail.length - maxMessages;
+  if (overflow <= 0) return middle;
 
   const removableIndexes = middle
     .map((message, index) => ({ message, index }))
     .filter(({ message }) => message.role === "tool")
+    .sort((a, b) => {
+      const aCleared = a.message.content === TIME_BASED_MC_CLEARED_MESSAGE ? 1 : 0;
+      const bCleared = b.message.content === TIME_BASED_MC_CLEARED_MESSAGE ? 1 : 0;
+      return bCleared - aCleared;
+    })
     .map(({ index }) => index);
 
-  if (removableIndexes.length === 0) {
-    return middle;
-  }
+  if (removableIndexes.length === 0) return middle;
 
-  report.appliedStrategies.push("microcompact");
+  if (!didMicroCompact) report.appliedStrategies.push("microcompact");
+  
   const removableSet = new Set(removableIndexes.slice(0, overflow));
   report.removedMessages += removableSet.size;
   return middle.filter((_, index) => !removableSet.has(index));
