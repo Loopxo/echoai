@@ -670,7 +670,7 @@ extension AppState {
         state.onboardingSeen = true
         state.debugPaneEnabled = true
         state.swabbleEnabled = true
-        state.swabbleTriggerWords = ["Claude", "Computer", "Jarvis"]
+        state.swabbleTriggerWords = ["EchoAI", "Computer"]
         state.voiceWakeTriggerChime = .system(name: "Glass")
         state.voiceWakeSendChime = .system(name: "Ping")
         state.iconAnimationsEnabled = true

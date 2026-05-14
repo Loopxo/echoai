@@ -646,7 +646,7 @@ extension VoiceWakeSettings {
         let state = AppState(preview: true)
         state.swabbleEnabled = true
         state.voicePushToTalkEnabled = true
-        state.swabbleTriggerWords = ["Claude", "Hey"]
+        state.swabbleTriggerWords = ["EchoAI", "Hey"]
 
         let view = VoiceWakeSettings(state: state, isActive: true)
         view.availableMics = [AudioInputDevice(uid: "mic-1", name: "Built-in")]
