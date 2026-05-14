@@ -35,7 +35,7 @@ export class SessionStore {
   private state: StoredState;
 
   constructor() {
-    const legacyDir = join(homedir(), '.echo');
+    const legacyDir = join(homedir(), '.echoai');
     const defaultDir = resolveStateDir();
     const echoDir = existsSync(defaultDir)
       ? defaultDir

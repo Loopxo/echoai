@@ -18,16 +18,23 @@ export class AnalyticsTracker {
   private currentSession?: SessionStats;
   private dataPath: string;
   private configPath: string;
+  private storageReady: Promise<void>;
+  private storageAvailable = true;
 
   constructor() {
-    const echoDir = join(homedir(), '.echo');
+    const echoDir = join(homedir(), '.echoai');
     this.dataPath = join(echoDir, 'analytics');
     this.configPath = join(echoDir, 'analytics-config.json');
     this.config = this.getDefaultConfig();
-    this.ensureDirectories();
+    this.storageReady = this.ensureDirectories().catch(() => {
+      this.storageAvailable = false;
+      this.config.enableTracking = false;
+    });
   }
 
   async initialize(): Promise<void> {
+    await this.storageReady;
+    if (!this.storageAvailable) return;
     await this.loadConfig();
   }
 
@@ -337,6 +344,8 @@ export class AnalyticsTracker {
   }
 
   private async saveSessionData(session: SessionStats): Promise<void> {
+    if (!this.storageAvailable) return;
+
     const dateStr = session.startTime.toISOString().split('T')[0] || '';
     const dailyFile = join(this.dataPath, 'daily', `${dateStr}.json`);
     const sessionFile = join(this.dataPath, 'sessions', `${session.id}.json`);
@@ -394,6 +403,8 @@ export class AnalyticsTracker {
   }
 
   private async loadConfig(): Promise<void> {
+    if (!this.storageAvailable) return;
+
     try {
       const configData = await readFile(this.configPath, 'utf8');
       this.config = { ...this.config, ...JSON.parse(configData) };
@@ -403,6 +414,8 @@ export class AnalyticsTracker {
   }
 
   private async saveConfig(): Promise<void> {
+    if (!this.storageAvailable) return;
+
     await writeFile(this.configPath, JSON.stringify(this.config, null, 2));
   }
 }

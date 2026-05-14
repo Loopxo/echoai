@@ -28,6 +28,7 @@ export interface ProviderToolDefinition {
 export interface ProviderCompletionResult {
   content: string;
   toolCalls?: StructuredToolCall[];
+  metadata?: Record<string, unknown>;
 }
 
 export type ProviderStreamChunk =

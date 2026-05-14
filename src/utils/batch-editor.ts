@@ -738,6 +738,6 @@ npm run preview
 
 ---
 
-🔮 Generated with Echo AI - Professional code editor
+🔮 Generated with EchoAI - Professional code editor
 `;
 }

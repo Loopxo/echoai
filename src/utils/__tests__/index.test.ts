@@ -35,11 +35,6 @@ describe('Utility Functions', () => {
       expect(validateApiKey('openai', 'sk-ant-invalid')).toBe(false);
     });
 
-    it('should validate Gemini API keys', () => {
-      expect(validateApiKey('gemini', 'valid-gemini-key-123')).toBe(true);
-      expect(validateApiKey('gemini', 'short')).toBe(false);
-    });
-
     it('should return false for unknown providers', () => {
       expect(validateApiKey('unknown', 'any-key')).toBe(false);
     });

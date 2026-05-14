@@ -116,7 +116,6 @@ export const providerStep: WizardStep = {
         const provider = await ctx.select("Which AI provider?", [
             { label: "Anthropic (Claude)", value: "anthropic" },
             { label: "OpenAI (GPT)", value: "openai" },
-            { label: "Google (Gemini)", value: "google" },
             { label: "Ollama (Local)", value: "ollama" },
         ]);
         return { provider };

@@ -42,7 +42,7 @@ export interface BatchOperation {
 export class AdvancedFileOperations {
     private operationHistory: BatchOperation[] = [];
 
-    constructor(private backupDir: string = '.echo-backups') {
+    constructor(private backupDir: string = '.echoai-backups') {
         this.ensureBackupDir();
     }
 

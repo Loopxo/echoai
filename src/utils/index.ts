@@ -17,8 +17,6 @@ export function validateApiKey(provider: string, apiKey: string): boolean {
       return apiKey.startsWith('sk-or-');
     case 'meta':
       return apiKey.length > 10; // Basic validation for Together AI keys
-    case 'gemini':
-      return apiKey.length > 10; // Basic validation
     default:
       return false;
   }

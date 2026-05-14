@@ -368,13 +368,13 @@ export class AdvancedPluginManager extends EventEmitter {
         const defaultDirs = [
             path.join(process.cwd(), 'plugins'),
             path.join(process.cwd(), 'node_modules', '@echo-plugins'),
-            path.join(require.resolve('echo-ai'), '..', 'plugins')
+            path.join(require.resolve('echoai'), '..', 'plugins')
         ];
 
         // Add user-specific plugin directory
         const homeDir = process.env.HOME || process.env.USERPROFILE;
         if (homeDir) {
-            defaultDirs.push(path.join(homeDir, '.echo', 'plugins'));
+            defaultDirs.push(path.join(homeDir, '.echoai', 'plugins'));
         }
 
         for (const dir of defaultDirs) {

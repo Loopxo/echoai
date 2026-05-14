@@ -56,7 +56,7 @@ async function performSemanticAnalysis(rootPath: string, repoAnalysis: RepoAnaly
     }
 
     // Detect AI providers
-    const providerMatches = content.match(/(claude|openai|gemini|groq|meta|anthropic)/gi);
+    const providerMatches = content.match(/(claude|openai|deepseek|kimi|groq|meta|anthropic)/gi);
     if (providerMatches) {
       semanticData.hasMultiProvider = true;
       semanticData.aiProviders.push(...providerMatches.map(p => p.toLowerCase()));
@@ -119,7 +119,7 @@ function generateIntelligentSummary(repoAnalysis: RepoAnalysis, semanticData: an
     mainPurpose = 'AI-Powered Development CLI Tool';
     
     if (semanticData.hasAgentSystem && semanticData.hasMultiProvider) {
-      summary = `This is Echo AI, a sophisticated AI-powered command-line interface and development studio. It features ${semanticData.aiProviders.length || 'multiple'} AI provider integrations, an intelligent agent system for task optimization, and advanced code analysis capabilities. The tool serves as a comprehensive AI assistant for developers, offering multi-provider AI access, intelligent agents, and professional-grade file operations.`;
+      summary = `This is EchoAI, a sophisticated AI-powered command-line interface and development studio. It features ${semanticData.aiProviders.length || 'multiple'} AI provider integrations, an intelligent agent system for task optimization, and advanced code analysis capabilities. The tool serves as a comprehensive AI assistant for developers, offering multi-provider AI access, intelligent agents, and professional-grade file operations.`;
       
       keyFeatures = [
         `Multi-provider AI integration (${[...new Set(semanticData.aiProviders)].join(', ')})`,

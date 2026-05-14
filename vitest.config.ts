@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    exclude: ['**/node_modules/**', '**/dist/**', 'opencode-dev/**', 'claude-src/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

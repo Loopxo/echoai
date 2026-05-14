@@ -86,7 +86,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 }
 
 // =============================================================================
-// Google Gemini Embeddings
+// Google Embeddings
 // =============================================================================
 
 export class GoogleEmbeddingProvider implements EmbeddingProvider {
@@ -209,10 +209,9 @@ export function createEmbeddingProvider(
     const appConfig = loadConfig();
     const memoryConfig = appConfig.memory;
 
-    // Map gemini to google for embedding provider
     let provider: EmbeddingProviderId = "openai";
     const configProvider = config?.provider || memoryConfig?.provider;
-    if (configProvider === "google" || configProvider === "gemini") {
+    if (configProvider === "google") {
         provider = "google";
     } else if (configProvider === "voyage") {
         provider = "voyage";

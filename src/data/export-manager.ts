@@ -23,20 +23,28 @@ export class ExportManager {
   private backupDir: string;
   private sessionStore: SessionStore;
   private configManager: ConfigManager;
+  private storageReady: Promise<void>;
+  private storageAvailable = true;
+  private storageError?: unknown;
 
   constructor() {
-    this.echoDir = join(homedir(), '.echo');
+    this.echoDir = join(homedir(), '.echoai');
     this.backupDir = join(this.echoDir, 'backups');
     this.sessionStore = new SessionStore();
     this.configManager = new ConfigManager();
-    this.ensureDirectories();
+    this.storageReady = this.ensureDirectories().catch((error) => {
+      this.storageAvailable = false;
+      this.storageError = error;
+    });
   }
 
   async exportData(options: ExportOptions): Promise<string> {
+    await this.requireWritableStorage();
+
     const manifest: ExportManifest = {
       version: '2.2.1',
       exportDate: new Date(),
-      exportedBy: 'echo-ai',
+      exportedBy: 'echoai',
       format: options.format,
       compressed: options.compress,
       encrypted: options.encrypt,
@@ -168,6 +176,8 @@ export class ExportManager {
     };
 
     try {
+      await this.requireWritableStorage();
+
       // Create backup if requested
       if (options.backup) {
         result.backupPath = await this.createBackup();
@@ -404,6 +414,8 @@ export class ExportManager {
   }
 
   private async createBackup(): Promise<string> {
+    await this.requireWritableStorage();
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = join(this.backupDir, `backup-${timestamp}`);
     
@@ -428,6 +440,15 @@ export class ExportManager {
       if (!existsSync(dir)) {
         await mkdir(dir, { recursive: true });
       }
+    }
+  }
+
+  private async requireWritableStorage(): Promise<void> {
+    await this.storageReady;
+
+    if (!this.storageAvailable) {
+      const detail = this.storageError instanceof Error ? `: ${this.storageError.message}` : '';
+      throw new Error(`EchoAI data directory is not writable${detail}`);
     }
   }
 }

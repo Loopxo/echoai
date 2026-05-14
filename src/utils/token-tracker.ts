@@ -36,7 +36,7 @@ export class TokenTracker {
   private currentSession: TokenSession | null = null;
 
   constructor() {
-    const configDir = join(homedir(), '.echo-ai');
+    const configDir = join(homedir(), '.echoai');
     this.configPath = join(configDir, 'token-usage.json');
     this.analyticsPath = join(configDir, 'token-analytics.json');
   }
@@ -187,10 +187,6 @@ export class TokenTracker {
         'gpt-4o': { input: 0.005, output: 0.015 },
         'gpt-4-turbo': { input: 0.01, output: 0.03 },
         'gpt-3.5-turbo': { input: 0.001, output: 0.002 }
-      },
-      'gemini': {
-        'gemini-1.5-pro': { input: 0.0035, output: 0.0105 },
-        'gemini-1.5-flash': { input: 0.00035, output: 0.00105 }
       },
       'groq': {
         'llama3-70b-8192': { input: 0.00059, output: 0.00079 },

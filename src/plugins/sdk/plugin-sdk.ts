@@ -117,7 +117,7 @@ export class PluginUtils {
         // Basic HTTP client - plugins would use this for API calls
         return fetch(url, {
             headers: {
-                'User-Agent': 'Echo-AI-Plugin/1.0',
+                'User-Agent': 'EchoAI-Plugin/1.0',
                 ...options.headers
             },
             ...options

@@ -493,7 +493,7 @@ export class AdvancedCodeIntelligenceEngine {
             'javascript': ['claude', 'gpt-4', 'llama-3.1-70b'],
             'typescript': ['claude', 'gpt-4', 'llama-3.1-70b'],
             'python': ['claude', 'llama-3.1-70b', 'gpt-4'],
-            'java': ['gpt-4', 'claude', 'gemini-1.5-pro'],
+            'java': ['gpt-4', 'claude', 'llama-3.1-70b'],
             'go': ['llama-3.1-70b', 'claude', 'gpt-4'],
             'rust': ['claude', 'llama-3.1-70b', 'gpt-4'],
             'default': ['claude', 'gpt-4', 'llama-3.1-70b']

@@ -8,7 +8,7 @@ export class FileManager implements FileOperations {
   private backupDir: string;
 
   constructor() {
-    this.backupDir = join(homedir(), '.aiconfig', 'backups');
+    this.backupDir = join(homedir(), '.echoai', 'backups');
     if (!existsSync(this.backupDir)) {
       mkdirSync(this.backupDir, { recursive: true });
     }
