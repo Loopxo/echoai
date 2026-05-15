@@ -1,0 +1,22 @@
+---
+import EchoAuthShell from "../../../components/app/EchoAuthShell.astro";
+---
+
+<EchoAuthShell
+  title="Completing sign in"
+  description="This route receives the auth provider callback, establishes the web session, and redirects to the app."
+>
+  <section class="echo-card">
+    <div class="echo-card-header">
+      <h2>Callback contract</h2>
+      <span class="echo-tag warn">Private service</span>
+    </div>
+    <pre class="echo-code">auth provider callback
+  -> validate state and nonce
+  -> create httpOnly session cookie
+  -> create or update EchoAI user
+  -> record auth audit event
+  -> redirect to /app</pre>
+  </section>
+</EchoAuthShell>
+

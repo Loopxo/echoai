@@ -1,0 +1,41 @@
+---
+import EchoAppShell from "../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell
+  title="Account"
+  eyebrow="User and workspace"
+  active="settings"
+  description="Account settings show identity, plan, devices, audit events, usage, roles, and data controls."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-4">
+      <h2>Identity</h2>
+      <p>Email, SSO provider, workspace role, and active organization.</p>
+    </article>
+    <article class="echo-card span-4">
+      <h2>Plan</h2>
+      <p>Free, Pro, or Team entitlement with hosted credits and BYOK mode.</p>
+    </article>
+    <article class="echo-card span-4">
+      <h2>Devices</h2>
+      <p>Desktop, mobile, CLI, and gateway trust records with revoke controls.</p>
+    </article>
+  </section>
+
+  <section class="echo-card" style="margin-top: 16px;">
+    <div class="echo-card-header">
+      <h2>Audit events</h2>
+      <span class="echo-tag neutral">W-020</span>
+    </div>
+    <table class="echo-table">
+      <thead><tr><th>Event</th><th>Surface</th><th>Required backend record</th></tr></thead>
+      <tbody>
+        <tr><td>Sign in</td><td>Web</td><td>IP, user agent, workspace, session ID.</td></tr>
+        <tr><td>Device pair</td><td>Desktop/mobile</td><td>Device ID, fingerprint, approver, gateway.</td></tr>
+        <tr><td>Provider key changed</td><td>Settings</td><td>Provider, scope, actor, vault version.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

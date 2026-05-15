@@ -1,0 +1,20 @@
+---
+import EchoAuthShell from "../../../components/app/EchoAuthShell.astro";
+---
+
+<EchoAuthShell
+  title="Mobile sign in complete"
+  description="This route completes mobile authentication and returns the user to the iOS or Android app by deep link."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-6">
+      <h2>Mobile flow</h2>
+      <p>Mobile starts auth, browser verifies identity, EchoAI Cloud issues a short-lived transfer token, and the app redeems it into secure local storage.</p>
+    </article>
+    <article class="echo-card span-6">
+      <h2>Security checks</h2>
+      <p>Transfer tokens must be hashed, short-lived, single-use, rate-limited, and bound to the requesting mobile device.</p>
+    </article>
+  </section>
+</EchoAuthShell>
+
