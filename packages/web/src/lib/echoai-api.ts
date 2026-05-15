@@ -11,6 +11,8 @@ import {
   statusMetrics,
   toolSurfaces,
 } from "./echoai-app-data";
+import { privateServiceState } from "./echoai-private-services";
+import { webTicketCoverage, webTicketSummary } from "./echoai-ticket-coverage";
 
 export const echoaiWebApiVersion = "2026-05-16.web-foundation";
 
@@ -35,6 +37,9 @@ export function createEchoAIAppState() {
     automations,
     devices,
     milestones,
+    ticketSummary: webTicketSummary,
+    ticketCoverage: webTicketCoverage,
+    privateServices: privateServiceState,
   };
 }
 

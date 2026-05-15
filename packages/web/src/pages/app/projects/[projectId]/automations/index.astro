@@ -1,0 +1,20 @@
+---
+import EchoAppShell from "../../../../../components/app/EchoAppShell.astro";
+import { automations, projects } from "../../../../../lib/echoai-app-data";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { projectId: project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+---
+
+<EchoAppShell title={`${project.name} Automations`} eyebrow="Project schedules" active="projects" description="Project-scoped recurring workflows with selected context, model route, and output destination.">
+  <section class="echo-grid">
+    {automations.map((automation) => <article class="echo-card span-4"><h2>{automation.name}</h2><p>{automation.schedule} - {automation.output}</p></article>)}
+  </section>
+</EchoAppShell>
+

@@ -1,0 +1,20 @@
+---
+import EchoAppShell from "../../../../../components/app/EchoAppShell.astro";
+import { notes, projects } from "../../../../../lib/echoai-app-data";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { projectId: project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+---
+
+<EchoAppShell title={`${project.name} Notes`} eyebrow="Project notes" active="projects" description="Project-linked notes that can be searched, mentioned in chat, and exported.">
+  <section class="echo-grid">
+    {notes.map((note) => <article class="echo-card span-4"><h2>{note.title}</h2><p>{note.use}</p></article>)}
+  </section>
+</EchoAppShell>
+

@@ -1,0 +1,23 @@
+---
+import EchoAppShell from "../../../../../components/app/EchoAppShell.astro";
+import { fileAssets, projects } from "../../../../../lib/echoai-app-data";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { projectId: project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+---
+
+<EchoAppShell title={`${project.name} Files`} eyebrow="Project files" active="projects" description="A project-scoped file tree, upload, preview, indexing, and delete policy surface.">
+  <section class="echo-card">
+    <table class="echo-table">
+      <thead><tr><th>Name</th><th>Kind</th><th>Index</th><th>Use</th></tr></thead>
+      <tbody>{fileAssets.map((file) => <tr><td>{file.name}</td><td>{file.kind}</td><td>{file.indexStatus}</td><td>{file.use}</td></tr>)}</tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

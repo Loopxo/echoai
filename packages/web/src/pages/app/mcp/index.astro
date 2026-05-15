@@ -1,0 +1,21 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { privateServiceState } from "../../../lib/echoai-private-services";
+---
+
+<EchoAppShell
+  title="MCP Servers"
+  eyebrow="External tool runtime"
+  active="tools"
+  description="MCP servers expose external tools to EchoAI after schema inspection, tool policy, and runtime approval checks."
+>
+  <section class="echo-grid">
+    {privateServiceState.tools.mcpServers.map((server) => (
+      <article class="echo-card span-3">
+        <h2>{server}</h2>
+        <p>Configured through the private web MCP manager, then exposed to AgentKernel under allow/ask/deny policy.</p>
+      </article>
+    ))}
+  </section>
+</EchoAppShell>
+

@@ -1,0 +1,27 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { devices } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Mobile Control"
+  eyebrow="Approvals and capture"
+  active="devices"
+  description="Mobile apps extend web and desktop sessions with remote approvals, push notifications, camera/audio/file capture, and chat continuity."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-6">
+      <h2>Mobile handoff</h2>
+      <p>Web can deliver run updates and approval requests to a paired mobile device. Mobile can send prompts back to web or desktop.</p>
+    </article>
+    <article class="echo-card span-6">
+      <h2>Paired mobile devices</h2>
+      <ul class="echo-list" style="margin-top: 12px;">
+        {devices.filter((device) => device.type === "Mobile").map((device) => (
+          <li class="echo-list-item"><strong>{device.name}</strong><span>{device.status} - {device.capability}</span></li>
+        ))}
+      </ul>
+    </article>
+  </section>
+</EchoAppShell>
+

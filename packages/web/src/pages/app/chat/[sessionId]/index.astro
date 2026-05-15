@@ -1,0 +1,33 @@
+---
+import EchoAppShell from "../../../../components/app/EchoAppShell.astro";
+import { sessions } from "../../../../lib/echoai-app-data";
+
+export function getStaticPaths() {
+  return sessions.map((session) => ({
+    params: { sessionId: session.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") },
+    props: { session },
+  }));
+}
+
+const { session } = Astro.props;
+---
+
+<EchoAppShell
+  title={session.title}
+  eyebrow={`Session from ${session.source}`}
+  active="chat"
+  description={`Model ${session.model}. Status ${session.status}. ${session.context}`}
+>
+  <section class="echo-chat-frame">
+    <div class="echo-chat-header">
+      <strong>{session.title}</strong>
+      <span class="echo-muted" style="display: block; margin-top: 4px;">This static detail route is ready for persisted web session records.</span>
+    </div>
+    <div class="echo-chat-thread">
+      <div class="echo-message user"><strong>You</strong><p>Resume this session and continue from the saved context.</p></div>
+      <div class="echo-message"><strong>EchoAI</strong><p>{session.context}</p></div>
+    </div>
+    <div class="echo-chat-input"><div class="echo-input-box">Resume, fork, export, share, or hand off this session...</div></div>
+  </section>
+</EchoAppShell>
+

@@ -1,0 +1,28 @@
+---
+import EchoAppShell from "../../../../components/app/EchoAppShell.astro";
+import { projects } from "../../../../lib/echoai-app-data";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { projectId: project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+---
+
+<EchoAppShell title={project.name} eyebrow="Project detail" active="projects" description={`${project.scope}. ${project.memory}`}>
+  <section class="echo-grid">
+    <article class="echo-card span-3"><h2>{project.sessions}</h2><p>Sessions</p></article>
+    <article class="echo-card span-3"><h2>{project.files}</h2><p>Files</p></article>
+    <article class="echo-card span-6"><h2>Next action</h2><p>{project.nextAction}</p></article>
+  </section>
+  <section class="echo-grid" style="margin-top: 16px;">
+    <a class="echo-card span-3" href={`${Astro.url.pathname}/chat`}><h2>Chat</h2><p>Project-scoped chat.</p></a>
+    <a class="echo-card span-3" href={`${Astro.url.pathname}/files`}><h2>Files</h2><p>Project file tree.</p></a>
+    <a class="echo-card span-3" href={`${Astro.url.pathname}/notes`}><h2>Notes</h2><p>Project notebook.</p></a>
+    <a class="echo-card span-3" href={`${Astro.url.pathname}/automations`}><h2>Automations</h2><p>Project schedules.</p></a>
+  </section>
+</EchoAppShell>
+

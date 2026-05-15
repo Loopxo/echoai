@@ -1,0 +1,24 @@
+---
+import EchoAppShell from "../../../../../components/app/EchoAppShell.astro";
+import { projects } from "../../../../../lib/echoai-app-data";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { projectId: project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+---
+
+<EchoAppShell title={`${project.name} Chat`} eyebrow="Project chat" active="projects" description="A scoped chat route that injects only this project's files, notes, memories, and tools.">
+  <section class="echo-chat-frame">
+    <div class="echo-chat-header"><strong>{project.name}</strong></div>
+    <div class="echo-chat-thread">
+      <div class="echo-message"><strong>Context</strong><p>{project.memory}</p></div>
+    </div>
+    <div class="echo-chat-input"><div class="echo-input-box">Ask within this project...</div></div>
+  </section>
+</EchoAppShell>
+

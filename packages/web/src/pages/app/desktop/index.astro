@@ -1,0 +1,35 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { devices } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Desktop Handoff"
+  eyebrow="Local workspace actions"
+  active="devices"
+  description="The desktop gateway gives web sessions a controlled path to local files, terminal commands, browser automation, and approval prompts."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-7">
+      <div class="echo-card-header">
+        <h2>Handoff contract</h2>
+        <span class="echo-tag good">W-044</span>
+      </div>
+      <pre class="echo-code">web chat request
+  -> tool policy
+  -> paired desktop gateway
+  -> local workspace action
+  -> approval if needed
+  -> event stream back to web</pre>
+    </article>
+    <article class="echo-card span-5">
+      <h2>Desktop endpoints</h2>
+      <ul class="echo-list" style="margin-top: 12px;">
+        {devices.filter((device) => device.type === "Desktop" || device.type === "Gateway").map((device) => (
+          <li class="echo-list-item"><strong>{device.name}</strong><span>{device.status} - {device.capability}</span></li>
+        ))}
+      </ul>
+    </article>
+  </section>
+</EchoAppShell>
+

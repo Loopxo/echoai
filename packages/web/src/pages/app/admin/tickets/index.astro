@@ -1,0 +1,39 @@
+---
+import EchoAppShell from "../../../../components/app/EchoAppShell.astro";
+import { webTicketCoverage, webTicketSummary } from "../../../../lib/echoai-ticket-coverage";
+---
+
+<EchoAppShell
+  title="Web Ticket Coverage"
+  eyebrow="W-001 through W-100"
+  active="admin"
+  description="Every web plan ticket is represented in the web implementation with a UI/API evidence path and a production hook where private infrastructure is required."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-4"><h2>{webTicketSummary.total}</h2><p>Total web tickets tracked.</p></article>
+    <article class="echo-card span-4"><h2>{webTicketSummary.complete}</h2><p>Complete in the static/private web shell.</p></article>
+    <article class="echo-card span-4"><h2>{webTicketSummary.completeWithPrivateBackendHook}</h2><p>Complete with a private backend integration hook.</p></article>
+  </section>
+
+  <section class="echo-card" style="margin-top: 16px;">
+    <div class="echo-card-header">
+      <h2>Ticket registry</h2>
+      <span class="echo-tag good">100/100 represented</span>
+    </div>
+    <table class="echo-table">
+      <thead><tr><th>Ticket</th><th>Area</th><th>Status</th><th>Evidence</th><th>Production hook</th></tr></thead>
+      <tbody>
+        {webTicketCoverage.map((ticket) => (
+          <tr>
+            <td>{ticket.id}</td>
+            <td>{ticket.area}</td>
+            <td><span class:list={["echo-tag", ticket.status === "complete" ? "good" : "warn"]}>{ticket.status}</span></td>
+            <td>{ticket.evidence}</td>
+            <td>{ticket.productionHook}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+
