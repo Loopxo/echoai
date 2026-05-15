@@ -1,0 +1,26 @@
+{
+  "name": "@echoai/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EchoAI React Native mobile app",
+  "main": "index.js",
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@echoai/types": "workspace:*",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
+    "react": "^19.1.0",
+    "react-native": "^0.82.0",
+    "react-native-keychain": "^10.0.0"
+  },
+  "devDependencies": {
+    "@react-native/metro-config": "^0.82.0",
+    "@types/react": "^19.1.0",
+    "typescript": "^5.2.0"
+  }
+}

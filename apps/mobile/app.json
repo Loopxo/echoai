@@ -1,0 +1,15 @@
+{
+  "name": "EchoAI",
+  "displayName": "EchoAI",
+  "expo": {
+    "name": "EchoAI",
+    "slug": "echoai-mobile",
+    "scheme": "echoai",
+    "ios": {
+      "bundleIdentifier": "ai.echoai.mobile"
+    },
+    "android": {
+      "package": "ai.echoai.mobile"
+    }
+  }
+}

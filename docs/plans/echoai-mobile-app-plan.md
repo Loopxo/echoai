@@ -19,11 +19,11 @@ EchoAI Mobile should not be a tiny chat clone. It should be the mobile control s
 - trigger desktop cowork/local agent tasks
 - monitor tools, MCP, browser, and terminal runs
 
-Existing code already has meaningful mobile direction:
+Existing code already has meaningful mobile direction, but the product app is now React Native-only:
 
-- Android has gateway discovery, foreground node service, chat controller, canvas, camera, screen recording, voice wake, SMS, location, and device auth.
-- iOS has gateway discovery, chat, camera, screen, location, voice, settings, and shared Swift protocol ideas.
-- `apps/shared/EchoAIKit` contains protocol and command types that can become the stable cross-platform mobile contract.
+- Android has gateway discovery, foreground node service, chat controller, canvas, camera, screen recording, voice wake, SMS, location, and device auth that can be wrapped or ported behind React Native native modules when needed.
+- iOS has gateway discovery, chat, camera, screen, location, voice, settings, and shared Swift protocol ideas that can be wrapped or ported behind React Native native modules when needed.
+- `packages/types` contains the canonical TypeScript protocol contract that the React Native app consumes directly.
 
 ## Product Boundary
 
@@ -60,30 +60,28 @@ Later features need platform, policy, or demand validation before build:
 
 ## Strategic Decision
 
-Use native iOS and Android for device capabilities, not a simple webview. Use shared contracts and a common backend/gateway protocol so behavior remains consistent.
+Build one React Native mobile product for iOS and Android. Use TypeScript-first shared contracts and isolate platform-specific capability work behind explicit React Native native modules only when JavaScript cannot access the OS feature directly.
 
 Recommended structure:
 
-- Keep native SwiftUI iOS under `apps/ios`.
-- Keep native Kotlin/Compose Android under `apps/android`.
-- Promote `apps/shared/EchoAIKit` into a complete shared Swift package for iOS/macOS.
-- Add generated TypeScript/Kotlin/Swift contracts from the same schema.
+- Add the React Native app under `apps/mobile`.
+- Keep existing `apps/ios` and `apps/android` as reference/prototype code until replaced or wrapped.
+- Use `packages/types/src/mobile.ts` as the contract source for the app.
+- Put iOS/Android-only features behind small native modules with a TypeScript interface and feature flag.
 - Build mobile features against EchoAI Cloud and local desktop gateway.
 
 ## Shared Protocol Schema
 
-The canonical mobile protocol starts in `@echoai/types` at `packages/types/src/mobile.ts`. It defines:
+The canonical mobile protocol starts in `@echoai/types` at `packages/types/src/mobile.ts`. The React Native app imports this contract directly. It defines:
 
 - protocol version and target platforms for cloud, web, desktop, iOS, and Android
 - shared entities for auth state, workspaces, models, sessions, messages, files, projects, devices, approvals, and automations
 - method names and request/response maps for the first mobile API surface
 - chat/run event names for streaming, tool progress, approval requests, and run status
-- a `mobileProtocolSchema` inventory that later generators can use to emit Swift, Kotlin, and TypeScript bindings
+- a `mobileProtocolSchema` inventory that app code and future generators can use
 - a `mobileApiContract` map that assigns each method to a domain, transport, auth requirement, request type, and response type
 
-M-012, M-013, and M-014 should generate platform-specific models from this contract instead of redefining fields inside app code.
-
-Swift request/response bindings for M-012 live at `apps/shared/EchoAIKit/Sources/EchoAIProtocol/MobileProtocolModels.swift` and mirror `MobileProtocolMethods`, request payloads, and response payloads from `packages/types/src/mobile.ts`.
+M-012, M-013, and M-014 now target React Native TypeScript models, client helpers, and native module interface definitions instead of generated Swift/Kotlin app models.
 
 ## Device Trust Model
 
@@ -232,7 +230,7 @@ Flag rules:
 
 ## Mobile Design System
 
-The mobile design system should keep EchoAI recognizable while using native platform conventions.
+The mobile design system should keep EchoAI recognizable while using React Native components that respect platform conventions.
 
 Shared principles:
 
@@ -242,7 +240,7 @@ Shared principles:
 - Permission and approval surfaces use direct language, visible risk level, and the exact action being requested.
 - Voice/talk mode uses an orb/status treatment, but active recording/listening state must always be explicit.
 - Cards are reserved for repeated records such as sessions, projects, files, runs, approvals, and devices.
-- Platform-native typography and controls win over custom styling when behavior is OS-standard.
+- Platform-specific React Native controls can be used where behavior is OS-standard.
 
 Shared tokens:
 
@@ -252,10 +250,10 @@ Shared tokens:
 | Status warning | system yellow/orange | Material warning/yellow |
 | Status danger | system red | Material error/red |
 | Status offline | secondary/gray | onSurfaceVariant/gray |
-| Overlay surface | SwiftUI material with thin border | Material surface container with controlled alpha |
+| Overlay surface | Blur/material-style React Native surface where available | Material-style React Native surface container with controlled alpha |
 | Compact radius | 14pt for pills/overlays | 14dp for pills/overlays |
 | Iconography | SF Symbols | Material Icons |
-| Motion | short SwiftUI transitions, reduced-motion aware | Compose animation, reduced-motion aware |
+| Motion | short React Native transitions, reduced-motion aware | short React Native transitions, reduced-motion aware |
 
 Component baseline:
 
@@ -275,10 +273,11 @@ Accessibility rules:
 
 ## Mobile QA Device Matrix
 
-Current repo baselines:
+Current React Native baseline:
 
-- Android: `minSdk = 31`, `targetSdk = 36`, Kotlin/Compose app under `apps/android`.
-- iOS: Swift Package platform baseline is iOS 18 in `apps/shared/EchoAIKit/Package.swift`.
+- One React Native TypeScript app under `apps/mobile`.
+- iOS and Android builds are produced from the same app package.
+- Native prototype code under `apps/ios` and `apps/android` is reference material, not the target product surface.
 
 Required smoke devices:
 
@@ -307,19 +306,20 @@ Nice-to-have coverage:
 
 | Existing area | Reuse |
 |---|---|
-| `apps/android/app/src/main/java/ai/echoai/android` | New Android app foundation |
-| `apps/android/app/src/main/java/ai/echoai/android/NodeRuntime.kt` | Runtime coordinator, gateway sessions, device capabilities |
-| `apps/android/app/src/main/java/ai/echoai/android/gateway/*` | Gateway discovery, TLS, session, auth |
-| `apps/android/app/src/main/java/ai/echoai/android/chat/*` | Mobile chat controller and models |
-| `apps/android/app/src/main/java/ai/echoai/android/node/*` | Camera, canvas, location, screen record, SMS managers |
-| `apps/android/app/src/main/java/ai/echoai/android/voice/*` | Voice wake and talk mode |
-| `apps/ios/EchoAI/Sources/Gateway/*` | iOS gateway discovery and connection |
-| `apps/ios/EchoAI/Sources/Chat/*` | iOS chat transport and chat sheet |
-| `apps/ios/EchoAI/Sources/Camera/*` | Camera controller |
-| `apps/ios/EchoAI/Sources/Location/*` | Location service |
-| `apps/ios/EchoAI/Sources/Screen/*` | Screen capture/web view concepts |
-| `apps/ios/EchoAI/Sources/Voice/*` | Voice wake/talk mode |
-| `apps/shared/EchoAIKit/Sources/*` | Shared protocol, command, device, auth, canvas, gateway, storage types |
+| `apps/mobile` | React Native product app target |
+| `packages/types/src/mobile.ts` | React Native TypeScript mobile protocol source |
+| `apps/android/app/src/main/java/ai/echoai/android` | Reference code for Android native modules |
+| `apps/android/app/src/main/java/ai/echoai/android/NodeRuntime.kt` | Reference runtime coordinator, gateway sessions, device capabilities |
+| `apps/android/app/src/main/java/ai/echoai/android/gateway/*` | Reference gateway discovery, TLS, session, auth |
+| `apps/android/app/src/main/java/ai/echoai/android/chat/*` | Reference chat controller and models |
+| `apps/android/app/src/main/java/ai/echoai/android/node/*` | Reference camera, canvas, location, screen record, SMS managers |
+| `apps/android/app/src/main/java/ai/echoai/android/voice/*` | Reference voice wake and talk mode |
+| `apps/ios/EchoAI/Sources/Gateway/*` | Reference code for iOS gateway native module |
+| `apps/ios/EchoAI/Sources/Chat/*` | Reference code for chat transport behavior |
+| `apps/ios/EchoAI/Sources/Camera/*` | Reference code for camera native module |
+| `apps/ios/EchoAI/Sources/Location/*` | Reference code for location native module |
+| `apps/ios/EchoAI/Sources/Screen/*` | Reference code for screen capture/web view concepts |
+| `apps/ios/EchoAI/Sources/Voice/*` | Reference code for voice/talk mode native module |
 | `packages/gateway` | JSON-RPC device protocol to desktop/cloud |
 | `samples/overlay-web-main/src/lib/mobile-auth-client.ts` | Mobile auth transfer concept |
 | `samples/overlay-web-main/src/app/auth/mobile-complete/page.tsx` | Web-to-mobile auth completion |
@@ -333,12 +333,12 @@ Android currently has both:
 
 The old `com.echoai` Kotlin files look like an earlier simple chat app and should be removed or moved to samples after confirming they are unused. They import Gson, while the main Gradle dependencies do not show Gson. The manifest points to `.MainActivity` under namespace `ai.echoai.android`, so the newer package is the real target.
 
-iOS and shared Swift package manifests need verification. Some package target paths referenced by `apps/shared/EchoAIKit/Package.swift` may not match the flat current source layout. This must be fixed before relying on shared package builds.
+Existing native manifests can be fixed later only if native modules need them. React Native app delivery should not depend on compiling the prototype SwiftUI/Kotlin apps.
 
 ## Target Architecture
 
 ```text
-iOS App / Android App
+React Native App
   - chat
   - sessions
   - projects
@@ -452,9 +452,9 @@ Android-specific:
 ### Shared Contracts and Backend
 
 - M-011: Create canonical API contract. Acceptance: auth, chat, sessions, devices, approvals, files, projects, automations are typed.
-- M-012: Generate Swift models. Acceptance: iOS compiles generated request/response types.
-- M-013: Generate Kotlin models. Acceptance: Android compiles generated request/response types.
-- M-014: Generate TypeScript models. Acceptance: web/desktop/cloud use same schema.
+- M-012: Add React Native TypeScript protocol exports. Acceptance: mobile app imports shared request/response types from `@echoai/types`.
+- M-013: Define React Native native module interfaces. Acceptance: gateway discovery, TLS, push, camera, audio, location, screen, and secure storage interfaces are typed.
+- M-014: Add TypeScript API client helpers. Acceptance: web/desktop/cloud/mobile use the same method constants and request/response maps.
 - M-015: Add contract versioning. Acceptance: old mobile clients can be rejected or downgraded safely.
 - M-016: Add mobile session API. Acceptance: list, get, send, abort, resume chat work through cloud.
 - M-017: Add mobile project API. Acceptance: list projects and project context from cloud.
@@ -467,8 +467,8 @@ Android-specific:
 - M-021: Implement mobile sign-in. Acceptance: iOS and Android can sign in through secure browser flow.
 - M-022: Implement mobile sign-up. Acceptance: new user can create account and first workspace.
 - M-023: Implement web-to-mobile auth complete. Acceptance: browser auth can deep-link back to mobile.
-- M-024: Implement token storage iOS. Acceptance: tokens stored in Keychain.
-- M-025: Implement token storage Android. Acceptance: tokens stored with encrypted preferences/keystore.
+- M-024: Implement React Native secure token storage. Acceptance: iOS uses Keychain and Android uses Keystore-backed encrypted storage through one TypeScript API.
+- M-025: Implement secure storage recovery/error states. Acceptance: locked, unavailable, corrupted, and revoked credential states are handled on both platforms.
 - M-026: Implement refresh tokens. Acceptance: mobile stays signed in without manual relogin.
 - M-027: Implement logout. Acceptance: local tokens and sensitive cache are cleared.
 - M-028: Implement account page. Acceptance: user can view plan, usage, devices, and workspace.
@@ -477,8 +477,8 @@ Android-specific:
 
 ### Device Pairing and Gateway
 
-- M-031: Implement desktop discovery iOS. Acceptance: iOS can discover local EchoAI gateway via Bonjour/local network.
-- M-032: Implement desktop discovery Android. Acceptance: Android can discover local EchoAI gateway via mDNS/DNS-SD/manual entry.
+- M-031: Implement React Native desktop discovery interface. Acceptance: iOS Bonjour/local network and Android mDNS/DNS-SD/manual discovery are exposed through one TypeScript API.
+- M-032: Implement React Native discovery UI. Acceptance: discovered and manual desktop gateway endpoints appear in one pairing screen.
 - M-033: Implement manual gateway connect. Acceptance: user can enter host, port, TLS option, and token.
 - M-034: Implement QR pairing. Acceptance: desktop displays QR and mobile pairs securely.
 - M-035: Implement pair approval. Acceptance: desktop must approve new mobile device.
@@ -562,8 +562,8 @@ Android-specific:
 - M-095: Build privacy/export/delete. Acceptance: user can export/delete local mobile cache and request account data deletion.
 - M-096: Build local cache encryption. Acceptance: sensitive cached sessions/files/tokens are protected.
 - M-097: Build debug logs. Acceptance: user can export redacted logs for support.
-- M-098: Add iOS build pipeline. Acceptance: TestFlight build can be produced with correct signing.
-- M-099: Add Android build pipeline. Acceptance: debug/release APK or AAB can be produced with correct signing.
+- M-098: Add React Native iOS build pipeline. Acceptance: TestFlight build can be produced with correct signing.
+- M-099: Add React Native Android build pipeline. Acceptance: debug/release APK or AAB can be produced with correct signing.
 - M-100: Add mobile QA checklist. Acceptance: auth, chat, pairing, approval, upload, push, background, and logout are tested.
 
 ## Delivery Milestones
@@ -581,25 +581,17 @@ Android-specific:
 - Use commit messages in the format `mobile: complete M-### short outcome`.
 - Include the ticket ID in PR titles, changelog notes, and release QA checklists.
 - Do not mark a ticket complete until its acceptance line is demonstrably satisfied on both target platforms or explicitly scoped to one platform.
-- For shared protocol work, update Swift, Kotlin, and TypeScript contracts in the same ticket or document why one client is intentionally deferred.
+- For shared protocol work, update the TypeScript contract first and native module interfaces only when platform capability code requires them.
 - Every shipped ticket should include the smallest useful verification: unit test, build check, simulator/device smoke, or documented manual QA.
 
-## iOS Notes
+## React Native Notes
 
-- Use SwiftUI and async/await.
-- Store tokens in Keychain.
-- Treat background voice/screen behavior carefully because iOS restrictions are strict.
-- Use local network permission for gateway discovery.
-- Use push notifications for approvals and run completion.
-- Keep shared protocol code in a properly structured Swift package.
-
-## Android Notes
-
-- Use Kotlin and Jetpack Compose.
-- Remove or isolate the old `com.echoai` prototype tree if unused.
-- Foreground service is required for voice wake, screen capture, and persistent node behavior.
-- Nearby Wi-Fi, location, notification, camera, microphone, and media projection permissions must be requested only when needed.
-- Use encrypted preferences/Android Keystore for credentials.
+- Use React Native with TypeScript as the only mobile product surface.
+- Use native modules only for OS capabilities React Native cannot safely provide directly.
+- Store tokens through one TypeScript secure-storage API backed by Keychain on iOS and Keystore/encrypted storage on Android.
+- Treat iOS background voice/screen behavior carefully because platform restrictions are strict.
+- Use local network/Bonjour on iOS and mDNS/DNS-SD/manual entry on Android behind one gateway discovery interface.
+- Foreground service is required on Android for voice wake, screen capture, and persistent node behavior.
 
 ## Success Metrics
 
