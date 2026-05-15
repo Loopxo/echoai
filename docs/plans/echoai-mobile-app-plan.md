@@ -25,6 +25,39 @@ Existing code already has meaningful mobile direction:
 - iOS has gateway discovery, chat, camera, screen, location, voice, settings, and shared Swift protocol ideas.
 - `apps/shared/EchoAIKit` contains protocol and command types that can become the stable cross-platform mobile contract.
 
+## Product Boundary
+
+MVP features are the first shippable private mobile app:
+
+- secure sign-in, sign-out, account state, and token storage
+- cloud chat with streaming responses, stop, retry, model picker, and session list
+- desktop pairing through QR/manual connection with trusted-device revocation
+- mobile approval inbox for desktop file, shell, browser, and MCP actions
+- push notifications for approvals and run completion
+- project picker, basic project detail, file upload, and share sheet intake
+- camera capture, audio capture, and optional location context
+- settings for models, notifications, permissions, privacy, and debug log export
+- iOS TestFlight and Android internal-track builds with a focused QA checklist
+
+Pro features are paid/private-workflow upgrades after MVP stability:
+
+- hybrid cloud-to-desktop handoff for local workspace tasks
+- remote desktop run monitoring with logs, file changes, diffs, and browser status
+- mobile memory management, memory approvals, notes, and richer project knowledge
+- premium hosted model routing, BYOK preference controls, usage, and workspace switching
+- automation monitoring and mobile controls for scheduled tasks
+- encrypted local cache for sensitive sessions, files, and offline capture queue
+- desktop wake, remote tunnel support, and web handoff for active sessions
+
+Later features need platform, policy, or demand validation before build:
+
+- always-on voice wake on iOS beyond supported foreground/background limits
+- Android SMS capability unless product policy justifies the permission burden
+- iOS screen capture flows outside platform-supported broadcast/web-view scenarios
+- advanced media capture beyond first-party camera/audio context
+- organization admin controls that duplicate the web app without mobile-specific value
+- full mobile-first editing of generated artifacts when web/desktop are better surfaces
+
 ## Strategic Decision
 
 Use native iOS and Android for device capabilities, not a simple webview. Use shared contracts and a common backend/gateway protocol so behavior remains consistent.
