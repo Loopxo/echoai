@@ -227,6 +227,49 @@ Flag rules:
 - Permission requests must check the matching flag before asking the OS.
 - SMS, screen capture, voice wake, and remote tunnel stay off until security and platform QA explicitly enable them.
 
+## Mobile Design System
+
+The mobile design system should keep EchoAI recognizable while using native platform conventions.
+
+Shared principles:
+
+- The primary app surface is a dense work/control app, not a marketing page.
+- Chat, approvals, run status, pairing, and capture actions should be reachable with one-handed mobile use.
+- Gateway state uses the same semantic status everywhere: connected, connecting, error, offline.
+- Permission and approval surfaces use direct language, visible risk level, and the exact action being requested.
+- Voice/talk mode uses an orb/status treatment, but active recording/listening state must always be explicit.
+- Cards are reserved for repeated records such as sessions, projects, files, runs, approvals, and devices.
+- Platform-native typography and controls win over custom styling when behavior is OS-standard.
+
+Shared tokens:
+
+| Token | iOS direction | Android direction |
+|---|---|---|
+| Status success | system green | Material success/green |
+| Status warning | system yellow/orange | Material warning/yellow |
+| Status danger | system red | Material error/red |
+| Status offline | secondary/gray | onSurfaceVariant/gray |
+| Overlay surface | SwiftUI material with thin border | Material surface container with controlled alpha |
+| Compact radius | 14pt for pills/overlays | 14dp for pills/overlays |
+| Iconography | SF Symbols | Material Icons |
+| Motion | short SwiftUI transitions, reduced-motion aware | Compose animation, reduced-motion aware |
+
+Component baseline:
+
+- Status pill: gateway state, active mode/activity, tap target to status/settings.
+- Chat composer: text, attachment, voice, send/stop, model/session source.
+- Approval card: tool name, risk, affected resource, timeout, approve/deny.
+- Device card: platform, trust state, last seen, revoke action.
+- Capture sheet: camera/audio/file/location actions with permission state.
+- Settings rows: title, short status, disclosure/toggle, never long explanatory paragraphs.
+
+Accessibility rules:
+
+- Every icon-only control has a localized accessibility label.
+- Dynamic type must not clip approval, permission, or destructive-action text.
+- Color is never the only status signal.
+- Motion-sensitive users get static connection/listening indicators.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
