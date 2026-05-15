@@ -150,6 +150,34 @@ Policy rules:
 - Local cache clear is available without deleting the cloud account.
 - Account deletion and data export are coordinated with web/cloud APIs, but mobile must expose the entry point.
 
+## Mobile Permissions Policy
+
+Permissions are requested just in time, with a pre-permission explanation tied to the user action that needs access.
+
+| Permission | Platform | Purpose | Request trigger | Owning tickets |
+|---|---|---|---|---|
+| Local network / Bonjour | iOS | Discover nearby desktop gateway | Pair desktop flow | M-031, M-034 |
+| Nearby Wi-Fi / location discovery | Android | Discover mDNS/DNS-SD desktop gateway | Pair desktop flow | M-032, M-034 |
+| Camera | iOS/Android | Capture image/video context and scan pairing QR | Camera capture or QR pairing | M-034, M-065, M-085 |
+| Microphone | iOS/Android | Push-to-talk, audio capture, talk mode input | Voice/audio action | M-066, M-081, M-084 |
+| Speech recognition | iOS where needed | Dictation/transcription when native speech is used | Push-to-talk setup | M-081 |
+| Notifications | iOS/Android | Approval requests, run completion, automation alerts | User enables notifications or pairs device | M-059, M-093 |
+| Location | iOS/Android | Optional user-approved location context | User taps share location or enables location context | M-086 |
+| Media/files/photos | iOS/Android | Attach documents, images, audio, and share sheet intake | Attachment picker or share target | M-049, M-050, M-063 |
+| Screen recording / MediaProjection | Android | User-started screen context stream/snapshot | Screen capture action | M-087 |
+| Screen broadcast / web-view flow | iOS | Platform-supported screen context capture | Screen flow action | M-088 |
+| Foreground service | Android | Persistent voice wake, screen capture, and node mode | Enabling background-capable feature | M-083, M-087 |
+| Battery optimization exemption | Android | Keep explicit foreground node/session alive when user opts in | Background node setup | M-083, M-090 |
+| SMS | Android only if retained | Optional message capability after product approval | Disabled until M-089 decision | M-089 |
+
+Permission rules:
+
+- No permission is requested during first launch unless the user explicitly starts the related flow.
+- Denied permissions leave the app usable with the feature disabled and a clear recovery path in settings.
+- Background-capable permissions require stronger copy and a visible status indicator while active.
+- SMS stays behind a feature flag and is removed from release builds unless product/security approval keeps it.
+- The permission dashboard must show OS permission state, EchoAI feature owner, and current enabled/disabled setting.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
