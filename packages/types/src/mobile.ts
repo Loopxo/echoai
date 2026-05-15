@@ -20,6 +20,7 @@ export type MobileRunStatus = "queued" | "running" | "waiting-for-approval" | "c
 export type MobileApprovalStatus = "pending" | "approved" | "denied" | "expired" | "cancelled";
 export type MobileDeviceTrustState = "unpaired" | "pairing" | "trusted" | "revoked";
 export type MobilePermissionMode = "allow" | "ask" | "deny";
+export type MobileFeatureFlagSource = "default" | "remote" | "org-policy" | "workspace-policy" | "local-debug";
 
 export interface MobileClientDescriptor {
     platform: MobileClientPlatform;
@@ -204,6 +205,49 @@ export interface MobileAutomationSummary {
     nextRunAt?: MobileIsoTimestamp;
     lastRunStatus?: MobileRunStatus;
 }
+
+export const MobileFeatureFlags = {
+    CAMERA_CAPTURE: "mobile.capture.camera",
+    AUDIO_CAPTURE: "mobile.capture.audio",
+    LOCATION_CONTEXT: "mobile.capture.location",
+    SCREEN_CAPTURE_ANDROID: "mobile.capture.screen.android",
+    SCREEN_FLOW_IOS: "mobile.capture.screen.ios",
+    SHARE_SHEET_INTAKE: "mobile.capture.share-sheet",
+    SMS_CAPABILITY_ANDROID: "mobile.capability.sms.android",
+    VOICE_WAKE_ANDROID: "mobile.voice.wake.android",
+    VOICE_WAKE_IOS_FEASIBILITY: "mobile.voice.wake.ios-feasibility",
+    DESKTOP_CONTROL: "mobile.desktop.control",
+    DESKTOP_REMOTE_TUNNEL: "mobile.desktop.remote-tunnel",
+    APPROVAL_PUSH: "mobile.approvals.push",
+    OFFLINE_CAPTURE_QUEUE: "mobile.offline.capture-queue",
+} as const;
+
+export type MobileFeatureFlag = (typeof MobileFeatureFlags)[keyof typeof MobileFeatureFlags];
+
+export interface MobileFeatureFlagState {
+    key: MobileFeatureFlag;
+    enabled: boolean;
+    source: MobileFeatureFlagSource;
+    reason?: string;
+    platform?: Extract<MobileClientPlatform, "ios" | "android">;
+    expiresAt?: MobileIsoTimestamp;
+}
+
+export const mobileFeatureFlagDefaults = {
+    [MobileFeatureFlags.CAMERA_CAPTURE]: true,
+    [MobileFeatureFlags.AUDIO_CAPTURE]: true,
+    [MobileFeatureFlags.LOCATION_CONTEXT]: true,
+    [MobileFeatureFlags.SCREEN_CAPTURE_ANDROID]: false,
+    [MobileFeatureFlags.SCREEN_FLOW_IOS]: false,
+    [MobileFeatureFlags.SHARE_SHEET_INTAKE]: true,
+    [MobileFeatureFlags.SMS_CAPABILITY_ANDROID]: false,
+    [MobileFeatureFlags.VOICE_WAKE_ANDROID]: false,
+    [MobileFeatureFlags.VOICE_WAKE_IOS_FEASIBILITY]: false,
+    [MobileFeatureFlags.DESKTOP_CONTROL]: true,
+    [MobileFeatureFlags.DESKTOP_REMOTE_TUNNEL]: false,
+    [MobileFeatureFlags.APPROVAL_PUSH]: true,
+    [MobileFeatureFlags.OFFLINE_CAPTURE_QUEUE]: false,
+} as const satisfies Record<MobileFeatureFlag, boolean>;
 
 export const MobileProtocolMethods = {
     AUTH_STATE_GET: "auth.state.get",

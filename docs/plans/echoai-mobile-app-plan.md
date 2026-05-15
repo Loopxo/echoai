@@ -200,6 +200,33 @@ Controls:
 - Any new analytics event touching chat, files, desktop control, approvals, or location needs privacy review.
 - Analytics event names and properties must be documented next to the implementation before release.
 
+## Mobile Feature Flags
+
+The shared flag keys live in `packages/types/src/mobile.ts` as `MobileFeatureFlags` with defaults in `mobileFeatureFlagDefaults`.
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `mobile.capture.camera` | on | Camera capture and QR pairing |
+| `mobile.capture.audio` | on | Audio capture and push-to-talk |
+| `mobile.capture.location` | on | Optional per-request location context |
+| `mobile.capture.screen.android` | off | Android MediaProjection screen context |
+| `mobile.capture.screen.ios` | off | iOS screen/broadcast flow experiments |
+| `mobile.capture.share-sheet` | on | OS share sheet intake |
+| `mobile.capability.sms.android` | off | Android SMS capability pending M-089 |
+| `mobile.voice.wake.android` | off | Android foreground-service voice wake |
+| `mobile.voice.wake.ios-feasibility` | off | iOS voice wake feasibility testing |
+| `mobile.desktop.control` | on | Paired desktop prompts, approvals, and run monitoring |
+| `mobile.desktop.remote-tunnel` | off | Cloud/tunnel path to desktop gateway |
+| `mobile.approvals.push` | on | Push notifications for approval requests |
+| `mobile.offline.capture-queue` | off | Offline notes/photos/audio sync queue |
+
+Flag rules:
+
+- Remote/org/workspace policy overrides defaults; local debug overrides are not allowed in release builds.
+- Disabled flags must hide the entry point and reject deep links/API calls for that feature.
+- Permission requests must check the matching flag before asking the OS.
+- SMS, screen capture, voice wake, and remote tunnel stay off until security and platform QA explicitly enable them.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
