@@ -178,6 +178,28 @@ Permission rules:
 - SMS stays behind a feature flag and is removed from release builds unless product/security approval keeps it.
 - The permission dashboard must show OS permission state, EchoAI feature owner, and current enabled/disabled setting.
 
+## Mobile Analytics Policy
+
+Analytics default to product/reliability metadata only. Prompt text, assistant text, file content, attachment content, location coordinates, command output, approval details, and provider keys are never analytics payloads.
+
+Allowed event groups:
+
+| Group | Example events | Allowed properties |
+|---|---|---|
+| Activation | app installed, first launch, sign-in started/completed, first chat sent | app version, platform, build channel, workspace plan, duration, success/failure |
+| Reliability | chat stream failed, reconnect attempted, push delivery opened, upload failed | error code, network type, retry count, endpoint class, source cloud/desktop |
+| Feature usage | model picker opened, desktop pairing started, approval decided, share sheet used | feature name, source, boolean success, coarse item counts |
+| Performance | cold start, chat first-token latency, upload duration, pairing duration | duration buckets, payload size buckets, device class |
+| Billing/entitlement | paywall shown, usage page opened, entitlement blocked | plan tier, entitlement key, route source |
+
+Controls:
+
+- Users can disable product analytics from mobile privacy settings.
+- Enterprise/org policy can force analytics off or restrict it to reliability events.
+- Crash logs and support bundles are separate from analytics and require redaction before upload.
+- Any new analytics event touching chat, files, desktop control, approvals, or location needs privacy review.
+- Analytics event names and properties must be documented next to the implementation before release.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
