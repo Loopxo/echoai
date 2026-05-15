@@ -103,6 +103,28 @@ Trust rules:
 - Revocation from cloud or desktop takes precedence over cached mobile state and must force reconnect/re-auth.
 - Guest devices never receive push notifications or approval payloads.
 
+## Private App Distribution
+
+Distribution should stay private until cloud billing, provider-key vaulting, push notifications, and desktop pairing are production-ready.
+
+| Channel | Audience | Build type | Gate |
+|---|---|---|---|
+| iOS local debug | Engineers | Xcode debug build | Manual simulator/device smoke |
+| iOS TestFlight internal | Team and trusted testers | Signed release/TestFlight build | Auth, chat, pairing, push, logout smoke pass |
+| iOS App Store public/private listing | Production users or approved orgs | App Store release | Privacy labels, review notes, account deletion, support URL, security review |
+| Android local debug | Engineers | Debug APK | Emulator/device smoke |
+| Android internal testing | Team and trusted testers | Signed AAB/APK | Auth, chat, pairing, push, logout smoke pass |
+| Android closed/open testing | Beta users | Play-signed AAB | Store listing, data safety, permissions review, crash threshold |
+| Enterprise/internal APK | Managed orgs only | Signed APK/AAB | MDM/install docs, update policy, revocation path |
+
+Release rules:
+
+- App identifiers stay `ai.echoai.android` for Android and the EchoAI iOS bundle ID defined by the Xcode project.
+- Signing certificates, provisioning profiles, Play upload keys, and push credentials are private infrastructure secrets, not repo content.
+- Test builds may target staging cloud endpoints; production builds must reject staging endpoints unless a debug entitlement is present.
+- Store submissions must include permission rationale for camera, microphone, local network, notifications, location, and screen capture where applicable.
+- External distribution waits until M-098, M-099, and M-100 pass on the supported device matrix.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
