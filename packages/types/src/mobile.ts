@@ -252,12 +252,16 @@ export const mobileFeatureFlagDefaults = {
 export const MobileProtocolMethods = {
     AUTH_STATE_GET: "auth.state.get",
     AUTH_LOGOUT: "auth.logout",
-    CHAT_SESSION_LIST: "chat.session.list",
-    CHAT_SESSION_GET: "chat.session.get",
+    SESSION_LIST: "session.list",
+    SESSION_GET: "session.get",
+    SESSION_DELETE: "session.delete",
     CHAT_SEND: "chat.send",
     CHAT_ABORT: "chat.abort",
     PROJECT_LIST: "project.list",
+    FILE_LIST: "file.list",
     FILE_UPLOAD_CREATE: "file.upload.create",
+    FILE_DELETE: "file.delete",
+    DEVICE_LIST: "device.list",
     DEVICE_REGISTER: "device.register",
     DEVICE_PAIRING_START: "device.pairing.start",
     DEVICE_REVOKE: "device.revoke",
@@ -271,12 +275,16 @@ export type MobileProtocolMethod = (typeof MobileProtocolMethods)[keyof typeof M
 export interface MobileProtocolRequestMap {
     [MobileProtocolMethods.AUTH_STATE_GET]: Record<string, never>;
     [MobileProtocolMethods.AUTH_LOGOUT]: Record<string, never>;
-    [MobileProtocolMethods.CHAT_SESSION_LIST]: { workspaceId: MobileEntityId; source?: MobileSessionSource; projectId?: MobileEntityId };
-    [MobileProtocolMethods.CHAT_SESSION_GET]: { sessionId: MobileEntityId; source: MobileSessionSource };
+    [MobileProtocolMethods.SESSION_LIST]: { workspaceId: MobileEntityId; source?: MobileSessionSource; projectId?: MobileEntityId };
+    [MobileProtocolMethods.SESSION_GET]: { sessionId: MobileEntityId; source: MobileSessionSource };
+    [MobileProtocolMethods.SESSION_DELETE]: { sessionId: MobileEntityId; source: MobileSessionSource };
     [MobileProtocolMethods.CHAT_SEND]: MobileChatSendRequest;
     [MobileProtocolMethods.CHAT_ABORT]: { sessionId: MobileEntityId; runId: MobileEntityId; source: MobileSessionSource };
     [MobileProtocolMethods.PROJECT_LIST]: { workspaceId: MobileEntityId };
+    [MobileProtocolMethods.FILE_LIST]: { workspaceId: MobileEntityId; projectId?: MobileEntityId };
     [MobileProtocolMethods.FILE_UPLOAD_CREATE]: { workspaceId: MobileEntityId; projectId?: MobileEntityId; file: MobileFileSummary };
+    [MobileProtocolMethods.FILE_DELETE]: { fileId: MobileEntityId; workspaceId: MobileEntityId };
+    [MobileProtocolMethods.DEVICE_LIST]: { workspaceId: MobileEntityId };
     [MobileProtocolMethods.DEVICE_REGISTER]: { device: MobileDevice };
     [MobileProtocolMethods.DEVICE_PAIRING_START]: { deviceId: MobileEntityId; desktopDeviceId?: MobileEntityId };
     [MobileProtocolMethods.DEVICE_REVOKE]: { deviceId: MobileEntityId };
@@ -288,12 +296,16 @@ export interface MobileProtocolRequestMap {
 export interface MobileProtocolResponseMap {
     [MobileProtocolMethods.AUTH_STATE_GET]: MobileAuthState;
     [MobileProtocolMethods.AUTH_LOGOUT]: { signedOut: true };
-    [MobileProtocolMethods.CHAT_SESSION_LIST]: { sessions: MobileSessionSummary[] };
-    [MobileProtocolMethods.CHAT_SESSION_GET]: MobileSessionDetail;
+    [MobileProtocolMethods.SESSION_LIST]: { sessions: MobileSessionSummary[] };
+    [MobileProtocolMethods.SESSION_GET]: MobileSessionDetail;
+    [MobileProtocolMethods.SESSION_DELETE]: { sessionId: MobileEntityId; deleted: true };
     [MobileProtocolMethods.CHAT_SEND]: MobileChatSendResponse;
     [MobileProtocolMethods.CHAT_ABORT]: { runId: MobileEntityId; status: "cancelled" };
     [MobileProtocolMethods.PROJECT_LIST]: { projects: MobileProjectSummary[] };
+    [MobileProtocolMethods.FILE_LIST]: { files: MobileFileSummary[] };
     [MobileProtocolMethods.FILE_UPLOAD_CREATE]: { file: MobileFileSummary; uploadUrl?: string };
+    [MobileProtocolMethods.FILE_DELETE]: { fileId: MobileEntityId; deleted: true };
+    [MobileProtocolMethods.DEVICE_LIST]: { devices: MobileDevice[] };
     [MobileProtocolMethods.DEVICE_REGISTER]: { device: MobileDevice };
     [MobileProtocolMethods.DEVICE_PAIRING_START]: MobilePairingChallenge;
     [MobileProtocolMethods.DEVICE_REVOKE]: { deviceId: MobileEntityId; trustState: "revoked" };
@@ -320,6 +332,7 @@ export interface MobileProtocolSchema {
     sourcePackage: "@echoai/types";
     domains: {
         auth: MobileProtocolDomainSchema;
+        sessions: MobileProtocolDomainSchema;
         chat: MobileProtocolDomainSchema;
         projects: MobileProtocolDomainSchema;
         files: MobileProtocolDomainSchema;
@@ -328,6 +341,174 @@ export interface MobileProtocolSchema {
         automations: MobileProtocolDomainSchema;
     };
 }
+
+export type MobileApiDomain = keyof MobileProtocolSchema["domains"];
+export type MobileApiTransport = "https" | "gateway-rpc" | "websocket";
+export type MobileApiAuth = "guest" | "cloud-session" | "trusted-device";
+
+export interface MobileApiMethodDescriptor<TMethod extends MobileProtocolMethod = MobileProtocolMethod> {
+    method: TMethod;
+    domain: MobileApiDomain;
+    transports: readonly MobileApiTransport[];
+    auth: MobileApiAuth;
+    requestType: keyof MobileProtocolRequestMap;
+    responseType: keyof MobileProtocolResponseMap;
+}
+
+export interface MobileApiContract {
+    version: typeof MOBILE_PROTOCOL_VERSION;
+    methods: { readonly [TMethod in MobileProtocolMethod]: MobileApiMethodDescriptor<TMethod> };
+}
+
+export const mobileApiContract = {
+    version: MOBILE_PROTOCOL_VERSION,
+    methods: {
+        [MobileProtocolMethods.AUTH_STATE_GET]: {
+            method: MobileProtocolMethods.AUTH_STATE_GET,
+            domain: "auth",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.AUTH_STATE_GET,
+            responseType: MobileProtocolMethods.AUTH_STATE_GET,
+        },
+        [MobileProtocolMethods.AUTH_LOGOUT]: {
+            method: MobileProtocolMethods.AUTH_LOGOUT,
+            domain: "auth",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.AUTH_LOGOUT,
+            responseType: MobileProtocolMethods.AUTH_LOGOUT,
+        },
+        [MobileProtocolMethods.SESSION_LIST]: {
+            method: MobileProtocolMethods.SESSION_LIST,
+            domain: "sessions",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.SESSION_LIST,
+            responseType: MobileProtocolMethods.SESSION_LIST,
+        },
+        [MobileProtocolMethods.SESSION_GET]: {
+            method: MobileProtocolMethods.SESSION_GET,
+            domain: "sessions",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.SESSION_GET,
+            responseType: MobileProtocolMethods.SESSION_GET,
+        },
+        [MobileProtocolMethods.SESSION_DELETE]: {
+            method: MobileProtocolMethods.SESSION_DELETE,
+            domain: "sessions",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.SESSION_DELETE,
+            responseType: MobileProtocolMethods.SESSION_DELETE,
+        },
+        [MobileProtocolMethods.CHAT_SEND]: {
+            method: MobileProtocolMethods.CHAT_SEND,
+            domain: "chat",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.CHAT_SEND,
+            responseType: MobileProtocolMethods.CHAT_SEND,
+        },
+        [MobileProtocolMethods.CHAT_ABORT]: {
+            method: MobileProtocolMethods.CHAT_ABORT,
+            domain: "chat",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.CHAT_ABORT,
+            responseType: MobileProtocolMethods.CHAT_ABORT,
+        },
+        [MobileProtocolMethods.PROJECT_LIST]: {
+            method: MobileProtocolMethods.PROJECT_LIST,
+            domain: "projects",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.PROJECT_LIST,
+            responseType: MobileProtocolMethods.PROJECT_LIST,
+        },
+        [MobileProtocolMethods.FILE_LIST]: {
+            method: MobileProtocolMethods.FILE_LIST,
+            domain: "files",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.FILE_LIST,
+            responseType: MobileProtocolMethods.FILE_LIST,
+        },
+        [MobileProtocolMethods.FILE_UPLOAD_CREATE]: {
+            method: MobileProtocolMethods.FILE_UPLOAD_CREATE,
+            domain: "files",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.FILE_UPLOAD_CREATE,
+            responseType: MobileProtocolMethods.FILE_UPLOAD_CREATE,
+        },
+        [MobileProtocolMethods.FILE_DELETE]: {
+            method: MobileProtocolMethods.FILE_DELETE,
+            domain: "files",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.FILE_DELETE,
+            responseType: MobileProtocolMethods.FILE_DELETE,
+        },
+        [MobileProtocolMethods.DEVICE_LIST]: {
+            method: MobileProtocolMethods.DEVICE_LIST,
+            domain: "devices",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.DEVICE_LIST,
+            responseType: MobileProtocolMethods.DEVICE_LIST,
+        },
+        [MobileProtocolMethods.DEVICE_REGISTER]: {
+            method: MobileProtocolMethods.DEVICE_REGISTER,
+            domain: "devices",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.DEVICE_REGISTER,
+            responseType: MobileProtocolMethods.DEVICE_REGISTER,
+        },
+        [MobileProtocolMethods.DEVICE_PAIRING_START]: {
+            method: MobileProtocolMethods.DEVICE_PAIRING_START,
+            domain: "devices",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.DEVICE_PAIRING_START,
+            responseType: MobileProtocolMethods.DEVICE_PAIRING_START,
+        },
+        [MobileProtocolMethods.DEVICE_REVOKE]: {
+            method: MobileProtocolMethods.DEVICE_REVOKE,
+            domain: "devices",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.DEVICE_REVOKE,
+            responseType: MobileProtocolMethods.DEVICE_REVOKE,
+        },
+        [MobileProtocolMethods.APPROVAL_LIST]: {
+            method: MobileProtocolMethods.APPROVAL_LIST,
+            domain: "approvals",
+            transports: ["https", "gateway-rpc"],
+            auth: "trusted-device",
+            requestType: MobileProtocolMethods.APPROVAL_LIST,
+            responseType: MobileProtocolMethods.APPROVAL_LIST,
+        },
+        [MobileProtocolMethods.APPROVAL_DECIDE]: {
+            method: MobileProtocolMethods.APPROVAL_DECIDE,
+            domain: "approvals",
+            transports: ["https", "gateway-rpc"],
+            auth: "trusted-device",
+            requestType: MobileProtocolMethods.APPROVAL_DECIDE,
+            responseType: MobileProtocolMethods.APPROVAL_DECIDE,
+        },
+        [MobileProtocolMethods.AUTOMATION_LIST]: {
+            method: MobileProtocolMethods.AUTOMATION_LIST,
+            domain: "automations",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.AUTOMATION_LIST,
+            responseType: MobileProtocolMethods.AUTOMATION_LIST,
+        },
+    },
+} as const satisfies MobileApiContract;
 
 export const mobileProtocolSchema = {
     version: MOBILE_PROTOCOL_VERSION,
@@ -338,11 +519,17 @@ export const mobileProtocolSchema = {
             entities: ["MobileAccount", "MobileWorkspace", "MobileAuthState"],
             methods: [MobileProtocolMethods.AUTH_STATE_GET, MobileProtocolMethods.AUTH_LOGOUT],
         },
-        chat: {
-            entities: ["MobileModelRef", "MobileAttachmentRef", "MobileMessage", "MobileSessionSummary", "MobileSessionDetail"],
+        sessions: {
+            entities: ["MobileSessionSummary", "MobileSessionDetail"],
             methods: [
-                MobileProtocolMethods.CHAT_SESSION_LIST,
-                MobileProtocolMethods.CHAT_SESSION_GET,
+                MobileProtocolMethods.SESSION_LIST,
+                MobileProtocolMethods.SESSION_GET,
+                MobileProtocolMethods.SESSION_DELETE,
+            ],
+        },
+        chat: {
+            entities: ["MobileModelRef", "MobileAttachmentRef", "MobileMessage", "MobileChatSendRequest", "MobileChatSendResponse"],
+            methods: [
                 MobileProtocolMethods.CHAT_SEND,
                 MobileProtocolMethods.CHAT_ABORT,
             ],
@@ -354,11 +541,16 @@ export const mobileProtocolSchema = {
         },
         files: {
             entities: ["MobileFileSummary"],
-            methods: [MobileProtocolMethods.FILE_UPLOAD_CREATE],
+            methods: [
+                MobileProtocolMethods.FILE_LIST,
+                MobileProtocolMethods.FILE_UPLOAD_CREATE,
+                MobileProtocolMethods.FILE_DELETE,
+            ],
         },
         devices: {
             entities: ["MobileDevice", "MobilePairingChallenge"],
             methods: [
+                MobileProtocolMethods.DEVICE_LIST,
                 MobileProtocolMethods.DEVICE_REGISTER,
                 MobileProtocolMethods.DEVICE_PAIRING_START,
                 MobileProtocolMethods.DEVICE_REVOKE,

@@ -79,6 +79,7 @@ The canonical mobile protocol starts in `@echoai/types` at `packages/types/src/m
 - method names and request/response maps for the first mobile API surface
 - chat/run event names for streaming, tool progress, approval requests, and run status
 - a `mobileProtocolSchema` inventory that later generators can use to emit Swift, Kotlin, and TypeScript bindings
+- a `mobileApiContract` map that assigns each method to a domain, transport, auth requirement, request type, and response type
 
 M-012, M-013, and M-014 should generate platform-specific models from this contract instead of redefining fields inside app code.
 
