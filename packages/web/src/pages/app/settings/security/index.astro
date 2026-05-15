@@ -1,0 +1,13 @@
+---
+import EchoAppShell from "../../../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell title="Security Settings" eyebrow="Runtime safety" active="settings" description="Security settings define SSRF protection, audit policy, secret redaction, device trust, and data boundaries.">
+  <section class="echo-card">
+    <pre class="echo-code">auth event -> audit log
+tool request -> policy check -> approval if needed
+provider key -> encrypted vault -> scoped runtime use
+device pairing -> fingerprint -> revocable trust record</pre>
+  </section>
+</EchoAppShell>
+

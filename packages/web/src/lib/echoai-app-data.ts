@@ -44,6 +44,36 @@ export type AutomationDraft = {
   status: "Draft" | "Ready" | "Needs setup";
 };
 
+export type SessionSnapshot = {
+  title: string;
+  source: "Web" | "Desktop" | "CLI" | "Mobile";
+  model: string;
+  status: "Active" | "Paused" | "Completed";
+  context: string;
+};
+
+export type FileAsset = {
+  name: string;
+  kind: string;
+  project: string;
+  indexStatus: "Indexed" | "Queued" | "Skipped";
+  use: string;
+};
+
+export type NoteAsset = {
+  title: string;
+  project: string;
+  updated: string;
+  use: string;
+};
+
+export type IntegrationSurface = {
+  name: string;
+  category: string;
+  status: "Connected" | "Available" | "Private backend";
+  tools: string;
+};
+
 export type DeviceEndpoint = {
   name: string;
   type: "Desktop" | "Mobile" | "CLI" | "Gateway";
@@ -62,15 +92,21 @@ export type BuildMilestone = {
 export const appNav: AppNavItem[] = [
   { label: "Command Center", href: "/app", key: "home" },
   { label: "Chat", href: "/app/chat", key: "chat" },
+  { label: "Sessions", href: "/app/sessions", key: "sessions" },
   { label: "Projects", href: "/app/projects", key: "projects" },
+  { label: "Files", href: "/app/files", key: "files" },
   { label: "Knowledge", href: "/app/knowledge", key: "knowledge" },
+  { label: "Notes", href: "/app/notes", key: "notes" },
   { label: "Memories", href: "/app/memories", key: "memories" },
   { label: "Tools", href: "/app/tools", key: "tools" },
+  { label: "Integrations", href: "/app/integrations", key: "integrations" },
   { label: "Automations", href: "/app/automations", key: "automations" },
   { label: "Outputs", href: "/app/outputs", key: "outputs" },
   { label: "Devices", href: "/app/devices", key: "devices" },
+  { label: "Usage", href: "/app/usage", key: "usage" },
   { label: "Billing", href: "/app/billing", key: "billing" },
   { label: "Settings", href: "/app/settings", key: "settings" },
+  { label: "Admin", href: "/app/admin", key: "admin" },
 ];
 
 export const statusMetrics: StatusMetric[] = [
@@ -227,6 +263,122 @@ export const automations: AutomationDraft[] = [
   },
 ];
 
+export const sessions: SessionSnapshot[] = [
+  {
+    title: "Build EchoAI Web foundation",
+    source: "Web",
+    model: "EchoAI Code",
+    status: "Active",
+    context: "Plan W-001..W-100, Overlay-style web shell, runtime adapter contract",
+  },
+  {
+    title: "Desktop cowork sandbox review",
+    source: "Desktop",
+    model: "Desktop Local",
+    status: "Paused",
+    context: "Electron, local workspace, terminal approvals, MCP tools",
+  },
+  {
+    title: "CLI release readiness",
+    source: "CLI",
+    model: "EchoAI Reason",
+    status: "Completed",
+    context: "Tests, providers, docs, package readiness",
+  },
+  {
+    title: "Mobile pairing UX",
+    source: "Mobile",
+    model: "Free Router",
+    status: "Active",
+    context: "Device trust, approval notifications, QR pairing",
+  },
+];
+
+export const fileAssets: FileAsset[] = [
+  {
+    name: "echoai-webapp-overlay-plan.md",
+    kind: "Plan",
+    project: "EchoAI Web Launch",
+    indexStatus: "Indexed",
+    use: "Primary ticket source for the private web product",
+  },
+  {
+    name: "runtime/kernel.ts",
+    kind: "Code",
+    project: "EchoAI Runtime",
+    indexStatus: "Indexed",
+    use: "AgentKernel event, tool, permission, and session behavior",
+  },
+  {
+    name: "gateway/protocol/index.ts",
+    kind: "Protocol",
+    project: "EchoAI Ecosystem",
+    indexStatus: "Indexed",
+    use: "Web, desktop, mobile, and CLI JSON-RPC contract",
+  },
+  {
+    name: "customer-upload.pdf",
+    kind: "Document",
+    project: "Demo workspace",
+    indexStatus: "Queued",
+    use: "Example uploaded knowledge file for retrieval",
+  },
+];
+
+export const notes: NoteAsset[] = [
+  {
+    title: "Private backend boundary",
+    project: "EchoAI Web Launch",
+    updated: "Today",
+    use: "Billing, hosted routing, vault, and user data stay out of the public CLI package",
+  },
+  {
+    title: "Model lane policy",
+    project: "EchoAI Web Launch",
+    updated: "Today",
+    use: "Hosted, free, BYOK, and local desktop models need separate usage and trust rules",
+  },
+  {
+    title: "Device handoff contract",
+    project: "EchoAI Ecosystem",
+    updated: "Today",
+    use: "Web can ask desktop to act locally and mobile can approve sensitive actions",
+  },
+];
+
+export const integrations: IntegrationSurface[] = [
+  {
+    name: "GitHub",
+    category: "Developer",
+    status: "Available",
+    tools: "Issues, pull requests, repositories, CI status",
+  },
+  {
+    name: "Slack",
+    category: "Team",
+    status: "Available",
+    tools: "Messages, channels, summaries, notifications",
+  },
+  {
+    name: "Google Drive",
+    category: "Knowledge",
+    status: "Private backend",
+    tools: "Docs, Sheets, Slides, file sync",
+  },
+  {
+    name: "Desktop Gateway",
+    category: "Local action",
+    status: "Connected",
+    tools: "Terminal, files, browser, app approvals",
+  },
+  {
+    name: "MCP servers",
+    category: "Extension",
+    status: "Available",
+    tools: "User-installed external tool servers",
+  },
+];
+
 export const devices: DeviceEndpoint[] = [
   {
     name: "MacBook Pro gateway",
@@ -284,4 +436,3 @@ export const milestones: BuildMilestone[] = [
     outcome: "Web, desktop, mobile, and CLI operate as one product.",
   },
 ];
-

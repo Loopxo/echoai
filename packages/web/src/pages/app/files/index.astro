@@ -1,0 +1,36 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { fileAssets } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Files"
+  eyebrow="Storage and indexing"
+  active="files"
+  description="Files are the raw source for knowledge retrieval, project context, citations, generated outputs, and mobile or desktop uploads."
+>
+  <section class="echo-card">
+    <div class="echo-card-header">
+      <div>
+        <h2>File assets</h2>
+        <p>Cloud storage, extraction, chunking, embeddings, and deletion policies attach to this surface.</p>
+      </div>
+      <span class="echo-tag neutral">W-068..W-075</span>
+    </div>
+    <table class="echo-table">
+      <thead><tr><th>Name</th><th>Kind</th><th>Project</th><th>Index</th><th>Use</th></tr></thead>
+      <tbody>
+        {fileAssets.map((file) => (
+          <tr>
+            <td>{file.name}</td>
+            <td>{file.kind}</td>
+            <td>{file.project}</td>
+            <td><span class:list={["echo-tag", file.indexStatus === "Indexed" ? "good" : file.indexStatus === "Queued" ? "warn" : "neutral"]}>{file.indexStatus}</span></td>
+            <td>{file.use}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

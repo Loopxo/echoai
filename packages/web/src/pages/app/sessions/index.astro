@@ -1,0 +1,36 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { sessions } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Sessions"
+  eyebrow="Conversation continuity"
+  active="sessions"
+  description="Sessions unify EchoAI web, desktop, CLI, and mobile conversations with source labels, model metadata, exports, forks, and handoff state."
+>
+  <section class="echo-card">
+    <div class="echo-card-header">
+      <div>
+        <h2>Unified session registry</h2>
+        <p>These records mirror the planned cloud registry that will replace local-only session storage for web use.</p>
+      </div>
+      <span class="echo-tag good">W-031..W-055</span>
+    </div>
+    <table class="echo-table">
+      <thead><tr><th>Title</th><th>Source</th><th>Model</th><th>Status</th><th>Context</th></tr></thead>
+      <tbody>
+        {sessions.map((session) => (
+          <tr>
+            <td>{session.title}</td>
+            <td>{session.source}</td>
+            <td>{session.model}</td>
+            <td><span class:list={["echo-tag", session.status === "Active" ? "good" : session.status === "Paused" ? "warn" : "neutral"]}>{session.status}</span></td>
+            <td>{session.context}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

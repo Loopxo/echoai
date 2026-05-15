@@ -1,0 +1,35 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { integrations } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Integrations"
+  eyebrow="External actions"
+  active="integrations"
+  description="Integrations connect EchoAI to apps, MCP servers, desktop gateway capabilities, and external work systems with strict tool exposure policy."
+>
+  <section class="echo-card">
+    <div class="echo-card-header">
+      <div>
+        <h2>Integration catalog</h2>
+        <p>OAuth and connector setup belong in the private backend. Tool schemas must remain inspectable before use.</p>
+      </div>
+      <span class="echo-tag warn">W-090..W-092</span>
+    </div>
+    <table class="echo-table">
+      <thead><tr><th>Name</th><th>Category</th><th>Status</th><th>Tools</th></tr></thead>
+      <tbody>
+        {integrations.map((integration) => (
+          <tr>
+            <td>{integration.name}</td>
+            <td>{integration.category}</td>
+            <td><span class:list={["echo-tag", integration.status === "Connected" ? "good" : integration.status === "Private backend" ? "warn" : "neutral"]}>{integration.status}</span></td>
+            <td>{integration.tools}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

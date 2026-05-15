@@ -1,0 +1,18 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell
+  title="Usage"
+  eyebrow="Cost and activity"
+  active="usage"
+  description="Usage connects hosted credits, BYOK visibility, free model limits, tool costs, automation runs, and project-level reporting."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-3"><h2>Hosted credits</h2><p>Premium EchoAI model usage debits the cloud ledger by user, workspace, project, and run.</p></article>
+    <article class="echo-card span-3"><h2>Free limits</h2><p>Free route calls require rate limits, abuse controls, fallback handling, and clear upgrade prompts.</p></article>
+    <article class="echo-card span-3"><h2>BYOK</h2><p>Provider-key calls do not consume EchoAI credits but should still show token and model usage.</p></article>
+    <article class="echo-card span-3"><h2>Tools</h2><p>Browser, sandbox, storage, media, and automation actions need cost attribution.</p></article>
+  </section>
+</EchoAppShell>
+

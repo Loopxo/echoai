@@ -1,9 +1,13 @@
 import {
   automations,
   devices,
+  fileAssets,
+  integrations,
   milestones,
   modelRoutes,
+  notes,
   projects,
+  sessions,
   statusMetrics,
   toolSurfaces,
 } from "./echoai-app-data";
@@ -22,7 +26,11 @@ export function createEchoAIAppState() {
     },
     statusMetrics,
     modelRoutes,
+    sessions,
     projects,
+    fileAssets,
+    notes,
+    integrations,
     toolSurfaces,
     automations,
     devices,
@@ -38,4 +46,3 @@ export function jsonResponse(data: unknown): Response {
     },
   });
 }
-

@@ -1,0 +1,27 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell
+  title="Admin"
+  eyebrow="Workspace control"
+  active="admin"
+  description="Admin controls are for workspace owners: roles, provider vault policy, billing, audit, feature flags, and device trust."
+>
+  <section class="echo-grid">
+    {[
+      ["Members", "Invite users, assign owner/admin/member roles, and revoke access."],
+      ["Feature flags", "Control free models, media, automations, integrations, and device handoff."],
+      ["Audit", "Search auth, billing, provider key, tool, device, and approval events."],
+      ["Vault", "Manage provider-key scopes, rotation, and access policy."],
+      ["Compliance", "Data export, deletion, retention, and workspace privacy controls."],
+      ["Support", "Redacted diagnostics, failed runs, billing state, and device health."]
+    ].map(([title, detail]) => (
+      <article class="echo-card span-4">
+        <h2>{title}</h2>
+        <p>{detail}</p>
+      </article>
+    ))}
+  </section>
+</EchoAppShell>
+

@@ -1,0 +1,14 @@
+---
+import EchoAppShell from "../../../../components/app/EchoAppShell.astro";
+import { toolSurfaces } from "../../../../lib/echoai-app-data";
+---
+
+<EchoAppShell title="Permission Settings" eyebrow="Allow, ask, deny" active="settings" description="Permission settings control what EchoAI can read, write, execute, fetch, or hand off to a desktop device.">
+  <section class="echo-card">
+    <table class="echo-table">
+      <thead><tr><th>Tool</th><th>Category</th><th>Default</th><th>Detail</th></tr></thead>
+      <tbody>{toolSurfaces.map((tool) => <tr><td>{tool.name}</td><td>{tool.category}</td><td>{tool.policy}</td><td>{tool.detail}</td></tr>)}</tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

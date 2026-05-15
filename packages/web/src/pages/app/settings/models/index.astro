@@ -1,0 +1,14 @@
+---
+import EchoAppShell from "../../../../components/app/EchoAppShell.astro";
+import { modelRoutes } from "../../../../lib/echoai-app-data";
+---
+
+<EchoAppShell title="Model Settings" eyebrow="Routing policy" active="settings" description="Configure default model lanes, capability filters, fallbacks, and per-project model preferences.">
+  <section class="echo-card">
+    <table class="echo-table">
+      <thead><tr><th>Lane</th><th>Provider</th><th>Mode</th><th>Status</th></tr></thead>
+      <tbody>{modelRoutes.map((route) => <tr><td>{route.name}</td><td>{route.provider}</td><td>{route.mode}</td><td>{route.status}</td></tr>)}</tbody>
+    </table>
+  </section>
+</EchoAppShell>
+
