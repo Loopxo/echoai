@@ -70,6 +70,18 @@ Recommended structure:
 - Add generated TypeScript/Kotlin/Swift contracts from the same schema.
 - Build mobile features against EchoAI Cloud and local desktop gateway.
 
+## Shared Protocol Schema
+
+The canonical mobile protocol starts in `@echoai/types` at `packages/types/src/mobile.ts`. It defines:
+
+- protocol version and target platforms for cloud, web, desktop, iOS, and Android
+- shared entities for auth state, workspaces, models, sessions, messages, files, projects, devices, approvals, and automations
+- method names and request/response maps for the first mobile API surface
+- chat/run event names for streaming, tool progress, approval requests, and run status
+- a `mobileProtocolSchema` inventory that later generators can use to emit Swift, Kotlin, and TypeScript bindings
+
+M-012, M-013, and M-014 should generate platform-specific models from this contract instead of redefining fields inside app code.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
