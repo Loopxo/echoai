@@ -5,6 +5,7 @@ import {
   type MobileProtocolRequestMap,
   type MobileProtocolResponse,
   type MobileProtocolResponseMap,
+  evaluateMobileProtocolVersion,
   mobileApiContract,
   MOBILE_PROTOCOL_VERSION,
 } from "../protocol";
@@ -63,7 +64,9 @@ export class EchoAIMobileClient {
 
     const response = await transport.request(method, envelope);
 
-    if (response.protocolVersion !== MOBILE_PROTOCOL_VERSION) {
+    const versionResult = evaluateMobileProtocolVersion(response.protocolVersion);
+
+    if (versionResult.compatibility === "unsupported") {
       throw new Error(`Unsupported EchoAI mobile protocol version: ${response.protocolVersion}`);
     }
 

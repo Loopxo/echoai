@@ -85,6 +85,8 @@ M-012, M-013, and M-014 now target React Native TypeScript models, client helper
 
 React Native API client helpers for M-014 live under `apps/mobile/src/api` and use the shared method constants plus request/response maps from `@echoai/types`.
 
+Protocol versioning for M-015 is defined by `MOBILE_PROTOCOL_VERSION`, `MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION`, `mobileProtocolVersionPolicy`, and `evaluateMobileProtocolVersion` in `packages/types/src/mobile.ts`; the React Native API client rejects unsupported server/gateway responses.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:

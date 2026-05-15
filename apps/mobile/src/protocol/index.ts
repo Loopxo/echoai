@@ -26,10 +26,13 @@ export type {
 } from "../../../../packages/types/src/mobile";
 
 export {
+  evaluateMobileProtocolVersion,
   mobileApiContract,
   mobileFeatureFlagDefaults,
+  mobileProtocolVersionPolicy,
   MobileFeatureFlags,
   MobileProtocolMethods,
   mobileProtocolSchema,
+  MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION,
   MOBILE_PROTOCOL_VERSION,
 } from "../../../../packages/types/src/mobile";

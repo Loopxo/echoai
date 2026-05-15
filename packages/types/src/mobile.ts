@@ -7,10 +7,12 @@
  */
 
 export const MOBILE_PROTOCOL_VERSION = "2026-05-16";
+export const MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION = "2026-05-16";
 
 export type MobileProtocolTarget = "cloud" | "web" | "desktop" | "ios" | "android";
 export type MobileEntityId = string;
 export type MobileIsoTimestamp = string;
+export type MobileProtocolCompatibility = "compatible" | "upgrade-recommended" | "unsupported";
 
 export type MobileClientPlatform = "ios" | "android" | "web" | "desktop" | "cli" | "cloud";
 export type MobileSessionSource = "cloud" | "desktop-gateway";
@@ -28,6 +30,55 @@ export interface MobileClientDescriptor {
     buildNumber?: string;
     deviceId?: MobileEntityId;
     workspaceId?: MobileEntityId;
+}
+
+export interface MobileProtocolVersionPolicy {
+    currentVersion: typeof MOBILE_PROTOCOL_VERSION;
+    minimumSupportedVersion: typeof MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION;
+    compatibleVersions: readonly string[];
+}
+
+export interface MobileProtocolVersionResult {
+    compatibility: MobileProtocolCompatibility;
+    currentVersion: string;
+    minimumSupportedVersion: string;
+    receivedVersion: string;
+}
+
+export const mobileProtocolVersionPolicy = {
+    currentVersion: MOBILE_PROTOCOL_VERSION,
+    minimumSupportedVersion: MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION,
+    compatibleVersions: [MOBILE_PROTOCOL_VERSION],
+} as const satisfies MobileProtocolVersionPolicy;
+
+export function evaluateMobileProtocolVersion(
+    receivedVersion: string,
+    policy: MobileProtocolVersionPolicy = mobileProtocolVersionPolicy
+): MobileProtocolVersionResult {
+    if (policy.compatibleVersions.includes(receivedVersion)) {
+        return {
+            compatibility: "compatible",
+            currentVersion: policy.currentVersion,
+            minimumSupportedVersion: policy.minimumSupportedVersion,
+            receivedVersion,
+        };
+    }
+
+    if (receivedVersion >= policy.minimumSupportedVersion && receivedVersion < policy.currentVersion) {
+        return {
+            compatibility: "upgrade-recommended",
+            currentVersion: policy.currentVersion,
+            minimumSupportedVersion: policy.minimumSupportedVersion,
+            receivedVersion,
+        };
+    }
+
+    return {
+        compatibility: "unsupported",
+        currentVersion: policy.currentVersion,
+        minimumSupportedVersion: policy.minimumSupportedVersion,
+        receivedVersion,
+    };
 }
 
 export interface MobileProtocolEnvelope<TPayload> {
@@ -328,6 +379,7 @@ export interface MobileProtocolDomainSchema {
 
 export interface MobileProtocolSchema {
     version: typeof MOBILE_PROTOCOL_VERSION;
+    minimumSupportedVersion: typeof MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION;
     targets: readonly MobileProtocolTarget[];
     sourcePackage: "@echoai/types";
     domains: {
@@ -512,6 +564,7 @@ export const mobileApiContract = {
 
 export const mobileProtocolSchema = {
     version: MOBILE_PROTOCOL_VERSION,
+    minimumSupportedVersion: MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION,
     targets: ["cloud", "web", "desktop", "ios", "android"],
     sourcePackage: "@echoai/types",
     domains: {
