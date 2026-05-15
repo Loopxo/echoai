@@ -10,6 +10,7 @@ export type {
   MobileChatSendResponse,
   MobileClientDescriptor,
   MobileDevice,
+  MobileEntityId,
   MobileFileSummary,
   MobileModelRef,
   MobilePairingChallenge,
@@ -21,6 +22,7 @@ export type {
   MobileProtocolResponseMap,
   MobileRunStatus,
   MobileSessionDetail,
+  MobileSessionSource,
   MobileSessionSummary,
   MobileWorkspace,
 } from "../../../../packages/types/src/mobile";

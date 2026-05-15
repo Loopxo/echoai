@@ -305,6 +305,7 @@ export const MobileProtocolMethods = {
     AUTH_LOGOUT: "auth.logout",
     SESSION_LIST: "session.list",
     SESSION_GET: "session.get",
+    SESSION_RESUME: "session.resume",
     SESSION_DELETE: "session.delete",
     CHAT_SEND: "chat.send",
     CHAT_ABORT: "chat.abort",
@@ -328,6 +329,7 @@ export interface MobileProtocolRequestMap {
     [MobileProtocolMethods.AUTH_LOGOUT]: Record<string, never>;
     [MobileProtocolMethods.SESSION_LIST]: { workspaceId: MobileEntityId; source?: MobileSessionSource; projectId?: MobileEntityId };
     [MobileProtocolMethods.SESSION_GET]: { sessionId: MobileEntityId; source: MobileSessionSource };
+    [MobileProtocolMethods.SESSION_RESUME]: { sessionId: MobileEntityId; source: MobileSessionSource };
     [MobileProtocolMethods.SESSION_DELETE]: { sessionId: MobileEntityId; source: MobileSessionSource };
     [MobileProtocolMethods.CHAT_SEND]: MobileChatSendRequest;
     [MobileProtocolMethods.CHAT_ABORT]: { sessionId: MobileEntityId; runId: MobileEntityId; source: MobileSessionSource };
@@ -349,6 +351,7 @@ export interface MobileProtocolResponseMap {
     [MobileProtocolMethods.AUTH_LOGOUT]: { signedOut: true };
     [MobileProtocolMethods.SESSION_LIST]: { sessions: MobileSessionSummary[] };
     [MobileProtocolMethods.SESSION_GET]: MobileSessionDetail;
+    [MobileProtocolMethods.SESSION_RESUME]: { session: MobileSessionDetail; runId?: MobileEntityId; status: MobileRunStatus };
     [MobileProtocolMethods.SESSION_DELETE]: { sessionId: MobileEntityId; deleted: true };
     [MobileProtocolMethods.CHAT_SEND]: MobileChatSendResponse;
     [MobileProtocolMethods.CHAT_ABORT]: { runId: MobileEntityId; status: "cancelled" };
@@ -446,6 +449,14 @@ export const mobileApiContract = {
             auth: "cloud-session",
             requestType: MobileProtocolMethods.SESSION_GET,
             responseType: MobileProtocolMethods.SESSION_GET,
+        },
+        [MobileProtocolMethods.SESSION_RESUME]: {
+            method: MobileProtocolMethods.SESSION_RESUME,
+            domain: "sessions",
+            transports: ["https", "gateway-rpc"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.SESSION_RESUME,
+            responseType: MobileProtocolMethods.SESSION_RESUME,
         },
         [MobileProtocolMethods.SESSION_DELETE]: {
             method: MobileProtocolMethods.SESSION_DELETE,
@@ -577,6 +588,7 @@ export const mobileProtocolSchema = {
             methods: [
                 MobileProtocolMethods.SESSION_LIST,
                 MobileProtocolMethods.SESSION_GET,
+                MobileProtocolMethods.SESSION_RESUME,
                 MobileProtocolMethods.SESSION_DELETE,
             ],
         },

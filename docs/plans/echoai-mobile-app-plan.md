@@ -87,6 +87,8 @@ React Native API client helpers for M-014 live under `apps/mobile/src/api` and u
 
 Protocol versioning for M-015 is defined by `MOBILE_PROTOCOL_VERSION`, `MOBILE_MIN_SUPPORTED_PROTOCOL_VERSION`, `mobileProtocolVersionPolicy`, and `evaluateMobileProtocolVersion` in `packages/types/src/mobile.ts`; the React Native API client rejects unsupported server/gateway responses.
 
+Session API helpers for M-016 live in `apps/mobile/src/api/sessionApi.ts` and cover list, get, send, abort, and resume using the shared protocol methods.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
