@@ -1,7 +1,10 @@
 import React from "react";
 import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 
+import { createEchoAIMobileClient } from "./api";
 import { HomeScreen } from "./screens/HomeScreen";
+
+const clientFactoryReady = typeof createEchoAIMobileClient === "function";
 
 export default function App() {
   return (
@@ -9,7 +12,7 @@ export default function App() {
       <StatusBar barStyle="light-content" />
       <View style={styles.app}>
         <Text style={styles.brand}>EchoAI</Text>
-        <HomeScreen />
+        <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
   );

@@ -83,6 +83,8 @@ The canonical mobile protocol starts in `@echoai/types` at `packages/types/src/m
 
 M-012, M-013, and M-014 now target React Native TypeScript models, client helpers, and native module interface definitions instead of generated Swift/Kotlin app models.
 
+React Native API client helpers for M-014 live under `apps/mobile/src/api` and use the shared method constants plus request/response maps from `@echoai/types`.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:

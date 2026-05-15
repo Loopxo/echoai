@@ -3,12 +3,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { MOBILE_PROTOCOL_VERSION } from "../protocol";
 
-export function HomeScreen() {
+interface HomeScreenProps {
+  apiReady: boolean;
+}
+
+export function HomeScreen({ apiReady }: HomeScreenProps) {
   return (
     <View style={styles.screen}>
       <View style={styles.statusRow}>
         <View style={styles.statusDot} />
-        <Text style={styles.statusText}>React Native mobile foundation</Text>
+        <Text style={styles.statusText}>{apiReady ? "API client ready" : "API client unavailable"}</Text>
       </View>
 
       <Text style={styles.title}>Mobile command center</Text>
