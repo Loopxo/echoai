@@ -125,6 +125,31 @@ Release rules:
 - Store submissions must include permission rationale for camera, microphone, local network, notifications, location, and screen capture where applicable.
 - External distribution waits until M-098, M-099, and M-100 pass on the supported device matrix.
 
+## Mobile Data Policy
+
+Data classes:
+
+| Data | Local storage | Cloud sync | Delete/export behavior |
+|---|---|---|---|
+| Auth tokens | Keychain/Keystore only | Token metadata only | Logout removes local tokens; account deletion revokes server tokens |
+| Device identity and pairing keys | Secure local storage | Device registry and audit metadata | Revocation removes pairing keys and disables push |
+| Chat messages | Encrypted cache for recent sessions | Synced when cloud or hybrid mode is enabled | Export by workspace/session; delete removes cache and cloud copy where owned |
+| Desktop gateway transcripts | Cache only for user-visible run state | Sync only when user/org enables desktop sync | Desktop remains source of truth unless exported |
+| Files and attachments | Temporary upload cache and previews | Uploaded to selected workspace/project | Delete removes local cache, object storage, indexing rows, and embeddings |
+| Camera/audio/location captures | Pending upload queue until sent | Synced only after explicit send/share action | User can delete unsent captures locally |
+| Memories and notes | Encrypted cache for offline viewing/editing | Synced by workspace/project scope | Export/delete through memory and notes APIs |
+| Approvals and audit events | Minimal local history for recent decisions | Required server/desktop audit record | Audit records are retained by policy even after local cache clear |
+| Debug logs | Redacted rotating local files | Uploaded only by explicit support action | User can clear local logs; support bundle excludes prompts by default |
+
+Policy rules:
+
+- Prompt, message, file, and capture content must not enter analytics events.
+- Sensitive cache uses platform-backed encryption before M-096 is marked complete.
+- Offline capture queues must show pending state and never silently upload over an unexpected workspace.
+- Cloud sync is per workspace and must respect org policy, user logout, and revoked device state.
+- Local cache clear is available without deleting the cloud account.
+- Account deletion and data export are coordinated with web/cloud APIs, but mobile must expose the entry point.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
