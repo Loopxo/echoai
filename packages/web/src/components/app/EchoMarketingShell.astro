@@ -1,0 +1,48 @@
+---
+import "../../styles/echoai-app.css";
+
+interface Props {
+  title: string;
+  eyebrow: string;
+  description: string;
+}
+
+const { title, eyebrow, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title} | EchoAI</title>
+  </head>
+  <body class="echo-app-body">
+    <main class="echo-main" style="max-width: 1180px; margin: 0 auto;">
+      <nav class="echo-topbar">
+        <a class="echo-brand" href="/" style="border: 0; padding: 0; text-decoration: none;">
+          <span class="echo-brand-mark">E</span>
+          <span>
+            <strong>EchoAI</strong>
+            <span>Terminal, web, desktop, mobile</span>
+          </span>
+        </a>
+        <div class="echo-actions">
+          <a class="echo-button-secondary" href="/download">Download</a>
+          <a class="echo-button-secondary" href="/pricing">Pricing</a>
+          <a class="echo-button" href="/app">Open app</a>
+        </div>
+      </nav>
+
+      <section class="echo-band">
+        <div class="echo-kicker">{eyebrow}</div>
+        <h1 class="echo-title">{title}</h1>
+        <p class="echo-description">{description}</p>
+      </section>
+
+      <slot />
+    </main>
+  </body>
+</html>
+
