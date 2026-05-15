@@ -83,6 +83,8 @@ The canonical mobile protocol starts in `@echoai/types` at `packages/types/src/m
 
 M-012, M-013, and M-014 should generate platform-specific models from this contract instead of redefining fields inside app code.
 
+Swift request/response bindings for M-012 live at `apps/shared/EchoAIKit/Sources/EchoAIProtocol/MobileProtocolModels.swift` and mirror `MobileProtocolMethods`, request payloads, and response payloads from `packages/types/src/mobile.ts`.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
