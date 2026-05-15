@@ -270,6 +270,36 @@ Accessibility rules:
 - Color is never the only status signal.
 - Motion-sensitive users get static connection/listening indicators.
 
+## Mobile QA Device Matrix
+
+Current repo baselines:
+
+- Android: `minSdk = 31`, `targetSdk = 36`, Kotlin/Compose app under `apps/android`.
+- iOS: Swift Package platform baseline is iOS 18 in `apps/shared/EchoAIKit/Package.swift`.
+
+Required smoke devices:
+
+| Platform | Minimum | Primary | Large/edge | Required coverage |
+|---|---|---|---|---|
+| iOS | iPhone on iOS 18 | Current iPhone standard size | iPad or large iPhone | Auth, cloud chat, local network prompt, QR pairing, push, camera, microphone, location, logout |
+| Android | API 31 device/emulator | Current Pixel API 36 | Large-screen Android/tablet or foldable emulator | Auth, cloud chat, mDNS/manual pairing, push, camera, microphone, share sheet, foreground service, logout |
+
+Release blockers:
+
+- Sign-in, chat send/stream/stop, session resume, and logout pass on every required smoke device.
+- Pairing and TLS identity mismatch handling pass on one physical iOS and one physical Android device on the same LAN as desktop gateway.
+- Push notification deep links work for approval requests and run completion on both platforms.
+- Permission denial paths are tested for camera, microphone, location, notifications, and local network/discovery.
+- Android foreground-service notification remains visible while screen capture or voice wake is active.
+- No release build contains debug endpoints, local debug feature overrides, or unredacted support logging.
+
+Nice-to-have coverage:
+
+- Low-connectivity network, airplane-mode recovery, and app foreground/background reconnect.
+- Small screen dynamic type / font scaling.
+- Dark/light mode and system reduced-motion setting.
+- Upgrade from previous TestFlight/internal build without losing tokens or pairing state.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
