@@ -1,0 +1,66 @@
+---
+import "../../styles/echoai-app.css";
+import { appNav } from "../../lib/echoai-app-data";
+
+interface Props {
+  title: string;
+  eyebrow: string;
+  description: string;
+  active: string;
+}
+
+const { title, eyebrow, description, active } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title} | EchoAI Web</title>
+  </head>
+  <body class="echo-app-body">
+    <div class="echo-shell">
+      <aside class="echo-sidebar" aria-label="EchoAI app navigation">
+        <a class="echo-brand" href="/app" aria-label="EchoAI command center">
+          <span class="echo-brand-mark">E</span>
+          <span>
+            <strong>EchoAI Web</strong>
+            <span>Private command center</span>
+          </span>
+        </a>
+
+        <nav class="echo-nav">
+          {appNav.map((item) => (
+            <a class:list={{ active: item.key === active }} href={item.href}>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
+        <div class="echo-sidebar-note">
+          Web, desktop, mobile, and CLI share the same product contract: sessions,
+          tools, approvals, memory, and gateway handoff.
+        </div>
+      </aside>
+
+      <main class="echo-main">
+        <header class="echo-topbar">
+          <div>
+            <div class="echo-kicker">{eyebrow}</div>
+            <h1 class="echo-title">{title}</h1>
+            <p class="echo-description">{description}</p>
+          </div>
+          <div class="echo-actions">
+            <a class="echo-button-secondary" href="/docs">Docs</a>
+            <a class="echo-button" href="/app/chat">New chat</a>
+          </div>
+        </header>
+
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+

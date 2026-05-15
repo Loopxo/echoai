@@ -1,0 +1,28 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { automations } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Automations"
+  eyebrow="Scheduled work"
+  active="automations"
+  description="Automations let EchoAI run recurring prompts with selected context, model lanes, tool policy, output targets, and audit trails."
+>
+  <section class="echo-grid">
+    {automations.map((automation) => (
+      <article class="echo-card span-4">
+        <div class="echo-card-header">
+          <h2>{automation.name}</h2>
+          <span class:list={["echo-tag", automation.status === "Ready" ? "good" : automation.status === "Needs setup" ? "warn" : "neutral"]}>{automation.status}</span>
+        </div>
+        <ul class="echo-list">
+          <li class="echo-list-item"><strong>Schedule</strong><span>{automation.schedule}</span></li>
+          <li class="echo-list-item"><strong>Context</strong><span>{automation.context}</span></li>
+          <li class="echo-list-item"><strong>Output</strong><span>{automation.output}</span></li>
+        </ul>
+      </article>
+    ))}
+  </section>
+</EchoAppShell>
+

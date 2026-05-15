@@ -1,0 +1,27 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell
+  title="Settings"
+  eyebrow="Control plane"
+  active="settings"
+  description="Settings centralize account, models, provider keys, security policy, device trust, data export, feature flags, and private backend integration."
+>
+  <section class="echo-grid">
+    {[
+      ["Models", "Default model lane, hosted presets, free routing, BYOK providers, and local desktop models."],
+      ["Security", "Permission policy, audit logs, SSRF protection, tool exposure, and approval defaults."],
+      ["Data", "Export, delete, retention, project memory, file storage, and private sync controls."],
+      ["Devices", "Desktop pairing, mobile approvals, CLI sessions, and gateway trust state."],
+      ["Integrations", "MCP servers, skills, external apps, OAuth connectors, and browser profiles."],
+      ["Feature flags", "Enable or disable media, automations, free models, BYOK, and desktop handoff by plan."]
+    ].map(([title, detail]) => (
+      <article class="echo-card span-4">
+        <h2>{title}</h2>
+        <p>{detail}</p>
+      </article>
+    ))}
+  </section>
+</EchoAppShell>
+

@@ -1,0 +1,36 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { toolSurfaces } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Tools"
+  eyebrow="MCP, skills, and runtime tools"
+  active="tools"
+  description="The tools surface makes every agent capability inspectable: built-in runtime tools, MCP servers, skills, browser automation, integrations, and desktop handoff."
+>
+  <section class="echo-card">
+    <div class="echo-card-header">
+      <div>
+        <h2>Tool exposure policy</h2>
+        <p>EchoAI should show what a tool can do before the model can use it.</p>
+      </div>
+      <span class="echo-tag good">W-086..W-095</span>
+    </div>
+    <table class="echo-table">
+      <thead><tr><th>Tool</th><th>Category</th><th>Policy</th><th>Source</th><th>Detail</th></tr></thead>
+      <tbody>
+        {toolSurfaces.map((tool) => (
+          <tr>
+            <td>{tool.name}</td>
+            <td>{tool.category}</td>
+            <td><span class:list={["echo-tag", tool.policy === "Allow" ? "good" : tool.policy === "Ask" ? "warn" : "neutral"]}>{tool.policy}</span></td>
+            <td>{tool.source}</td>
+            <td>{tool.detail}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

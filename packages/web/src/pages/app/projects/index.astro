@@ -1,0 +1,36 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { projects } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Projects"
+  eyebrow="Scoped workspaces"
+  active="projects"
+  description="Projects combine chats, files, notes, memories, automations, outputs, and device handoff targets into one durable workspace."
+>
+  <section class="echo-grid">
+    {projects.map((project) => (
+      <article class="echo-card span-4">
+        <div class="echo-card-header">
+          <h2>{project.name}</h2>
+          <span class="echo-tag neutral">{project.scope}</span>
+        </div>
+        <p>{project.memory}</p>
+        <table class="echo-table" style="margin-top: 12px;">
+          <tbody>
+            <tr><th>Sessions</th><td>{project.sessions}</td></tr>
+            <tr><th>Files</th><td>{project.files}</td></tr>
+            <tr><th>Next</th><td>{project.nextAction}</td></tr>
+          </tbody>
+        </table>
+      </article>
+    ))}
+  </section>
+
+  <section class="echo-band" style="margin-top: 16px;">
+    <h2 style="margin: 0;">Project contract</h2>
+    <p class="echo-description">Each project should map to cloud records and optional desktop workspace roots. When a project is handed to desktop, EchoAI must preserve context, permissions, active model lane, and artifact destination.</p>
+  </section>
+</EchoAppShell>
+

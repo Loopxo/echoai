@@ -1,0 +1,34 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell
+  title="Billing"
+  eyebrow="Plans, credits, and usage"
+  active="billing"
+  description="Billing connects hosted premium credits, free model limits, BYOK behavior, storage budgets, automation quotas, and team entitlements."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-4">
+      <h2>Free</h2>
+      <p>Rate-limited free model lane, local desktop pairing, limited storage, and basic chat history.</p>
+    </article>
+    <article class="echo-card span-4">
+      <h2>Pro</h2>
+      <p>Hosted premium model credits, higher context, automations, outputs, and device sync.</p>
+    </article>
+    <article class="echo-card span-4">
+      <h2>Team</h2>
+      <p>Shared workspace, roles, audit logs, managed provider vault, and admin controls.</p>
+    </article>
+  </section>
+
+  <section class="echo-card" style="margin-top: 16px;">
+    <div class="echo-card-header">
+      <h2>Usage ledger requirements</h2>
+      <span class="echo-tag warn">Private backend</span>
+    </div>
+    <p>Every hosted model call needs model ID, provider, input tokens, output tokens, tool cost, project, user, workspace, and run ID. BYOK calls should still show local usage without charging EchoAI credits.</p>
+  </section>
+</EchoAppShell>
+

@@ -1,0 +1,36 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell
+  title="Memories"
+  eyebrow="Durable context"
+  active="memories"
+  description="Memories capture user preferences, project facts, architecture decisions, and standing instructions with explicit approval and privacy controls."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-4">
+      <h2>Global</h2>
+      <p>Preferences that follow the user across EchoAI web, desktop, mobile, and CLI sessions.</p>
+    </article>
+    <article class="echo-card span-4">
+      <h2>Workspace</h2>
+      <p>Team or organization context, coding conventions, product boundaries, and approved defaults.</p>
+    </article>
+    <article class="echo-card span-4">
+      <h2>Project</h2>
+      <p>Specific facts, decisions, architecture notes, and unresolved threads for active projects.</p>
+    </article>
+  </section>
+
+  <section class="echo-card" style="margin-top: 16px;">
+    <div class="echo-card-header">
+      <h2>Memory approval flow</h2>
+      <span class="echo-tag warn">W-080..W-085</span>
+    </div>
+    <pre class="echo-code">conversation insight -> assistant proposes memory -> user approves
+  -> memory scope selected -> retrieval policy applies
+  -> memory appears in prompt context with traceable reason</pre>
+  </section>
+</EchoAppShell>
+

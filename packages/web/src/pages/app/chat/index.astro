@@ -1,0 +1,91 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { modelRoutes, toolSurfaces } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Chat"
+  eyebrow="Runtime chat"
+  active="chat"
+  description="A web chat surface designed for EchoAI runtime streams, tool traces, project context, free/premium/BYOK models, and desktop handoff."
+>
+  <section class="echo-grid">
+    <div class="echo-chat-frame span-8">
+      <div class="echo-chat-header">
+        <strong>EchoAI Code - Project: EchoAI Web Launch</strong>
+        <span class="echo-muted" style="display: block; margin-top: 4px;">Ask mode can answer from knowledge. Act mode can call tools with approvals.</span>
+      </div>
+      <div class="echo-chat-thread">
+        <div class="echo-message user">
+          <strong>You</strong>
+          <p>Build the private web app foundation and connect it to EchoAI runtime concepts.</p>
+        </div>
+        <div class="echo-message">
+          <strong>EchoAI</strong>
+          <p>I will use the web shell, shared contracts, model lanes, project context, permissions, and gateway handoff as the first slice. Backend runtime wiring comes next.</p>
+        </div>
+        <div class="echo-message">
+          <strong>Tool trace</strong>
+          <p>Read plan W-001..W-100, map Overlay/Open Cowork/Eigent references, create app routes, expose model lanes, and keep private backend boundaries clear.</p>
+        </div>
+      </div>
+      <div class="echo-chat-input">
+        <div class="echo-input-box">Message EchoAI, attach files, mention @project, or hand off to @desktop...</div>
+      </div>
+    </div>
+
+    <aside class="echo-card span-4">
+      <div class="echo-card-header">
+        <h2>Context stack</h2>
+        <span class="echo-tag good">W-031..W-055</span>
+      </div>
+      <ul class="echo-list">
+        <li class="echo-list-item">
+          <strong>Runtime</strong>
+          <span>AgentKernel sessions, messages, tools, permissions, artifacts, and audit events.</span>
+        </li>
+        <li class="echo-list-item">
+          <strong>Project</strong>
+          <span>Files, notes, memories, automations, and outputs scoped to current work.</span>
+        </li>
+        <li class="echo-list-item">
+          <strong>Gateway</strong>
+          <span>Desktop can execute local workspace actions after explicit approvals.</span>
+        </li>
+      </ul>
+    </aside>
+  </section>
+
+  <section class="echo-grid" style="margin-top: 16px;">
+    <article class="echo-card span-6">
+      <div class="echo-card-header">
+        <h2>Available model lanes</h2>
+        <span class="echo-tag neutral">Picker data</span>
+      </div>
+      <ul class="echo-list">
+        {modelRoutes.map((route) => (
+          <li class="echo-list-item">
+            <strong>{route.name} <span class="echo-muted">({route.mode})</span></strong>
+            <span>{route.provider} - {route.capabilities.join(", ")}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
+
+    <article class="echo-card span-6">
+      <div class="echo-card-header">
+        <h2>Tool policy preview</h2>
+        <span class="echo-tag warn">Approvals</span>
+      </div>
+      <ul class="echo-list">
+        {toolSurfaces.slice(0, 4).map((tool) => (
+          <li class="echo-list-item">
+            <strong>{tool.name} <span class="echo-muted">- {tool.policy}</span></strong>
+            <span>{tool.detail}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
+  </section>
+</EchoAppShell>
+

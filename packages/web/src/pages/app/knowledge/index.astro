@@ -1,0 +1,41 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+---
+
+<EchoAppShell
+  title="Knowledge"
+  eyebrow="Files and retrieval"
+  active="knowledge"
+  description="The knowledge area covers upload, parsing, lexical search, semantic search, citations, project file trees, and secure deletion."
+>
+  <section class="echo-grid">
+    <article class="echo-card span-6">
+      <div class="echo-card-header">
+        <h2>Ingestion pipeline</h2>
+        <span class="echo-tag good">W-066..W-075</span>
+      </div>
+      <ul class="echo-list">
+        <li class="echo-list-item"><strong>Upload</strong><span>File size, type, project scope, storage budget, and progress states.</span></li>
+        <li class="echo-list-item"><strong>Extract</strong><span>Text extraction for code, markdown, PDF, DOCX, CSV, and plain text.</span></li>
+        <li class="echo-list-item"><strong>Index</strong><span>Chunks, embeddings, lexical terms, metadata, and citation anchors.</span></li>
+        <li class="echo-list-item"><strong>Retrieve</strong><span>Hybrid search returns relevant chunks with source links for chat context.</span></li>
+      </ul>
+    </article>
+
+    <article class="echo-card span-6">
+      <div class="echo-card-header">
+        <h2>Search preview</h2>
+        <span class="echo-tag neutral">Project scope</span>
+      </div>
+      <table class="echo-table">
+        <thead><tr><th>Source</th><th>Match</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td>web-plan.md</td><td>BYOK vault</td><td>Provider settings context</td></tr>
+          <tr><td>runtime/kernel.ts</td><td>Permission resolver</td><td>Tool policy context</td></tr>
+          <tr><td>gateway/protocol</td><td>chat.send</td><td>Device handoff context</td></tr>
+        </tbody>
+      </table>
+    </article>
+  </section>
+</EchoAppShell>
+

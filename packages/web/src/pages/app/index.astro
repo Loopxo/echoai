@@ -1,0 +1,87 @@
+---
+import EchoAppShell from "../../components/app/EchoAppShell.astro";
+import { milestones, modelRoutes, statusMetrics } from "../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Command Center"
+  eyebrow="EchoAI ecosystem"
+  active="home"
+  description="The private web surface for hosted models, free model entry, BYOK routing, project context, desktop handoff, mobile approvals, and CLI session continuity."
+>
+  <section class="echo-grid">
+    {statusMetrics.map((metric) => (
+      <article class="echo-card span-3">
+        <div class:list={["echo-tag", metric.tone]}>{metric.label}</div>
+        <h2 style="margin-top: 12px;">{metric.value}</h2>
+        <p>{metric.detail}</p>
+      </article>
+    ))}
+  </section>
+
+  <section class="echo-grid" style="margin-top: 16px;">
+    <article class="echo-card span-7">
+      <div class="echo-card-header">
+        <div>
+          <h2>Integrated product loop</h2>
+          <p>EchoAI Web coordinates the hosted app while desktop and mobile provide local action and remote control.</p>
+        </div>
+        <span class="echo-tag good">Plan W-001..W-100</span>
+      </div>
+      <pre class="echo-code">Web app -> EchoAI Cloud runtime -> AgentKernel
+        -> model router -> hosted/free/BYOK/local
+        -> tools and permissions -> artifacts and audit
+        -> desktop gateway -> local workspace, browser, terminal
+        -> mobile app -> approvals, capture, notifications</pre>
+    </article>
+
+    <article class="echo-card span-5">
+      <div class="echo-card-header">
+        <h2>Build milestones</h2>
+        <span class="echo-tag neutral">Execution map</span>
+      </div>
+      <ul class="echo-list">
+        {milestones.map((milestone) => (
+          <li class="echo-list-item">
+            <strong>{milestone.name} <span class="echo-muted">({milestone.id})</span></strong>
+            <span>{milestone.tickets}</span>
+            <span>{milestone.outcome}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
+  </section>
+
+  <section class="echo-card span-12" style="margin-top: 16px;">
+    <div class="echo-card-header">
+      <div>
+        <h2>Model routing lanes</h2>
+        <p>These lanes match the plan: premium EchoAI credits, free entry models, BYOK vault, and paired desktop/local execution.</p>
+      </div>
+      <span class="echo-tag good">W-056..W-065</span>
+    </div>
+    <table class="echo-table">
+      <thead>
+        <tr>
+          <th>Model lane</th>
+          <th>Provider</th>
+          <th>Mode</th>
+          <th>Capabilities</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {modelRoutes.map((route) => (
+          <tr>
+            <td>{route.name}</td>
+            <td>{route.provider}</td>
+            <td><span class="echo-tag neutral">{route.mode}</span></td>
+            <td>{route.capabilities.join(", ")}</td>
+            <td>{route.status}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+

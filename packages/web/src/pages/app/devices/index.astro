@@ -1,0 +1,35 @@
+---
+import EchoAppShell from "../../../components/app/EchoAppShell.astro";
+import { devices } from "../../../lib/echoai-app-data";
+---
+
+<EchoAppShell
+  title="Devices"
+  eyebrow="Gateway ecosystem"
+  active="devices"
+  description="Devices connect the web app to desktop local work, mobile approvals, CLI sessions, and remote gateway tunnels."
+>
+  <section class="echo-card">
+    <div class="echo-card-header">
+      <div>
+        <h2>Paired endpoints</h2>
+        <p>Device state should be backed by EchoAI gateway and private cloud device records.</p>
+      </div>
+      <span class="echo-tag good">W-100</span>
+    </div>
+    <table class="echo-table">
+      <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Capability</th></tr></thead>
+      <tbody>
+        {devices.map((device) => (
+          <tr>
+            <td>{device.name}</td>
+            <td>{device.type}</td>
+            <td><span class:list={["echo-tag", device.status === "Online" ? "good" : device.status === "Pairing" ? "warn" : "neutral"]}>{device.status}</span></td>
+            <td>{device.capability}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</EchoAppShell>
+
