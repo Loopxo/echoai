@@ -82,6 +82,27 @@ The canonical mobile protocol starts in `@echoai/types` at `packages/types/src/m
 
 M-012, M-013, and M-014 should generate platform-specific models from this contract instead of redefining fields inside app code.
 
+## Device Trust Model
+
+Mobile devices can exist in five trust states:
+
+| State | Identity | Allowed behavior | Blocked behavior |
+|---|---|---|---|
+| Guest | No cloud login and no desktop pair | View public/auth screens, start sign-in, scan pairing QR | Chat, sync, approvals, desktop control, push |
+| Cloud-authenticated | Signed in through EchoAI Cloud with secure local token storage | Cloud chat, session list, project/file upload, account settings, push for cloud runs | Local desktop actions until a desktop pair is approved |
+| Pairing | Cloud-authenticated device has requested trust with a desktop gateway | Show pairing challenge, wait for desktop approval, retry/expire pairing | Remote shell/file/browser control and approvals |
+| Trusted paired device | Desktop approved the mobile device and TLS/gateway identity is pinned | Send desktop prompts, view allowed run status/logs, approve/deny desktop actions, revoke trust | Access unapproved workspaces, bypass desktop policy, approve expired requests |
+| Revoked | User, org, or desktop revoked the device | Local cache cleanup, sign in again, request new pairing | Sync, push, desktop gateway access, approval decisions |
+
+Trust rules:
+
+- Cloud login proves the user account; desktop pairing proves permission to control one desktop runtime.
+- A trusted mobile device is scoped to the workspace and desktop capabilities granted by the desktop app.
+- Approval decisions must include device ID, account ID, approval ID, timestamp, and request hash for audit.
+- TLS pinning or equivalent gateway identity binding is required before a mobile device can issue desktop-control calls.
+- Revocation from cloud or desktop takes precedence over cached mobile state and must force reconnect/re-auth.
+- Guest devices never receive push notifications or approval payloads.
+
 ## Existing EchoAI Assets To Reuse
 
 | Existing area | Reuse |
