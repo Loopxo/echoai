@@ -64,6 +64,7 @@
     "zod"
   ],
   "workspaces": [
+    "apps/desktop",
     "packages/*",
     "channels/*"
   ],
@@ -77,6 +78,9 @@
     "build": "pnpm run build:packages && pnpm run build:app",
     "build:app": "tsc -p tsconfig.json && chmod +x dist/cli.js",
     "build:packages": "pnpm --recursive run build",
+    "desktop:dev": "pnpm --filter @echoai/desktop dev",
+    "desktop:build": "pnpm --filter @echoai/desktop build",
+    "desktop:typecheck": "pnpm --filter @echoai/desktop typecheck",
     "build:watch": "tsc --watch",
     "dev": "tsx src/cli.ts",
     "test": "vitest run --passWithNoTests",
