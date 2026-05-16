@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import type {
   DesktopAppSnapshot,
+  DesktopNotification,
+  DesktopRecentWorkspace,
   DesktopUpdateStatus,
+  DesktopWindowState,
   LogSearchEntry,
   WorkspaceSelection,
 } from '@shared/ipc';
@@ -28,6 +31,13 @@ const pages = [
 ] as const;
 
 type Page = (typeof pages)[number];
+
+type PaletteItem = {
+  id: string;
+  label: string;
+  detail: string;
+  run: () => void | Promise<void>;
+};
 
 const pageDescriptions: Record<Page, string> = {
   Home: 'Command center',
@@ -56,39 +66,58 @@ export function App(): ReactElement {
   const [activePage, setActivePage] = useState<Page>('Home');
   const [snapshot, setSnapshot] = useState<DesktopAppSnapshot | null>(null);
   const [workspace, setWorkspace] = useState<WorkspaceSelection | null>(null);
+  const [recentWorkspaces, setRecentWorkspaces] = useState<DesktopRecentWorkspace[]>([]);
   const [protocolUrl, setProtocolUrl] = useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(null);
+  const [windowState, setWindowState] = useState<DesktopWindowState>({
+    isMaximized: false,
+    isFullScreen: false,
+  });
+  const [notifications, setNotifications] = useState<DesktopNotification[]>([]);
   const [logQuery, setLogQuery] = useState('');
   const [logs, setLogs] = useState<LogSearchEntry[]>([]);
+  const [paletteQuery, setPaletteQuery] = useState('');
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isSelectingWorkspace, setIsSelectingWorkspace] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    void window.echoaiDesktop.getSnapshot().then((nextSnapshot) => {
+    void refreshSnapshot().then((nextSnapshot) => {
       if (!isMounted) {
         return;
       }
 
-      setSnapshot(nextSnapshot);
-      if (nextSnapshot.recovery.lastWorkspacePath) {
-        setWorkspace({
-          path: nextSnapshot.recovery.lastWorkspacePath,
-          selectedAt: nextSnapshot.recovery.updatedAt ?? new Date().toISOString(),
-        });
-      }
-      if (nextSnapshot.recovery.lastProtocolUrl) {
-        setProtocolUrl(nextSnapshot.recovery.lastProtocolUrl);
+      setIsOnboardingOpen(!nextSnapshot.recovery.lastWorkspacePath);
+    });
+
+    void window.echoaiDesktop.getWindowState().then((state) => {
+      if (isMounted) {
+        setWindowState(state);
       }
     });
 
-    const unsubscribe = window.echoaiDesktop.onProtocolUrl((url) => setProtocolUrl(url));
-    const unsubscribeUpdates = window.echoaiDesktop.onUpdateStatus((status) =>
-      setUpdateStatus(status)
-    );
+    const unsubscribeProtocol = window.echoaiDesktop.onProtocolUrl((url) => {
+      setProtocolUrl(url);
+      pushLocalNotification('system', 'Deep link captured', url);
+    });
+    const unsubscribeUpdates = window.echoaiDesktop.onUpdateStatus((status) => {
+      setUpdateStatus(status);
+      if (status.state === 'available' || status.state === 'downloaded') {
+        pushLocalNotification('update', 'Desktop update', formatUpdateState(status));
+      }
+    });
+    const unsubscribeNotifications = window.echoaiDesktop.onNotification((notification) => {
+      setNotifications((current) => [notification, ...current].slice(0, 4));
+    });
+    const unsubscribeWindow = window.echoaiDesktop.onWindowState((state) => setWindowState(state));
+
     return () => {
       isMounted = false;
-      unsubscribe();
+      unsubscribeProtocol();
       unsubscribeUpdates();
+      unsubscribeNotifications();
+      unsubscribeWindow();
     };
   }, []);
 
@@ -96,6 +125,23 @@ export function App(): ReactElement {
     const route = routeByPage.get(activePage) ?? '/';
     void window.echoaiDesktop.setLastRoute(route);
   }, [activePage]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsPaletteOpen(true);
+      }
+
+      if (event.key === 'Escape') {
+        setIsPaletteOpen(false);
+        setIsOnboardingOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const primaryStatus = useMemo(() => {
     if (!snapshot) {
@@ -105,16 +151,81 @@ export function App(): ReactElement {
     return workspace ? 'Workspace ready' : 'No workspace';
   }, [snapshot, workspace]);
 
+  const paletteItems = useMemo<PaletteItem[]>(() => {
+    const pageItems = pages.map((page) => ({
+      id: `page-${page}`,
+      label: page,
+      detail: pageDescriptions[page],
+      run: () => setActivePage(page),
+    }));
+    const workspaceItems = recentWorkspaces.map((recent) => ({
+      id: `workspace-${recent.path}`,
+      label: recent.path,
+      detail: 'Recent workspace',
+      run: () => openRecentWorkspace(recent.path),
+    }));
+    const actionItems: PaletteItem[] = [
+      {
+        id: 'action-select-workspace',
+        label: 'Select workspace',
+        detail: 'Open native folder picker',
+        run: selectWorkspace,
+      },
+      {
+        id: 'action-check-updates',
+        label: 'Check for updates',
+        detail: 'Run desktop update check',
+        run: checkForUpdates,
+      },
+    ];
+    const query = paletteQuery.trim().toLowerCase();
+    return [...actionItems, ...pageItems, ...workspaceItems]
+      .filter((item) => {
+        if (!query) {
+          return true;
+        }
+
+        return `${item.label} ${item.detail}`.toLowerCase().includes(query);
+      })
+      .slice(0, 10);
+  }, [paletteQuery, recentWorkspaces]);
+
+  async function refreshSnapshot(): Promise<DesktopAppSnapshot> {
+    const nextSnapshot = await window.echoaiDesktop.getSnapshot();
+    setSnapshot(nextSnapshot);
+    setRecentWorkspaces(nextSnapshot.recentWorkspaces);
+    if (nextSnapshot.recovery.lastWorkspacePath) {
+      setWorkspace({
+        path: nextSnapshot.recovery.lastWorkspacePath,
+        selectedAt: nextSnapshot.recovery.updatedAt ?? new Date().toISOString(),
+      });
+    }
+    if (nextSnapshot.recovery.lastProtocolUrl) {
+      setProtocolUrl(nextSnapshot.recovery.lastProtocolUrl);
+    }
+    return nextSnapshot;
+  }
+
   async function selectWorkspace(): Promise<void> {
     setIsSelectingWorkspace(true);
     try {
       const selection = await window.echoaiDesktop.selectWorkspace();
       if (selection) {
         setWorkspace(selection);
+        setIsOnboardingOpen(false);
+        await refreshSnapshot();
       }
     } finally {
       setIsSelectingWorkspace(false);
     }
+  }
+
+  async function openRecentWorkspace(path: string): Promise<void> {
+    const selection = await window.echoaiDesktop.openWorkspace(path);
+    setWorkspace(selection);
+    setIsPaletteOpen(false);
+    setIsOnboardingOpen(false);
+    await refreshSnapshot();
   }
 
   async function searchLogs(): Promise<void> {
@@ -136,6 +247,31 @@ export function App(): ReactElement {
     await window.echoaiDesktop.installUpdate();
   }
 
+  function pushLocalNotification(
+    kind: DesktopNotification['kind'],
+    title: string,
+    body: string
+  ): void {
+    setNotifications((current) =>
+      [
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          kind,
+          title,
+          body,
+          createdAt: new Date().toISOString(),
+        },
+        ...current,
+      ].slice(0, 4)
+    );
+  }
+
+  async function runPaletteItem(item: PaletteItem): Promise<void> {
+    await item.run();
+    setIsPaletteOpen(false);
+    setPaletteQuery('');
+  }
+
   return (
     <div className="desktop-shell">
       <aside className="sidebar" aria-label="EchoAI navigation">
@@ -146,6 +282,11 @@ export function App(): ReactElement {
             <div className="brand-subtitle">Desktop</div>
           </div>
         </div>
+
+        <button className="palette-button" onClick={() => setIsPaletteOpen(true)} type="button">
+          <span>Search</span>
+          <kbd>K</kbd>
+        </button>
 
         <nav className="nav-list">
           {pages.map((page) => (
@@ -163,12 +304,41 @@ export function App(): ReactElement {
       </aside>
 
       <main className="main-surface">
+        <header className="title-bar">
+          <div className="title-drag">
+            <span>EchoAI</span>
+            <span>{workspace?.path ?? 'No workspace'}</span>
+          </div>
+          <div className="window-controls">
+            <button aria-label="Minimize" onClick={() => void window.echoaiDesktop.minimizeWindow()} type="button">
+              -
+            </button>
+            <button
+              aria-label={windowState.isMaximized ? 'Restore' : 'Maximize'}
+              onClick={() =>
+                void window.echoaiDesktop.maximizeWindow().then((state) => setWindowState(state))
+              }
+              type="button"
+            >
+              {windowState.isMaximized ? 'R' : '+'}
+            </button>
+            <button aria-label="Close" onClick={() => void window.echoaiDesktop.closeWindow()} type="button">
+              x
+            </button>
+          </div>
+        </header>
+
         <header className="top-bar">
           <div>
             <h1>{activePage}</h1>
             <p>{pageDescriptions[activePage]}</p>
           </div>
-          <button className="primary-button" disabled={isSelectingWorkspace} onClick={selectWorkspace} type="button">
+          <button
+            className="primary-button"
+            disabled={isSelectingWorkspace}
+            onClick={selectWorkspace}
+            type="button"
+          >
             {isSelectingWorkspace ? 'Opening...' : workspace ? 'Change workspace' : 'Select workspace'}
           </button>
         </header>
@@ -185,13 +355,24 @@ export function App(): ReactElement {
           </div>
 
           <div className="secondary-panel">
-            <div className="panel-kicker">Security</div>
-            <ul className="security-list">
-              <li>Context isolation enabled</li>
-              <li>Sandboxed renderer enabled</li>
-              <li>Node integration disabled</li>
-              <li>External navigation guarded</li>
-            </ul>
+            <div className="panel-kicker">Recent</div>
+            <div className="recent-list">
+              {recentWorkspaces.length === 0 ? (
+                <div className="empty-row">No recent workspaces</div>
+              ) : (
+                recentWorkspaces.slice(0, 4).map((recent) => (
+                  <button
+                    className="recent-item"
+                    key={recent.path}
+                    onClick={() => void openRecentWorkspace(recent.path)}
+                    type="button"
+                  >
+                    <span>{recent.path}</span>
+                    <small>{formatDate(recent.lastActiveAt)}</small>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
 
           <div className="updates-panel">
@@ -260,6 +441,53 @@ export function App(): ReactElement {
           <span>{snapshot?.platform ?? 'platform'}</span>
         </footer>
       </main>
+
+      <NotificationStack notifications={notifications} />
+
+      {isPaletteOpen ? (
+        <div className="overlay-backdrop" onMouseDown={() => setIsPaletteOpen(false)}>
+          <div className="command-palette" onMouseDown={(event) => event.stopPropagation()}>
+            <input
+              autoFocus
+              onChange={(event) => setPaletteQuery(event.target.value)}
+              placeholder="Search pages, actions, workspaces"
+              type="search"
+              value={paletteQuery}
+            />
+            <div className="palette-list">
+              {paletteItems.map((item) => (
+                <button key={item.id} onClick={() => void runPaletteItem(item)} type="button">
+                  <span>{item.label}</span>
+                  <small>{item.detail}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isOnboardingOpen ? (
+        <div className="overlay-backdrop">
+          <div className="onboarding-panel">
+            <div className="panel-kicker">Setup</div>
+            <h2>EchoAI Desktop</h2>
+            <div className="onboarding-steps">
+              <Step title="Workspace" state={workspace ? 'done' : 'active'} />
+              <Step title="Models" state="ready" />
+              <Step title="Permissions" state="ready" />
+              <Step title="Pairing" state="ready" />
+            </div>
+            <div className="onboarding-actions">
+              <button className="primary-button" onClick={selectWorkspace} type="button">
+                Select workspace
+              </button>
+              <button onClick={() => setIsOnboardingOpen(false)} type="button">
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -269,6 +497,36 @@ function Metric({ label, value }: { label: string; value: string }): ReactElemen
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function NotificationStack({
+  notifications,
+}: {
+  notifications: DesktopNotification[];
+}): ReactElement | null {
+  if (notifications.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="notification-stack">
+      {notifications.map((notification) => (
+        <div className={`toast ${notification.kind}`} key={notification.id}>
+          <strong>{notification.title}</strong>
+          <span>{notification.body}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Step({ title, state }: { title: string; state: 'active' | 'done' | 'ready' }): ReactElement {
+  return (
+    <div className={`setup-step ${state}`}>
+      <span>{title}</span>
+      <strong>{state}</strong>
     </div>
   );
 }
@@ -287,4 +545,18 @@ function formatUpdateState(status: DesktopUpdateStatus | null): string {
   }
 
   return status.reason ?? status.state;
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

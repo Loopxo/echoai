@@ -13,10 +13,13 @@ import { AutoUpdateService } from './auto-update-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
+import { WorkspaceStore } from './workspace-store';
 import {
+  type DesktopNotification,
   type DesktopAppPaths,
   type DesktopAppSnapshot,
   type DesktopSecuritySummary,
+  type DesktopWindowState,
   type WorkspaceSelection,
   isEchoAIProtocolUrl,
   isSafeExternalUrl,
@@ -37,6 +40,7 @@ let mainWindow: BrowserWindow | null = null;
 let appPaths: DesktopAppPaths | null = null;
 let logger: DesktopLogger | null = null;
 let recoveryStore: RecoveryStore | null = null;
+let workspaceStore: WorkspaceStore | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
 
@@ -109,6 +113,7 @@ async function bootstrap(): Promise<void> {
   logger.info('desktop bootstrap complete', { version: app.getVersion(), platform: process.platform });
 
   recoveryStore = new RecoveryStore(appPaths.dataDir);
+  workspaceStore = new WorkspaceStore(appPaths.dataDir);
   updateService = new AutoUpdateService(logger, app.isPackaged);
 }
 
@@ -125,6 +130,9 @@ async function createMainWindow(): Promise<BrowserWindow> {
     minWidth: 1100,
     minHeight: 720,
     backgroundColor: '#f7f4ee',
+    frame: process.platform === 'darwin',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
+    trafficLightPosition: process.platform === 'darwin' ? { x: 16, y: 16 } : undefined,
     icon: getIconPath(),
     show: false,
     webPreferences: {
@@ -147,6 +155,11 @@ async function createMainWindow(): Promise<BrowserWindow> {
       lastWindowBounds: window.getBounds(),
     });
   });
+
+  window.on('maximize', () => sendWindowState(window));
+  window.on('unmaximize', () => sendWindowState(window));
+  window.on('enter-full-screen', () => sendWindowState(window));
+  window.on('leave-full-screen', () => sendWindowState(window));
 
   window.webContents.on('will-navigate', (event, url) => {
     if (isInternalNavigation(url)) {
@@ -177,13 +190,13 @@ function registerIpcHandlers(): void {
       isPackaged: app.isPackaged,
       paths: services.appPaths,
       recovery,
+      recentWorkspaces: await services.workspaceStore.list(),
       pendingProtocolUrls: [...pendingProtocolUrls],
       security: securitySummary,
     };
   });
 
   ipcMain.handle('app:selectWorkspace', async (): Promise<WorkspaceSelection | null> => {
-    const services = requireServices();
     const options: OpenDialogOptions = {
       title: 'Select EchoAI workspace',
       properties: ['openDirectory', 'createDirectory'],
@@ -196,13 +209,15 @@ function registerIpcHandlers(): void {
       return null;
     }
 
-    const selection = {
-      path: result.filePaths[0],
-      selectedAt: new Date().toISOString(),
-    };
-    await services.recoveryStore.update({ lastWorkspacePath: selection.path });
-    services.logger.info('workspace selected', { path: selection.path });
-    return selection;
+    return openWorkspacePath(result.filePaths[0]);
+  });
+
+  ipcMain.handle('app:openWorkspace', async (_event, path: unknown): Promise<WorkspaceSelection> => {
+    if (typeof path !== 'string' || path.trim().length === 0) {
+      throw new Error('Invalid workspace path');
+    }
+
+    return openWorkspacePath(path);
   });
 
   ipcMain.handle('app:setLastRoute', async (_event, route: unknown): Promise<void> => {
@@ -237,6 +252,34 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('updates:install', () => {
     return requireServices().updateService.installDownloadedUpdate();
+  });
+
+  ipcMain.handle('window:minimize', () => {
+    getActiveWindow()?.minimize();
+  });
+
+  ipcMain.handle('window:maximizeToggle', (): DesktopWindowState => {
+    const window = getActiveWindow();
+    if (!window) {
+      return { isMaximized: false, isFullScreen: false };
+    }
+
+    if (window.isMaximized()) {
+      window.unmaximize();
+    } else {
+      window.maximize();
+    }
+
+    return getWindowState(window);
+  });
+
+  ipcMain.handle('window:close', () => {
+    getActiveWindow()?.close();
+  });
+
+  ipcMain.handle('window:getState', (): DesktopWindowState => {
+    const window = getActiveWindow();
+    return window ? getWindowState(window) : { isMaximized: false, isFullScreen: false };
   });
 }
 
@@ -273,7 +316,30 @@ async function handleProtocolUrl(url: string): Promise<void> {
 
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('protocol:url', url);
+    pushNotification({
+      kind: 'system',
+      title: 'Deep link captured',
+      body: url,
+    });
   }
+}
+
+async function openWorkspacePath(path: string): Promise<WorkspaceSelection> {
+  const services = requireServices();
+  const selection = {
+    path,
+    selectedAt: new Date().toISOString(),
+  };
+
+  await services.workspaceStore.touch(selection.path);
+  await services.recoveryStore.update({ lastWorkspacePath: selection.path });
+  services.logger.info('workspace selected', { path: selection.path });
+  pushNotification({
+    kind: 'system',
+    title: 'Workspace ready',
+    body: selection.path,
+  });
+  return selection;
 }
 
 async function openExternalSafely(url: string): Promise<boolean> {
@@ -303,6 +369,34 @@ function focusMainWindow(): void {
   window.focus();
 }
 
+function pushNotification(input: Omit<DesktopNotification, 'id' | 'createdAt'>): void {
+  const notification: DesktopNotification = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('notifications:push', notification);
+  }
+}
+
+function sendWindowState(window: BrowserWindow): void {
+  window.webContents.send('window:state', getWindowState(window));
+}
+
+function getWindowState(window: BrowserWindow): DesktopWindowState {
+  return {
+    isMaximized: window.isMaximized(),
+    isFullScreen: window.isFullScreen(),
+  };
+}
+
+function getActiveWindow(): BrowserWindow | null {
+  const window = BrowserWindow.getFocusedWindow() ?? mainWindow;
+  return window && !window.isDestroyed() ? window : null;
+}
+
 function isInternalNavigation(url: string): boolean {
   if (devServerUrl && url.startsWith(devServerUrl)) {
     return true;
@@ -323,11 +417,12 @@ function requireServices(): {
   appPaths: DesktopAppPaths;
   logger: DesktopLogger;
   recoveryStore: RecoveryStore;
+  workspaceStore: WorkspaceStore;
   updateService: AutoUpdateService;
 } {
-  if (!appPaths || !logger || !recoveryStore || !updateService) {
+  if (!appPaths || !logger || !recoveryStore || !workspaceStore || !updateService) {
     throw new Error('EchoAI desktop services are not ready');
   }
 
-  return { appPaths, logger, recoveryStore, updateService };
+  return { appPaths, logger, recoveryStore, workspaceStore, updateService };
 }

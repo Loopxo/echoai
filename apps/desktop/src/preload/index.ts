@@ -4,7 +4,9 @@ import {
   type DesktopAppSnapshot,
   type DesktopIpcEventChannel,
   type DesktopIpcInvokeChannel,
+  type DesktopNotification,
   type DesktopUpdateStatus,
+  type DesktopWindowState,
   type EchoAIDesktopApi,
   type LogSearchEntry,
   type WorkspaceSelection,
@@ -42,16 +44,25 @@ function subscribe<T>(
 const api: EchoAIDesktopApi = {
   getSnapshot: () => invoke<DesktopAppSnapshot>('app:getSnapshot'),
   selectWorkspace: () => invoke<WorkspaceSelection | null>('app:selectWorkspace'),
+  openWorkspace: (path: string) => invoke<WorkspaceSelection>('app:openWorkspace', path),
   setLastRoute: (route: string) => invoke<void>('app:setLastRoute', route),
   searchLogs: (query: string) => invoke<LogSearchEntry[]>('logs:search', query),
   openExternal: (url: string) => invoke<boolean>('shell:openExternal', url),
   checkForUpdates: () => invoke<DesktopUpdateStatus>('updates:check'),
   downloadUpdate: () => invoke<DesktopUpdateStatus>('updates:download'),
   installUpdate: () => invoke<boolean>('updates:install'),
+  minimizeWindow: () => invoke<void>('window:minimize'),
+  maximizeWindow: () => invoke<DesktopWindowState>('window:maximizeToggle'),
+  closeWindow: () => invoke<void>('window:close'),
+  getWindowState: () => invoke<DesktopWindowState>('window:getState'),
   onProtocolUrl: (callback: (url: string) => void) =>
     subscribe('protocol:url', callback, isString),
   onUpdateStatus: (callback: (status: DesktopUpdateStatus) => void) =>
     subscribe('updates:status', callback, isDesktopUpdateStatus),
+  onNotification: (callback: (notification: DesktopNotification) => void) =>
+    subscribe('notifications:push', callback, isDesktopNotification),
+  onWindowState: (callback: (state: DesktopWindowState) => void) =>
+    subscribe('window:state', callback, isDesktopWindowState),
 };
 
 for (const channel of IPC_EVENT_CHANNELS) {
@@ -72,5 +83,27 @@ function isDesktopUpdateStatus(value: unknown): value is DesktopUpdateStatus {
     value !== null &&
     'state' in value &&
     typeof (value as { state: unknown }).state === 'string'
+  );
+}
+
+function isDesktopNotification(value: unknown): value is DesktopNotification {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'title' in value &&
+    typeof (value as { title: unknown }).title === 'string' &&
+    'body' in value &&
+    typeof (value as { body: unknown }).body === 'string'
+  );
+}
+
+function isDesktopWindowState(value: unknown): value is DesktopWindowState {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'isMaximized' in value &&
+    typeof (value as { isMaximized: unknown }).isMaximized === 'boolean' &&
+    'isFullScreen' in value &&
+    typeof (value as { isFullScreen: unknown }).isFullScreen === 'boolean'
   );
 }

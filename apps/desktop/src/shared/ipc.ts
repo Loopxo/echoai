@@ -1,15 +1,25 @@
 export const IPC_INVOKE_CHANNELS = [
   'app:getSnapshot',
   'app:selectWorkspace',
+  'app:openWorkspace',
   'app:setLastRoute',
   'logs:search',
   'shell:openExternal',
   'updates:check',
   'updates:download',
   'updates:install',
+  'window:minimize',
+  'window:maximizeToggle',
+  'window:close',
+  'window:getState',
 ] as const;
 
-export const IPC_EVENT_CHANNELS = ['protocol:url', 'updates:status'] as const;
+export const IPC_EVENT_CHANNELS = [
+  'protocol:url',
+  'updates:status',
+  'notifications:push',
+  'window:state',
+] as const;
 
 export type DesktopIpcInvokeChannel = (typeof IPC_INVOKE_CHANNELS)[number];
 export type DesktopIpcEventChannel = (typeof IPC_EVENT_CHANNELS)[number];
@@ -54,6 +64,7 @@ export interface DesktopAppSnapshot {
   isPackaged: boolean;
   paths: DesktopAppPaths;
   recovery: RecoveryState;
+  recentWorkspaces: DesktopRecentWorkspace[];
   pendingProtocolUrls: string[];
   security: DesktopSecuritySummary;
 }
@@ -61,6 +72,12 @@ export interface DesktopAppSnapshot {
 export interface WorkspaceSelection {
   path: string;
   selectedAt: string;
+}
+
+export interface DesktopRecentWorkspace {
+  path: string;
+  lastActiveAt: string;
+  sessionCount: number;
 }
 
 export interface LogSearchEntry {
@@ -89,17 +106,37 @@ export interface DesktopUpdateStatus {
   reason: string | null;
 }
 
+export interface DesktopNotification {
+  id: string;
+  kind: 'task' | 'permission' | 'update' | 'device' | 'system';
+  title: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface DesktopWindowState {
+  isMaximized: boolean;
+  isFullScreen: boolean;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
+  openWorkspace: (path: string) => Promise<WorkspaceSelection>;
   setLastRoute: (route: string) => Promise<void>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;
   downloadUpdate: () => Promise<DesktopUpdateStatus>;
   installUpdate: () => Promise<boolean>;
+  minimizeWindow: () => Promise<void>;
+  maximizeWindow: () => Promise<DesktopWindowState>;
+  closeWindow: () => Promise<void>;
+  getWindowState: () => Promise<DesktopWindowState>;
   onProtocolUrl: (callback: (url: string) => void) => () => void;
   onUpdateStatus: (callback: (status: DesktopUpdateStatus) => void) => () => void;
+  onNotification: (callback: (notification: DesktopNotification) => void) => () => void;
+  onWindowState: (callback: (state: DesktopWindowState) => void) => () => void;
 }
 
 export function isIpcInvokeChannel(value: string): value is DesktopIpcInvokeChannel {
