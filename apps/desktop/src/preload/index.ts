@@ -57,6 +57,11 @@ import {
   type DesktopWebTicketStatus,
   type DesktopWebToolPolicy,
   type DesktopWindowState,
+  type DesktopWorkbenchApproval,
+  type DesktopWorkbenchMemory,
+  type DesktopWorkbenchProject,
+  type DesktopWorkbenchSnapshot,
+  type DesktopWorkflowRun,
   type EchoAIDesktopApi,
   type LogSearchEntry,
   type WorkspaceSelection,
@@ -96,6 +101,19 @@ const api: EchoAIDesktopApi = {
   selectWorkspace: () => invoke<WorkspaceSelection | null>('app:selectWorkspace'),
   openWorkspace: (path: string) => invoke<WorkspaceSelection>('app:openWorkspace', path),
   setLastRoute: (route: string) => invoke<void>('app:setLastRoute', route),
+  getWorkbenchSnapshot: () => invoke<DesktopWorkbenchSnapshot>('desktop:getWorkbenchSnapshot'),
+  createWorkbenchProject: (name: string, description: string, workspacePath?: string) =>
+    invoke<DesktopWorkbenchProject>('desktop:createWorkbenchProject', name, description, workspacePath),
+  addWorkbenchMemory: (input) =>
+    invoke<DesktopWorkbenchMemory>('desktop:addWorkbenchMemory', input),
+  pinWorkbenchMemory: (memoryId: string, pinned: boolean) =>
+    invoke<DesktopWorkbenchMemory | null>('desktop:pinWorkbenchMemory', memoryId, pinned),
+  createWorkbenchApproval: (title, detail, risk) =>
+    invoke<DesktopWorkbenchApproval>('desktop:createWorkbenchApproval', title, detail, risk),
+  respondWorkbenchApproval: (approvalId: string, approved: boolean) =>
+    invoke<DesktopWorkbenchApproval | null>('desktop:respondWorkbenchApproval', approvalId, approved),
+  startWorkbenchWorkflow: (title: string) =>
+    invoke<DesktopWorkflowRun>('desktop:startWorkbenchWorkflow', title),
   getAccountStatus: () => invoke<DesktopAccountStatus>('auth:getStatus'),
   startDeviceLogin: () => invoke<DesktopDeviceLogin>('auth:startDeviceLogin'),
   refreshAccount: () => invoke<DesktopAccountStatus>('auth:refresh'),

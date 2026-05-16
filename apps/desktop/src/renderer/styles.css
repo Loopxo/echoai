@@ -206,6 +206,326 @@ button {
   color: #fffaf2;
 }
 
+.market-workbench {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #cfd8d2;
+  border-radius: 8px;
+  background: #f8fbf8;
+  box-shadow: 0 14px 38px rgba(34, 31, 27, 0.08);
+}
+
+.workbench-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.workbench-hero h2 {
+  margin: 2px 0 6px;
+  color: #18231f;
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.workbench-hero p,
+.copy-policy {
+  margin: 0;
+  color: #52635b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.workbench-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.workbench-actions button,
+.approval-row button,
+.memory-row button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #b9c7bf;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #21332d;
+  font-weight: 720;
+}
+
+.workbench-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.workbench-score {
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid #d7e0da;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.workbench-score span {
+  display: block;
+  color: #6a7871;
+  font-size: 12px;
+}
+
+.workbench-score strong {
+  display: block;
+  margin-top: 6px;
+  color: #18231f;
+  font-size: 24px;
+}
+
+.workbench-score.ok {
+  border-color: #adcbbf;
+  background: #eef8f2;
+}
+
+.workbench-score.warn {
+  border-color: #e5c07b;
+  background: #fff6e3;
+}
+
+.workbench-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workbench-section {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d7e0da;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.workbench-section.audit,
+.workbench-section.capability,
+.workbench-section.workflow {
+  grid-column: span 2;
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-heading span {
+  color: #6c7b73;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.section-heading strong {
+  color: #18231f;
+  font-size: 15px;
+}
+
+.audit-list,
+.parity-list,
+.approval-list,
+.memory-list,
+.health-list {
+  display: grid;
+  gap: 8px;
+}
+
+.audit-card,
+.parity-row,
+.approval-row,
+.memory-row,
+.health-row,
+.workflow-card {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e2e7e4;
+  border-radius: 7px;
+  background: #fbfdfb;
+}
+
+.audit-card header,
+.workflow-card header,
+.approval-row,
+.memory-row,
+.parity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.audit-card strong,
+.workflow-card strong,
+.approval-row strong,
+.memory-row strong,
+.health-row strong,
+.parity-row strong {
+  overflow: hidden;
+  color: #1d2925;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-card p,
+.audit-card small,
+.approval-row span,
+.memory-row span,
+.health-row span,
+.parity-row span,
+.workflow-node small {
+  color: #617169;
+  font-size: 12px;
+}
+
+.audit-card small,
+.approval-row span,
+.memory-row span,
+.health-row span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parity-meter {
+  width: 96px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ece8;
+}
+
+.parity-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #3f7f68;
+}
+
+.parity-row.behind .parity-meter span {
+  background: #c7893f;
+}
+
+.ticket-band {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ticket-group,
+.ticket-chip {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #e2e7e4;
+  border-radius: 7px;
+  background: #fbfdfb;
+}
+
+.ticket-group span,
+.ticket-chip span {
+  overflow: hidden;
+  color: #687870;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-group strong,
+.ticket-chip strong {
+  color: #1c2b25;
+}
+
+.ticket-samples,
+.workflow-nodes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ticket-chip.production-ready {
+  border-color: #a9cdbc;
+  background: #eef9f3;
+}
+
+.ticket-chip.integrated {
+  border-color: #b7c9d8;
+  background: #eef6fb;
+}
+
+.ticket-chip.foundation {
+  border-color: #e3c58e;
+  background: #fff8ea;
+}
+
+.workflow-nodes {
+  margin-top: 10px;
+}
+
+.workflow-node {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 7px;
+  background: #eef3f0;
+}
+
+.workflow-node span {
+  display: block;
+  overflow: hidden;
+  color: #22312c;
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-node.needs_approval {
+  background: #fff3d9;
+}
+
+.workflow-node.running {
+  background: #e8f3ff;
+}
+
+.approval-row.pending {
+  border-color: #e5c07b;
+}
+
+.memory-row.pinned {
+  border-color: #adcbbf;
+  background: #f1faf5;
+}
+
+.health-row.ready {
+  border-color: #adcbbf;
+}
+
+.health-row.degraded {
+  border-color: #e5c07b;
+}
+
+.health-row.blocked {
+  border-color: #d99a9a;
+}
+
 .top-bar {
   display: flex;
   align-items: center;
@@ -1462,6 +1782,21 @@ button {
 
   .account-panel {
     grid-template-columns: 1fr;
+  }
+
+  .workbench-hero,
+  .workbench-scoreboard,
+  .workbench-grid,
+  .ticket-band,
+  .ticket-samples,
+  .workflow-nodes {
+    grid-template-columns: 1fr;
+  }
+
+  .workbench-section.audit,
+  .workbench-section.capability,
+  .workbench-section.workflow {
+    grid-column: span 1;
   }
 
   .onboarding-steps {

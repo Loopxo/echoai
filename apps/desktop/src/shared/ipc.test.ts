@@ -4,6 +4,7 @@ import { isEchoAIProtocolUrl, isIpcInvokeChannel, isSafeExternalUrl } from './ip
 describe('desktop IPC contract guards', () => {
   it('allows only declared invoke channels', () => {
     expect(isIpcInvokeChannel('app:getSnapshot')).toBe(true);
+    expect(isIpcInvokeChannel('desktop:getWorkbenchSnapshot')).toBe(true);
     expect(isIpcInvokeChannel('fs:readFile')).toBe(false);
   });
 

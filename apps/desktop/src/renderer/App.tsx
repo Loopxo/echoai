@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { MarketWorkbench } from './MarketWorkbench';
 import type {
   DesktopAppSnapshot,
   DesktopAccountStatus,
@@ -40,6 +41,7 @@ import type {
   DesktopWebTicketStatus,
   DesktopWebToolPolicy,
   DesktopWindowState,
+  DesktopWorkbenchSnapshot,
   LogSearchEntry,
   WorkspaceSelection,
 } from '@shared/ipc';
@@ -108,6 +110,7 @@ const routeByPage = new Map<Page, string>(pages.map((page) => [page, `/${page.to
 export function App(): ReactElement {
   const [activePage, setActivePage] = useState<Page>('Home');
   const [snapshot, setSnapshot] = useState<DesktopAppSnapshot | null>(null);
+  const [workbench, setWorkbench] = useState<DesktopWorkbenchSnapshot | null>(null);
   const [workspace, setWorkspace] = useState<WorkspaceSelection | null>(null);
   const [recentWorkspaces, setRecentWorkspaces] = useState<DesktopRecentWorkspace[]>([]);
   const [protocolUrl, setProtocolUrl] = useState<string | null>(null);
@@ -224,6 +227,7 @@ export function App(): ReactElement {
     void refreshToolingState();
     void refreshGatewayState();
     void refreshWebAppState();
+    void refreshWorkbenchState();
 
     return () => {
       isMounted = false;
@@ -329,6 +333,55 @@ export function App(): ReactElement {
     return nextSnapshot;
   }
 
+  async function refreshWorkbenchState(): Promise<void> {
+    setWorkbench(await window.echoaiDesktop.getWorkbenchSnapshot());
+  }
+
+  async function createWorkbenchProject(): Promise<void> {
+    await window.echoaiDesktop.createWorkbenchProject(
+      'Market Leader Desktop',
+      'Native local-first agent workspace benchmarked against Open Cowork, Eigent, and Overlay.',
+      workspace?.path
+    );
+    await refreshWorkbenchState();
+  }
+
+  async function addWorkbenchMemory(): Promise<void> {
+    await window.echoaiDesktop.addWorkbenchMemory({
+      scope: workspace?.path ? 'workspace' : 'global',
+      text: workspace?.path
+        ? `Workspace ${workspace.path} is the active local-first desktop context.`
+        : 'EchoAI Desktop should stay local-first and clean-room with sample repositories.',
+      source: 'desktop-workbench',
+      tags: ['desktop', 'market-leader'],
+    });
+    await refreshWorkbenchState();
+  }
+
+  async function createWorkbenchApproval(): Promise<void> {
+    await window.echoaiDesktop.createWorkbenchApproval(
+      'Privileged desktop action',
+      'Mutating tool, terminal, browser, file, or remote handoff work must pass typed IPC and explicit approval.',
+      'ask'
+    );
+    await refreshWorkbenchState();
+  }
+
+  async function startWorkbenchWorkflow(): Promise<void> {
+    await window.echoaiDesktop.startWorkbenchWorkflow('End-to-end desktop agent run');
+    await refreshWorkbenchState();
+  }
+
+  async function respondWorkbenchApproval(approvalId: string, approved: boolean): Promise<void> {
+    await window.echoaiDesktop.respondWorkbenchApproval(approvalId, approved);
+    await refreshWorkbenchState();
+  }
+
+  async function pinWorkbenchMemory(memoryId: string, pinned: boolean): Promise<void> {
+    await window.echoaiDesktop.pinWorkbenchMemory(memoryId, pinned);
+    await refreshWorkbenchState();
+  }
+
   async function selectWorkspace(): Promise<void> {
     setIsSelectingWorkspace(true);
     try {
@@ -337,6 +390,7 @@ export function App(): ReactElement {
         setWorkspace(selection);
         setIsOnboardingOpen(false);
         await refreshSnapshot();
+        await refreshWorkbenchState();
       }
     } finally {
       setIsSelectingWorkspace(false);
@@ -349,6 +403,7 @@ export function App(): ReactElement {
     setIsPaletteOpen(false);
     setIsOnboardingOpen(false);
     await refreshSnapshot();
+    await refreshWorkbenchState();
   }
 
   async function searchLogs(): Promise<void> {
@@ -933,6 +988,16 @@ export function App(): ReactElement {
               </label>
             </div>
           </div>
+
+          <MarketWorkbench
+            snapshot={workbench}
+            onAddMemory={addWorkbenchMemory}
+            onCreateApproval={createWorkbenchApproval}
+            onCreateProject={createWorkbenchProject}
+            onPinMemory={pinWorkbenchMemory}
+            onRespondApproval={respondWorkbenchApproval}
+            onStartWorkflow={startWorkbenchWorkflow}
+          />
 
           <div className="webapp-panel">
             <div className="panel-header">

@@ -19,9 +19,11 @@ import { RecoveryStore } from './recovery-store';
 import { TerminalTaskService, classifyCommand, getSandboxStatus } from './terminal-task-service';
 import { DesktopToolingService } from './tooling-service';
 import { DesktopWebAppService } from './web-app-service';
+import { DesktopWorkbenchService } from './workbench-service';
 import { WorkspaceFileService } from './workspace-file-service';
 import { WorkspaceStore } from './workspace-store';
 import {
+  type DesktopCommandRisk,
   type DesktopNotification,
   type DesktopAppPaths,
   type DesktopAppSnapshot,
@@ -55,6 +57,7 @@ let toolingService: DesktopToolingService | null = null;
 let runtimeService: DesktopRuntimeService | null = null;
 let gatewayService: DesktopGatewayService | null = null;
 let webAppService: DesktopWebAppService | null = null;
+let workbenchService: DesktopWorkbenchService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
 
@@ -150,6 +153,7 @@ async function bootstrap(): Promise<void> {
   });
   gatewayService = new DesktopGatewayService(appPaths, logger);
   webAppService = new DesktopWebAppService(appPaths);
+  workbenchService = new DesktopWorkbenchService(appPaths.dataDir);
   updateService = new AutoUpdateService(logger, app.isPackaged);
 }
 
@@ -265,6 +269,81 @@ function registerIpcHandlers(): void {
 
     const services = requireServices();
     await services.recoveryStore.update({ lastRoute: route });
+  });
+
+  ipcMain.handle('desktop:getWorkbenchSnapshot', async () => {
+    const services = requireServices();
+    const [recovery, runtimeStatus, gatewayStatus, releaseReadiness] = await Promise.all([
+      services.recoveryStore.read(),
+      services.runtimeService.getStatus(),
+      services.gatewayService.getStatus(),
+      services.gatewayService.getReleaseChecklist(),
+    ]);
+    return services.workbenchService.getSnapshot({
+      activeWorkspacePath: recovery.lastWorkspacePath,
+      runtimeStatus,
+      gatewayStatus,
+      sandboxStatus: getSandboxStatus(process.platform),
+      releaseReadiness,
+    });
+  });
+
+  ipcMain.handle('desktop:createWorkbenchProject', (_event, name: unknown, description: unknown, workspacePath: unknown) => {
+    return requireServices().workbenchService.createProject(
+      typeof name === 'string' ? name : '',
+      typeof description === 'string' ? description : '',
+      typeof workspacePath === 'string' ? workspacePath : undefined
+    );
+  });
+
+  ipcMain.handle('desktop:addWorkbenchMemory', (_event, input: unknown) => {
+    if (!isRecord(input) || typeof input.text !== 'string') {
+      throw new Error('Invalid workbench memory');
+    }
+
+    const scope =
+      input.scope === 'workspace' || input.scope === 'project' || input.scope === 'global'
+        ? input.scope
+        : 'global';
+    const tags = Array.isArray(input.tags)
+      ? input.tags.filter((tag): tag is string => typeof tag === 'string')
+      : [];
+    return requireServices().workbenchService.addMemory({
+      scope,
+      text: input.text,
+      source: typeof input.source === 'string' ? input.source : 'manual',
+      tags,
+    });
+  });
+
+  ipcMain.handle('desktop:pinWorkbenchMemory', (_event, memoryId: unknown, pinned: unknown) => {
+    if (typeof memoryId !== 'string') {
+      return null;
+    }
+
+    return requireServices().workbenchService.pinMemory(memoryId, pinned === true);
+  });
+
+  ipcMain.handle('desktop:createWorkbenchApproval', (_event, title: unknown, detail: unknown, risk: unknown) => {
+    if (typeof title !== 'string' || typeof detail !== 'string') {
+      throw new Error('Invalid workbench approval');
+    }
+
+    return requireServices().workbenchService.createApproval(title, detail, toCommandRisk(risk));
+  });
+
+  ipcMain.handle('desktop:respondWorkbenchApproval', (_event, approvalId: unknown, approved: unknown) => {
+    if (typeof approvalId !== 'string') {
+      return null;
+    }
+
+    return requireServices().workbenchService.respondApproval(approvalId, approved === true);
+  });
+
+  ipcMain.handle('desktop:startWorkbenchWorkflow', (_event, title: unknown) => {
+    return requireServices().workbenchService.startWorkflow(
+      typeof title === 'string' ? title : 'Market leader workflow'
+    );
   });
 
   ipcMain.handle('auth:getStatus', async () => {
@@ -999,6 +1078,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function toCommandRisk(value: unknown): DesktopCommandRisk {
+  return value === 'safe' || value === 'ask' || value === 'deny' ? value : 'ask';
+}
+
 function isInternalNavigation(url: string): boolean {
   if (devServerUrl && url.startsWith(devServerUrl)) {
     return true;
@@ -1027,6 +1110,7 @@ function requireServices(): {
   runtimeService: DesktopRuntimeService;
   gatewayService: DesktopGatewayService;
   webAppService: DesktopWebAppService;
+  workbenchService: DesktopWorkbenchService;
   updateService: AutoUpdateService;
 } {
   if (
@@ -1041,6 +1125,7 @@ function requireServices(): {
     !runtimeService ||
     !gatewayService ||
     !webAppService ||
+    !workbenchService ||
     !updateService
   ) {
     throw new Error('EchoAI desktop services are not ready');
@@ -1058,6 +1143,7 @@ function requireServices(): {
     runtimeService,
     gatewayService,
     webAppService,
+    workbenchService,
     updateService,
   };
 }

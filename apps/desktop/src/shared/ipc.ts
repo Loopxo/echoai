@@ -3,6 +3,13 @@ export const IPC_INVOKE_CHANNELS = [
   'app:selectWorkspace',
   'app:openWorkspace',
   'app:setLastRoute',
+  'desktop:getWorkbenchSnapshot',
+  'desktop:createWorkbenchProject',
+  'desktop:addWorkbenchMemory',
+  'desktop:pinWorkbenchMemory',
+  'desktop:createWorkbenchApproval',
+  'desktop:respondWorkbenchApproval',
+  'desktop:startWorkbenchWorkflow',
   'auth:getStatus',
   'auth:startDeviceLogin',
   'auth:refresh',
@@ -162,6 +169,128 @@ export interface DesktopRecentWorkspace {
   path: string;
   lastActiveAt: string;
   sessionCount: number;
+}
+
+export type DesktopOperationStatus =
+  | 'queued'
+  | 'running'
+  | 'needs_approval'
+  | 'blocked'
+  | 'failed'
+  | 'completed'
+  | 'cancelled';
+
+export type DesktopSourceRepo = 'open-cowork' | 'eigent' | 'overlay-web';
+
+export interface DesktopSampleAudit {
+  repo: DesktopSourceRepo;
+  label: string;
+  licenseFinding: 'missing' | 'apache-template' | 'unknown';
+  copyPolicy: 'reference-only' | 'small-compatible-snippets' | 'blocked';
+  strengths: string[];
+  risks: string[];
+  checkedAt: string;
+}
+
+export interface DesktopParityMetric {
+  id: string;
+  label: string;
+  echoaiLevel: number;
+  targetLevel: number;
+  source: DesktopSourceRepo;
+  status: 'ahead' | 'at-parity' | 'behind';
+}
+
+export interface DesktopCapabilityTicket {
+  id: string;
+  area: string;
+  title: string;
+  status: 'complete';
+  maturity: 'foundation' | 'integrated' | 'production-ready';
+  evidence: string;
+  sourceInfluence: DesktopSourceRepo[];
+}
+
+export interface DesktopWorkbenchProject {
+  id: string;
+  name: string;
+  description: string;
+  workspacePath: string | null;
+  status: 'active' | 'archived';
+  lastActiveAt: string;
+}
+
+export interface DesktopWorkbenchMemory {
+  id: string;
+  scope: 'global' | 'workspace' | 'project';
+  text: string;
+  source: string;
+  tags: string[];
+  pinned: boolean;
+  createdAt: string;
+}
+
+export interface DesktopWorkbenchApproval {
+  id: string;
+  title: string;
+  detail: string;
+  risk: DesktopCommandRisk;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  decidedAt: string | null;
+}
+
+export interface DesktopWorkflowNode {
+  id: string;
+  label: string;
+  status: DesktopOperationStatus;
+  owner: 'agent' | 'user' | 'system';
+  detail: string;
+}
+
+export interface DesktopWorkflowRun {
+  id: string;
+  title: string;
+  status: DesktopOperationStatus;
+  nodes: DesktopWorkflowNode[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesktopBrowserSession {
+  id: string;
+  profileName: string;
+  workspacePath: string | null;
+  status: DesktopOperationStatus;
+  currentUrl: string | null;
+  actionCount: number;
+  createdAt: string;
+}
+
+export interface DesktopServiceHealth {
+  id: string;
+  label: string;
+  status: 'ready' | 'degraded' | 'blocked';
+  detail: string;
+}
+
+export interface DesktopWorkbenchSnapshot {
+  generatedAt: string;
+  productPosture: string;
+  copyPolicy: string;
+  localFirst: boolean;
+  activeWorkspacePath: string | null;
+  sampleAudits: DesktopSampleAudit[];
+  parityMetrics: DesktopParityMetric[];
+  capabilities: DesktopCapabilityTicket[];
+  projects: DesktopWorkbenchProject[];
+  activeProjectId: string | null;
+  memories: DesktopWorkbenchMemory[];
+  approvals: DesktopWorkbenchApproval[];
+  workflows: DesktopWorkflowRun[];
+  browserSessions: DesktopBrowserSession[];
+  serviceHealth: DesktopServiceHealth[];
+  releaseReadiness: DesktopReleaseChecklistItem[];
 }
 
 export interface LogSearchEntry {
@@ -752,6 +881,29 @@ export interface EchoAIDesktopApi {
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
   openWorkspace: (path: string) => Promise<WorkspaceSelection>;
   setLastRoute: (route: string) => Promise<void>;
+  getWorkbenchSnapshot: () => Promise<DesktopWorkbenchSnapshot>;
+  createWorkbenchProject: (
+    name: string,
+    description: string,
+    workspacePath?: string
+  ) => Promise<DesktopWorkbenchProject>;
+  addWorkbenchMemory: (input: {
+    scope: DesktopWorkbenchMemory['scope'];
+    text: string;
+    source: string;
+    tags?: string[];
+  }) => Promise<DesktopWorkbenchMemory>;
+  pinWorkbenchMemory: (memoryId: string, pinned: boolean) => Promise<DesktopWorkbenchMemory | null>;
+  createWorkbenchApproval: (
+    title: string,
+    detail: string,
+    risk: DesktopCommandRisk
+  ) => Promise<DesktopWorkbenchApproval>;
+  respondWorkbenchApproval: (
+    approvalId: string,
+    approved: boolean
+  ) => Promise<DesktopWorkbenchApproval | null>;
+  startWorkbenchWorkflow: (title: string) => Promise<DesktopWorkflowRun>;
   getAccountStatus: () => Promise<DesktopAccountStatus>;
   startDeviceLogin: () => Promise<DesktopDeviceLogin>;
   refreshAccount: () => Promise<DesktopAccountStatus>;
