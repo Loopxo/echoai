@@ -1,4 +1,5 @@
 import type { EchoAISecureStorageNativeModule, EchoAISecureTokenRecord } from "../native";
+import type { EchoAIAuthApi } from "../api";
 
 export type EchoAITokenStoreState = "ready" | "locked" | "unavailable" | "permission-denied" | "corrupted" | "revoked";
 
@@ -58,6 +59,29 @@ export class EchoAITokenStore {
   async clearAll(): Promise<void> {
     await this.requireReady();
     return this.secureStorage.clearAll();
+  }
+
+  async refresh(authApi: EchoAIAuthApi, accountId: string, workspaceId: string): Promise<EchoAISecureTokenRecord> {
+    const current = await this.read(accountId, workspaceId);
+    if (!current?.refreshToken) {
+      throw new EchoAITokenStoreError("revoked", "EchoAI refresh token is unavailable");
+    }
+
+    const refreshed = await authApi.refresh({
+      refreshToken: current.refreshToken,
+      workspaceId,
+    });
+
+    const next: EchoAISecureTokenRecord = {
+      accountId,
+      workspaceId: refreshed.authState.activeWorkspaceId,
+      accessToken: refreshed.accessToken,
+      refreshToken: refreshed.refreshToken ?? current.refreshToken,
+      expiresAt: refreshed.expiresAt,
+    };
+
+    await this.save(next);
+    return next;
   }
 }
 

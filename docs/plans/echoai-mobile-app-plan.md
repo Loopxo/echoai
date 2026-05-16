@@ -107,6 +107,8 @@ Secure token storage for M-024 lives in `apps/mobile/src/auth/tokenStore.ts`, wr
 
 Secure storage recovery for M-025 is handled by `EchoAITokenStoreState` and `EchoAITokenStoreError`, covering unavailable, permission-denied, corrupted, and revoked token states.
 
+Refresh-token support for M-026 is exposed through `EchoAIAuthApi.refresh` and `EchoAITokenStore.refresh`, updating secure storage without forcing manual relogin.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:

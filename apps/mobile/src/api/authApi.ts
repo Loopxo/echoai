@@ -1,5 +1,7 @@
 import {
   type MobileAuthCompleteRequest,
+  type MobileAuthRefreshRequest,
+  type MobileAuthRefreshResponse,
   type MobileAuthStartRequest,
   type MobileAuthStartResponse,
   type MobileAuthState,
@@ -25,6 +27,10 @@ export class EchoAIAuthApi {
 
   completeSignUp(request: MobileAuthCompleteRequest): Promise<MobileAuthState> {
     return this.client.request(MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE, request);
+  }
+
+  refresh(request: MobileAuthRefreshRequest): Promise<MobileAuthRefreshResponse> {
+    return this.client.request(MobileProtocolMethods.AUTH_REFRESH, request);
   }
 
   getState(): Promise<MobileAuthState> {

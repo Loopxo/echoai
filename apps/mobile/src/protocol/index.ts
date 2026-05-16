@@ -5,6 +5,8 @@ export type {
   MobileApprovalStatus,
   MobileAttachmentRef,
   MobileAuthCompleteRequest,
+  MobileAuthRefreshRequest,
+  MobileAuthRefreshResponse,
   MobileAuthStartRequest,
   MobileAuthStartResponse,
   MobileAuthState,
