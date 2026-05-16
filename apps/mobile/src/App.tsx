@@ -16,6 +16,7 @@ import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
+import { DesktopChangedFilesScreen } from "./screens/DesktopChangedFilesScreen";
 import { DesktopHomeScreen } from "./screens/DesktopHomeScreen";
 import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
 import { DesktopTerminalRunScreen } from "./screens/DesktopTerminalRunScreen";
@@ -104,6 +105,7 @@ export default function App() {
         <SendToDesktopScreen onSend={() => undefined} />
         <DesktopWorkspaceSelectorScreen workspaces={[]} onSelect={() => undefined} />
         <DesktopTerminalRunScreen />
+        <DesktopChangedFilesScreen files={[]} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

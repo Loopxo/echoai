@@ -159,6 +159,7 @@ Desktop home for M-071 lives in `apps/mobile/src/desktop/home.ts` and `apps/mobi
 Send-to-desktop prompt for M-072 lives in `apps/mobile/src/desktop/prompt.ts` and `apps/mobile/src/screens/SendToDesktopScreen.tsx`, targeting the approved local workspace on a paired desktop.
 Desktop workspace selector for M-073 lives in `apps/mobile/src/desktop/workspaces.ts` and `apps/mobile/src/screens/DesktopWorkspaceSelectorScreen.tsx`, listing only desktop-approved workspaces.
 Desktop terminal run view for M-074 lives in `apps/mobile/src/desktop/terminal.ts` and `apps/mobile/src/screens/DesktopTerminalRunScreen.tsx`, tailing long command output.
+Desktop file changed view for M-075 lives in `apps/mobile/src/desktop/changedFiles.ts` and `apps/mobile/src/screens/DesktopChangedFilesScreen.tsx`, summarizing changed paths and diff counts.
 
 ## Device Trust Model
 
