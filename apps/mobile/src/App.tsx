@@ -3,6 +3,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 
 import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
+import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
@@ -52,6 +53,7 @@ export default function App() {
         <StreamingResponseScreen />
         <StopRunScreen onStop={() => undefined} />
         <RetryEditTurnScreen onRetry={() => undefined} />
+        <AttachmentPickerScreen attachments={[]} onPick={() => undefined} onRemove={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

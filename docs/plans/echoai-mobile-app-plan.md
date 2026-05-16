@@ -133,6 +133,7 @@ Chat send for M-045 lives in `apps/mobile/src/chat/sendRequest.ts` and `apps/mob
 Streaming display for M-046 lives in `apps/mobile/src/chat/streaming.ts` and `apps/mobile/src/screens/StreamingResponseScreen.tsx`, accumulating live deltas and retaining state through reconnects.
 The stop button for M-047 lives in `apps/mobile/src/screens/StopRunScreen.tsx` and carries session, run, and source into the typed abort request.
 Retry/edit for M-048 lives in `apps/mobile/src/chat/retry.ts` and `apps/mobile/src/screens/RetryEditTurnScreen.tsx`, preserving failed prompt drafts for edited resend.
+The attachment picker for M-049 lives in `apps/mobile/src/chat/attachments.ts` and `apps/mobile/src/screens/AttachmentPickerScreen.tsx`, covering image, document, audio, and file attachments.
 
 ## Device Trust Model
 
