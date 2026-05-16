@@ -140,6 +140,7 @@ Tool call cards for M-052 live in `apps/mobile/src/tooling/toolCalls.ts` and `ap
 The approval inbox for M-053 lives in `apps/mobile/src/approvals/inbox.ts` and `apps/mobile/src/screens/ApprovalInboxScreen.tsx`, showing pending approvals with high-risk items first.
 The approve/deny flow for M-054 lives in `apps/mobile/src/approvals/decision.ts` and `apps/mobile/src/screens/ApprovalDecisionScreen.tsx`, creating signed decision payloads for the approval API.
 Approval details for M-055 live in `apps/mobile/src/approvals/details.ts` and `apps/mobile/src/screens/ApprovalDetailsScreen.tsx`, exposing command, path, tool, risk, and reason before decision.
+Timeout handling for M-056 lives in `apps/mobile/src/approvals/timeouts.ts` and `apps/mobile/src/screens/ApprovalTimeoutScreen.tsx`, marking expired pending requests as non-actionable.
 
 ## Device Trust Model
 

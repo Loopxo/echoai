@@ -6,6 +6,7 @@ import { AccountScreen } from "./screens/AccountScreen";
 import { ApprovalDecisionScreen } from "./screens/ApprovalDecisionScreen";
 import { ApprovalDetailsScreen } from "./screens/ApprovalDetailsScreen";
 import { ApprovalInboxScreen } from "./screens/ApprovalInboxScreen";
+import { ApprovalTimeoutScreen } from "./screens/ApprovalTimeoutScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { ChatComposerScreen } from "./screens/ChatComposerScreen";
@@ -66,6 +67,7 @@ export default function App() {
         <ApprovalInboxScreen approvals={[]} onOpenApproval={() => undefined} />
         <ApprovalDetailsScreen />
         <ApprovalDecisionScreen onDecide={() => undefined} />
+        <ApprovalTimeoutScreen approvals={[]} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
