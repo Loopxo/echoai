@@ -27,6 +27,7 @@ import { RemoteLogsScreen } from "./screens/RemoteLogsScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
 import { RunStatusScreen } from "./screens/RunStatusScreen";
+import { SafetyWarningScreen } from "./screens/SafetyWarningScreen";
 import { ShareIntakeScreen } from "./screens/ShareIntakeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
@@ -72,6 +73,7 @@ export default function App() {
         <ApprovalDecisionScreen onDecide={() => undefined} />
         <ApprovalTimeoutScreen approvals={[]} />
         <ApprovalPushScreen onRegister={() => undefined} />
+        <SafetyWarningScreen />
         <RemoteLogsScreen lines={[]} />
         <DesktopSnapshotScreen />
         <HomeScreen apiReady={clientFactoryReady} />
