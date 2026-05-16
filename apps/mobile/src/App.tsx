@@ -15,6 +15,7 @@ import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
+import { FilePreviewScreen } from "./screens/FilePreviewScreen";
 import { FileUploadScreen } from "./screens/FileUploadScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -82,6 +83,7 @@ export default function App() {
         <ProjectListScreen projects={[]} onOpenProject={() => undefined} />
         <ProjectDetailScreen />
         <FileUploadScreen uploads={[]} onPick={() => undefined} />
+        <FilePreviewScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
