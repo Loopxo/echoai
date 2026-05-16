@@ -1,6 +1,7 @@
 export * from "./browserTask";
 export * from "./changedFiles";
 export * from "./diffApproval";
+export * from "./handoff";
 export * from "./home";
 export * from "./notificationControls";
 export * from "./prompt";

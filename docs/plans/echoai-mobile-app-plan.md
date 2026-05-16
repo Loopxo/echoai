@@ -164,6 +164,7 @@ Remote diff approval for M-076 lives in `apps/mobile/src/desktop/diffApproval.ts
 Desktop browser task view for M-077 lives in `apps/mobile/src/desktop/browserTask.ts` and `apps/mobile/src/screens/DesktopBrowserTaskScreen.tsx`, showing automation status, URL, and screenshot preview.
 Desktop notification controls for M-078 live in `apps/mobile/src/desktop/notificationControls.ts` and `apps/mobile/src/screens/DesktopNotificationControlsScreen.tsx`, toggling which desktop events notify mobile.
 Wake desktop flow for M-079 lives in `apps/mobile/src/desktop/wake.ts` and `apps/mobile/src/screens/WakeDesktopScreen.tsx`, creating activation requests for supported desktop gateways.
+Handoff back to web for M-080 lives in `apps/mobile/src/desktop/handoff.ts` and `apps/mobile/src/screens/WebHandoffScreen.tsx`, opening the same session in the web app.
 
 ## Device Trust Model
 

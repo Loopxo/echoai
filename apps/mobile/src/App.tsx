@@ -53,6 +53,7 @@ import { StopRunScreen } from "./screens/StopRunScreen";
 import { TlsPinningScreen } from "./screens/TlsPinningScreen";
 import { ToolCallCardsScreen } from "./screens/ToolCallCardsScreen";
 import { WakeDesktopScreen } from "./screens/WakeDesktopScreen";
+import { WebHandoffScreen } from "./screens/WebHandoffScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
 const clientFactoryReady = typeof createEchoAIMobileClient === "function";
@@ -114,6 +115,7 @@ export default function App() {
         <DesktopBrowserTaskScreen />
         <DesktopNotificationControlsScreen onToggle={() => undefined} />
         <WakeDesktopScreen onWake={() => undefined} />
+        <WebHandoffScreen onOpen={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
