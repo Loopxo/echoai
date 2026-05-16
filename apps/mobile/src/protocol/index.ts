@@ -2,6 +2,7 @@ export type {
   MobileAccount,
   MobileApprovalDecision,
   MobileApprovalRequest,
+  MobileApprovalStatus,
   MobileAttachmentRef,
   MobileAuthState,
   MobileAutomationSummary,

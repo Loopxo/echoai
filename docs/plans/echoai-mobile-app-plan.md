@@ -95,6 +95,8 @@ File API helpers for M-018 live in `apps/mobile/src/api/fileApi.ts` and cover up
 
 Device API helpers for M-019 live in `apps/mobile/src/api/deviceApi.ts` and cover register, pair, list, and revoke.
 
+Approval API helpers for M-020 live in `apps/mobile/src/api/approvalApi.ts` and cover fetching, approving, denying, and returning auditable approval state.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
