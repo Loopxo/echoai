@@ -37,6 +37,7 @@ import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { ProjectDetailScreen } from "./screens/ProjectDetailScreen";
 import { ProjectListScreen } from "./screens/ProjectListScreen";
+import { RemoteDiffApprovalScreen } from "./screens/RemoteDiffApprovalScreen";
 import { RemoteLogsScreen } from "./screens/RemoteLogsScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
@@ -106,6 +107,7 @@ export default function App() {
         <DesktopWorkspaceSelectorScreen workspaces={[]} onSelect={() => undefined} />
         <DesktopTerminalRunScreen />
         <DesktopChangedFilesScreen files={[]} />
+        <RemoteDiffApprovalScreen onDecide={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
