@@ -179,6 +179,7 @@ Settings home for M-091 lives in `apps/mobile/src/settings/home.ts` and `apps/mo
 Model settings for M-092 live in `apps/mobile/src/settings/modelSettings.ts` and `apps/mobile/src/screens/ModelSettingsScreen.tsx`, selecting default model preference across free, premium, BYOK, and desktop-local modes.
 Notification settings for M-093 live in `apps/mobile/src/settings/notificationSettings.ts` and `apps/mobile/src/screens/NotificationSettingsScreen.tsx`, controlling run, approval, automation, billing, and device alerts.
 Permission dashboard for M-094 lives in `apps/mobile/src/settings/permissions.ts` and `apps/mobile/src/screens/PermissionDashboardScreen.tsx`, showing OS permission status and usage reason per capability.
+Privacy/export/delete for M-095 lives in `apps/mobile/src/settings/privacy.ts` and `apps/mobile/src/screens/PrivacySettingsScreen.tsx`, covering local cache export/delete and account data requests.
 
 ## Device Trust Model
 
