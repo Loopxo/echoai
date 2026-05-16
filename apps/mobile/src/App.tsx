@@ -18,6 +18,7 @@ import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { DesktopHomeScreen } from "./screens/DesktopHomeScreen";
 import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
+import { DesktopWorkspaceSelectorScreen } from "./screens/DesktopWorkspaceSelectorScreen";
 import { FilePreviewScreen } from "./screens/FilePreviewScreen";
 import { FileUploadScreen } from "./screens/FileUploadScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
@@ -100,6 +101,7 @@ export default function App() {
         <MemorySuggestionsScreen suggestions={[]} onApprove={() => undefined} onDismiss={() => undefined} />
         <DesktopHomeScreen state={{ quickActions: [] }} onAction={() => undefined} />
         <SendToDesktopScreen onSend={() => undefined} />
+        <DesktopWorkspaceSelectorScreen workspaces={[]} onSelect={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

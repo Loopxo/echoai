@@ -157,6 +157,7 @@ The memories page for M-069 lives in `apps/mobile/src/memories/types.ts` and `ap
 Memory suggestions for M-070 live in `apps/mobile/src/memories/suggestions.ts` and `apps/mobile/src/screens/MemorySuggestionsScreen.tsx`, allowing assistant-proposed memories to be approved or dismissed.
 Desktop home for M-071 lives in `apps/mobile/src/desktop/home.ts` and `apps/mobile/src/screens/DesktopHomeScreen.tsx`, showing paired desktop status, workspace, active run, and quick actions.
 Send-to-desktop prompt for M-072 lives in `apps/mobile/src/desktop/prompt.ts` and `apps/mobile/src/screens/SendToDesktopScreen.tsx`, targeting the approved local workspace on a paired desktop.
+Desktop workspace selector for M-073 lives in `apps/mobile/src/desktop/workspaces.ts` and `apps/mobile/src/screens/DesktopWorkspaceSelectorScreen.tsx`, listing only desktop-approved workspaces.
 
 ## Device Trust Model
 
