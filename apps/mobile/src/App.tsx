@@ -10,6 +10,7 @@ import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
+import { NewChatScreen } from "./screens/NewChatScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
@@ -40,6 +41,7 @@ export default function App() {
         <RemoteTunnelScreen tunnels={[]} onConnect={() => undefined} />
         <ChatListScreen sessions={[]} onOpenSession={() => undefined} />
         <ChatDetailScreen />
+        <NewChatScreen onStart={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
