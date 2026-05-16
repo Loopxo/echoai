@@ -152,6 +152,7 @@ File preview for M-064 lives in `apps/mobile/src/files/preview.ts` and `apps/mob
 Camera capture for M-065 lives in `apps/mobile/src/files/cameraCapture.ts` and `apps/mobile/src/screens/CameraCaptureScreen.tsx`, exposing image and video capture through the native capture module.
 Audio capture for M-066 lives in `apps/mobile/src/files/audioCapture.ts` and `apps/mobile/src/screens/AudioCaptureScreen.tsx`, recording audio for send or transcription workflows.
 The note list for M-067 lives in `apps/mobile/src/notes/types.ts` and `apps/mobile/src/screens/NoteListScreen.tsx`, exposing searchable synced notes.
+The note editor for M-068 lives in `apps/mobile/src/notes/editor.ts` and `apps/mobile/src/screens/NoteEditorScreen.tsx`, supporting lightweight markdown draft editing.
 
 ## Device Trust Model
 

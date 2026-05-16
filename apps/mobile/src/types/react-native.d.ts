@@ -26,6 +26,7 @@ declare module "react-native" {
   export const TextInput: ComponentType<{
     autoCapitalize?: "none" | "sentences" | "words" | "characters";
     keyboardType?: "default" | "number-pad" | "decimal-pad" | "numeric" | "email-address" | "phone-pad" | "url";
+    multiline?: boolean;
     onChangeText?: (value: string) => void;
     placeholder?: string;
     placeholderTextColor?: string;
