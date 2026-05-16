@@ -19,6 +19,7 @@ import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { DesktopBrowserTaskScreen } from "./screens/DesktopBrowserTaskScreen";
 import { DesktopChangedFilesScreen } from "./screens/DesktopChangedFilesScreen";
 import { DesktopHomeScreen } from "./screens/DesktopHomeScreen";
+import { DesktopNotificationControlsScreen } from "./screens/DesktopNotificationControlsScreen";
 import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
 import { DesktopTerminalRunScreen } from "./screens/DesktopTerminalRunScreen";
 import { DesktopWorkspaceSelectorScreen } from "./screens/DesktopWorkspaceSelectorScreen";
@@ -110,6 +111,7 @@ export default function App() {
         <DesktopChangedFilesScreen files={[]} />
         <RemoteDiffApprovalScreen onDecide={() => undefined} />
         <DesktopBrowserTaskScreen />
+        <DesktopNotificationControlsScreen onToggle={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
