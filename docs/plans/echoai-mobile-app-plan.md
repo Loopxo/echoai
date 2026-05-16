@@ -138,6 +138,7 @@ Share target intake for M-050 lives in `apps/mobile/src/chat/shareIntake.ts` and
 The run status screen for M-051 lives in `apps/mobile/src/tooling/runStatus.ts` and `apps/mobile/src/screens/RunStatusScreen.tsx`, listing active and completed runs by latest update.
 Tool call cards for M-052 live in `apps/mobile/src/tooling/toolCalls.ts` and `apps/mobile/src/screens/ToolCallCardsScreen.tsx`, rendering file, shell, browser, MCP, and desktop actions clearly.
 The approval inbox for M-053 lives in `apps/mobile/src/approvals/inbox.ts` and `apps/mobile/src/screens/ApprovalInboxScreen.tsx`, showing pending approvals with high-risk items first.
+The approve/deny flow for M-054 lives in `apps/mobile/src/approvals/decision.ts` and `apps/mobile/src/screens/ApprovalDecisionScreen.tsx`, creating signed decision payloads for the approval API.
 
 ## Device Trust Model
 
