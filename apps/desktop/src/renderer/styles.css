@@ -308,11 +308,102 @@ button {
 
 .runtime-panel {
   grid-column: 1 / -1;
-  grid-template-rows: auto auto minmax(90px, 1fr);
+  grid-template-rows: auto auto minmax(180px, 1fr) auto auto minmax(90px, 0.65fr);
   overflow: hidden;
   border: 1px solid #d7d0c4;
   border-radius: 8px;
   background: #fffaf2;
+}
+
+.chat-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #ddd6ca;
+}
+
+.chat-toolbar select,
+.attachment-button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #cfc6b7;
+  border-radius: 7px;
+  background: #fffdf8;
+  color: #25211c;
+  font-weight: 700;
+}
+
+.attachment-button {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.attachment-button input {
+  display: none;
+}
+
+.chat-messages {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  overflow: auto;
+  padding: 14px 18px;
+  border-bottom: 1px solid #ddd6ca;
+}
+
+.message-card {
+  display: grid;
+  gap: 8px;
+  max-width: 840px;
+  padding: 12px;
+  border: 1px solid #ddd5c6;
+  border-radius: 8px;
+  background: #f7f4ee;
+}
+
+.message-card.user {
+  justify-self: end;
+  background: #edf6f1;
+}
+
+.message-card.assistant {
+  justify-self: start;
+  background: #fffdf8;
+}
+
+.message-card.tool {
+  max-width: 100%;
+  background: #f0eadf;
+}
+
+.message-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.message-card header div {
+  display: flex;
+  gap: 6px;
+}
+
+.message-card button {
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid #cfc6b7;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #25211c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.message-card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .runtime-status {
@@ -327,6 +418,13 @@ button {
   gap: 8px;
   padding: 12px 18px;
   border-bottom: 1px solid #ddd6ca;
+}
+
+.attachment-list {
+  padding: 8px 18px;
+  border-bottom: 1px solid #ddd6ca;
+  color: #756b5f;
+  font-size: 12px;
 }
 
 .runtime-compose input {

@@ -43,6 +43,12 @@ type PaletteItem = {
   run: () => void | Promise<void>;
 };
 
+type ChatMessage = {
+  id: string;
+  role: 'user' | 'assistant' | 'tool' | 'system';
+  content: string;
+};
+
 const pageDescriptions: Record<Page, string> = {
   Home: 'Command center',
   Chat: 'Runtime session',
@@ -79,6 +85,10 @@ export function App(): ReactElement {
   const [runtimeEvents, setRuntimeEvents] = useState<DesktopRuntimeEvent[]>([]);
   const [runtimePrompt, setRuntimePrompt] = useState('');
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [selectedModel, setSelectedModel] = useState('echoai-local');
+  const [selectedMode, setSelectedMode] = useState<'default' | 'plan'>('default');
+  const [attachments, setAttachments] = useState<string[]>([]);
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -122,6 +132,14 @@ export function App(): ReactElement {
     });
     const unsubscribeRuntime = window.echoaiDesktop.onRuntimeEvent((event) => {
       setRuntimeEvents((current) => [event, ...current].slice(0, 12));
+      const message = extractChatMessage(event);
+      if (message) {
+        setChatMessages((current) => upsertMessage(current, message));
+      }
+      const delta = extractAssistantDelta(event);
+      if (delta) {
+        setChatMessages((current) => appendAssistantDelta(current, event.runId, delta));
+      }
       if (event.type === 'run.completed' || event.type === 'run.failed' || event.type === 'run.cancelled') {
         setActiveRunId(null);
         void refreshRuntimeStatus();
@@ -303,12 +321,14 @@ export function App(): ReactElement {
     }
 
     const handle = await window.echoaiDesktop.runPrompt({
-      input: runtimePrompt,
+      input: buildPromptWithAttachments(runtimePrompt, attachments),
       workspaceRoot: workspace?.path,
-      mode: activePage === 'Tasks' ? 'plan' : 'default',
+      mode: selectedMode,
+      model: selectedModel,
     });
     setActiveRunId(handle.runId);
     setRuntimePrompt('');
+    setAttachments([]);
     await refreshRuntimeStatus();
   }
 
@@ -320,6 +340,22 @@ export function App(): ReactElement {
     await window.echoaiDesktop.cancelRun(activeRunId);
     setActiveRunId(null);
     await refreshRuntimeStatus();
+  }
+
+  async function retryMessage(message: ChatMessage): Promise<void> {
+    setRuntimePrompt(message.content);
+    await window.echoaiDesktop.runPrompt({
+      input: message.content,
+      workspaceRoot: workspace?.path,
+      mode: selectedMode,
+      model: selectedModel,
+    });
+  }
+
+  async function branchFromMessage(message: ChatMessage): Promise<void> {
+    await window.echoaiDesktop.createRuntimeSession(`Branch: ${message.content.slice(0, 32)}`);
+    setRuntimePrompt(message.content);
+    pushLocalNotification('system', 'Session branched', 'A new desktop runtime session is ready.');
   }
 
   function pushLocalNotification(
@@ -533,7 +569,7 @@ export function App(): ReactElement {
           <div className="runtime-panel">
             <div className="panel-header">
               <div>
-                <div className="panel-kicker">Runtime</div>
+                <div className="panel-kicker">Chat</div>
                 <h2>Agent Kernel</h2>
               </div>
               <div className="runtime-status">
@@ -541,6 +577,66 @@ export function App(): ReactElement {
                   ? `${runtimeStatus.sessionCount} sessions / ${runtimeStatus.activeRuns} active`
                   : 'Loading'}
               </div>
+            </div>
+            <div className="chat-toolbar">
+              <select
+                aria-label="Model"
+                onChange={(event) => setSelectedModel(event.target.value)}
+                value={selectedModel}
+              >
+                <option value="echoai-local">EchoAI Local</option>
+                <option value="echoai-free">EchoAI Free</option>
+                <option value="echoai-premium">EchoAI Premium</option>
+              </select>
+              <select
+                aria-label="Prompt mode"
+                onChange={(event) => setSelectedMode(event.target.value === 'plan' ? 'plan' : 'default')}
+                value={selectedMode}
+              >
+                <option value="default">Ask / Build</option>
+                <option value="plan">Plan / Review</option>
+              </select>
+              <label className="attachment-button">
+                Attach
+                <input
+                  multiple
+                  onChange={(event) =>
+                    setAttachments(Array.from(event.target.files ?? []).map((file) => file.name))
+                  }
+                  type="file"
+                />
+              </label>
+            </div>
+            <div className="chat-messages">
+              {chatMessages.length === 0 ? (
+                <div className="empty-row">No messages yet</div>
+              ) : (
+                chatMessages.map((message) => (
+                  <article className={`message-card ${message.role}`} key={message.id}>
+                    <header>
+                      <strong>{message.role}</strong>
+                      <div>
+                        {message.role === 'user' ? (
+                          <>
+                            <button onClick={() => setRuntimePrompt(message.content)} type="button">
+                              Edit
+                            </button>
+                            <button onClick={() => void retryMessage(message)} type="button">
+                              Retry
+                            </button>
+                          </>
+                        ) : null}
+                        {message.role === 'assistant' ? (
+                          <button onClick={() => void branchFromMessage(message)} type="button">
+                            Branch
+                          </button>
+                        ) : null}
+                      </div>
+                    </header>
+                    <p>{message.content}</p>
+                  </article>
+                ))
+              )}
             </div>
             <div className="runtime-compose">
               <input
@@ -558,6 +654,7 @@ export function App(): ReactElement {
                 </button>
               )}
             </div>
+            {attachments.length > 0 ? <div className="attachment-list">{attachments.join(', ')}</div> : null}
             <div className="runtime-events">
               {runtimeEvents.length === 0 ? (
                 <div className="empty-row">No runtime events</div>
@@ -730,4 +827,71 @@ function formatDate(value: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function buildPromptWithAttachments(prompt: string, attachmentNames: string[]): string {
+  if (attachmentNames.length === 0) {
+    return prompt;
+  }
+
+  return `${prompt}\n\nAttachments: ${attachmentNames.join(', ')}`;
+}
+
+function upsertMessage(messages: ChatMessage[], next: ChatMessage): ChatMessage[] {
+  const existingIndex = messages.findIndex((message) => message.id === next.id);
+  if (existingIndex === -1) {
+    return [...messages.filter((message) => !message.id.endsWith('-stream')), next];
+  }
+
+  return messages.map((message, index) => (index === existingIndex ? next : message));
+}
+
+function appendAssistantDelta(
+  messages: ChatMessage[],
+  runId: string,
+  text: string
+): ChatMessage[] {
+  const streamId = `${runId}-stream`;
+  const existing = messages.find((message) => message.id === streamId);
+  if (!existing) {
+    return [...messages, { id: streamId, role: 'assistant', content: text }];
+  }
+
+  return messages.map((message) =>
+    message.id === streamId ? { ...message, content: `${message.content}${text}` } : message
+  );
+}
+
+function extractAssistantDelta(event: DesktopRuntimeEvent): string | null {
+  if (event.type !== 'assistant.delta' || !isRecord(event.payload)) {
+    return null;
+  }
+
+  return typeof event.payload.text === 'string' ? event.payload.text : null;
+}
+
+function extractChatMessage(event: DesktopRuntimeEvent): ChatMessage | null {
+  if (event.type !== 'message.created' || !isRecord(event.payload)) {
+    return null;
+  }
+
+  const message = event.payload.message;
+  if (!isRecord(message)) {
+    return null;
+  }
+
+  const role = message.role;
+  if (role !== 'user' && role !== 'assistant' && role !== 'tool' && role !== 'system') {
+    return null;
+  }
+
+  return {
+    id: typeof message.id === 'string' ? message.id : `${event.runId}-${event.createdAt}`,
+    role,
+    content: typeof message.content === 'string' ? message.content : '',
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
