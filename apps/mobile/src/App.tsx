@@ -45,6 +45,7 @@ import { NotificationSettingsScreen } from "./screens/NotificationSettingsScreen
 import { OfflineCaptureQueueScreen } from "./screens/OfflineCaptureQueueScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
+import { PermissionDashboardScreen } from "./screens/PermissionDashboardScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { ProjectDetailScreen } from "./screens/ProjectDetailScreen";
 import { ProjectListScreen } from "./screens/ProjectListScreen";
@@ -142,6 +143,7 @@ export default function App() {
         <SettingsHomeScreen onOpenSection={() => undefined} />
         <ModelSettingsScreen onSelectPreference={() => undefined} />
         <NotificationSettingsScreen onToggle={() => undefined} />
+        <PermissionDashboardScreen permissions={[]} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

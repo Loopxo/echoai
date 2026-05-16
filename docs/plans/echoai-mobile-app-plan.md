@@ -178,6 +178,7 @@ Offline capture queue for M-090 lives in `apps/mobile/src/capture/offlineQueue.t
 Settings home for M-091 lives in `apps/mobile/src/settings/home.ts` and `apps/mobile/src/screens/SettingsHomeScreen.tsx`, linking account, models, devices, permissions, notifications, privacy, and debug sections.
 Model settings for M-092 live in `apps/mobile/src/settings/modelSettings.ts` and `apps/mobile/src/screens/ModelSettingsScreen.tsx`, selecting default model preference across free, premium, BYOK, and desktop-local modes.
 Notification settings for M-093 live in `apps/mobile/src/settings/notificationSettings.ts` and `apps/mobile/src/screens/NotificationSettingsScreen.tsx`, controlling run, approval, automation, billing, and device alerts.
+Permission dashboard for M-094 lives in `apps/mobile/src/settings/permissions.ts` and `apps/mobile/src/screens/PermissionDashboardScreen.tsx`, showing OS permission status and usage reason per capability.
 
 ## Device Trust Model
 
