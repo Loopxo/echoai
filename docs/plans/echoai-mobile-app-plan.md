@@ -114,6 +114,7 @@ Logout for M-027 is handled by `EchoAIAuthSession.logout`, which revokes the ser
 The account page for M-028 lives in `apps/mobile/src/screens/AccountScreen.tsx` and displays identity, plan, active workspace, connected devices, and usage summary from mobile auth/device state.
 
 The workspace switcher for M-029 lives in `apps/mobile/src/screens/WorkspaceSwitcher.tsx` and exposes active workspace selection for multi-workspace accounts.
+The auth audit display for M-030 lives in `apps/mobile/src/screens/AuthAuditScreen.tsx`, backed by the shared `auth.audit.list` mobile protocol method for recent login and device events.
 
 ## Device Trust Model
 

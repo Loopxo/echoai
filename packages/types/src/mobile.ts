@@ -142,6 +142,28 @@ export interface MobileAuthRefreshResponse {
     expiresAt: MobileIsoTimestamp;
 }
 
+export type MobileAuthAuditEventType =
+    | "sign-in"
+    | "sign-up"
+    | "token-refresh"
+    | "logout"
+    | "device-paired"
+    | "device-revoked"
+    | "workspace-switched";
+
+export interface MobileAuthAuditEvent {
+    id: MobileEntityId;
+    accountId: MobileEntityId;
+    workspaceId?: MobileEntityId;
+    deviceId?: MobileEntityId;
+    eventType: MobileAuthAuditEventType;
+    status: "success" | "failed" | "blocked";
+    createdAt: MobileIsoTimestamp;
+    ipCountry?: string;
+    userAgent?: string;
+    summary?: string;
+}
+
 export interface MobileModelRef {
     id: string;
     provider: string;
@@ -346,6 +368,7 @@ export const MobileProtocolMethods = {
     AUTH_REFRESH: "auth.refresh",
     AUTH_STATE_GET: "auth.state.get",
     AUTH_LOGOUT: "auth.logout",
+    AUTH_AUDIT_LIST: "auth.audit.list",
     SESSION_LIST: "session.list",
     SESSION_GET: "session.get",
     SESSION_RESUME: "session.resume",
@@ -376,6 +399,7 @@ export interface MobileProtocolRequestMap {
     [MobileProtocolMethods.AUTH_REFRESH]: MobileAuthRefreshRequest;
     [MobileProtocolMethods.AUTH_STATE_GET]: Record<string, never>;
     [MobileProtocolMethods.AUTH_LOGOUT]: Record<string, never>;
+    [MobileProtocolMethods.AUTH_AUDIT_LIST]: { accountId?: MobileEntityId; workspaceId?: MobileEntityId; limit?: number };
     [MobileProtocolMethods.SESSION_LIST]: { workspaceId: MobileEntityId; source?: MobileSessionSource; projectId?: MobileEntityId };
     [MobileProtocolMethods.SESSION_GET]: { sessionId: MobileEntityId; source: MobileSessionSource };
     [MobileProtocolMethods.SESSION_RESUME]: { sessionId: MobileEntityId; source: MobileSessionSource };
@@ -404,6 +428,7 @@ export interface MobileProtocolResponseMap {
     [MobileProtocolMethods.AUTH_REFRESH]: MobileAuthRefreshResponse;
     [MobileProtocolMethods.AUTH_STATE_GET]: MobileAuthState;
     [MobileProtocolMethods.AUTH_LOGOUT]: { signedOut: true };
+    [MobileProtocolMethods.AUTH_AUDIT_LIST]: { events: MobileAuthAuditEvent[] };
     [MobileProtocolMethods.SESSION_LIST]: { sessions: MobileSessionSummary[] };
     [MobileProtocolMethods.SESSION_GET]: MobileSessionDetail;
     [MobileProtocolMethods.SESSION_RESUME]: { session: MobileSessionDetail; runId?: MobileEntityId; status: MobileRunStatus };
@@ -529,6 +554,14 @@ export const mobileApiContract = {
             auth: "cloud-session",
             requestType: MobileProtocolMethods.AUTH_LOGOUT,
             responseType: MobileProtocolMethods.AUTH_LOGOUT,
+        },
+        [MobileProtocolMethods.AUTH_AUDIT_LIST]: {
+            method: MobileProtocolMethods.AUTH_AUDIT_LIST,
+            domain: "auth",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.AUTH_AUDIT_LIST,
+            responseType: MobileProtocolMethods.AUTH_AUDIT_LIST,
         },
         [MobileProtocolMethods.SESSION_LIST]: {
             method: MobileProtocolMethods.SESSION_LIST,
@@ -684,7 +717,7 @@ export const mobileProtocolSchema = {
     sourcePackage: "@echoai/types",
     domains: {
         auth: {
-            entities: ["MobileAccount", "MobileWorkspace", "MobileAuthState", "MobileAuthStartRequest", "MobileAuthStartResponse", "MobileAuthRefreshRequest", "MobileAuthRefreshResponse"],
+            entities: ["MobileAccount", "MobileWorkspace", "MobileAuthState", "MobileAuthStartRequest", "MobileAuthStartResponse", "MobileAuthRefreshRequest", "MobileAuthRefreshResponse", "MobileAuthAuditEvent"],
             methods: [
                 MobileProtocolMethods.AUTH_SIGN_IN_START,
                 MobileProtocolMethods.AUTH_SIGN_IN_COMPLETE,
@@ -693,6 +726,7 @@ export const mobileProtocolSchema = {
                 MobileProtocolMethods.AUTH_REFRESH,
                 MobileProtocolMethods.AUTH_STATE_GET,
                 MobileProtocolMethods.AUTH_LOGOUT,
+                MobileProtocolMethods.AUTH_AUDIT_LIST,
             ],
         },
         sessions: {

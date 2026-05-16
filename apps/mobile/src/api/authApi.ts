@@ -1,4 +1,5 @@
 import {
+  type MobileAuthAuditEvent,
   type MobileAuthCompleteRequest,
   type MobileAuthRefreshRequest,
   type MobileAuthRefreshResponse,
@@ -39,6 +40,10 @@ export class EchoAIAuthApi {
 
   logout(): Promise<{ signedOut: true }> {
     return this.client.request(MobileProtocolMethods.AUTH_LOGOUT, {});
+  }
+
+  listAuditEvents(options: { accountId?: string; workspaceId?: string; limit?: number } = {}): Promise<{ events: MobileAuthAuditEvent[] }> {
+    return this.client.request(MobileProtocolMethods.AUTH_AUDIT_LIST, options);
   }
 }
 
