@@ -103,6 +103,8 @@ React Native sign-up for M-022 uses the same secure-browser surface with `EchoAI
 
 Web-to-mobile auth completion for M-023 lives in `apps/mobile/src/auth/mobileAuthCallback.ts` and is wired into the sign-in screen through React Native deep-link handling.
 
+Secure token storage for M-024 lives in `apps/mobile/src/auth/tokenStore.ts`, wrapping the React Native native secure-storage interface backed by Keychain on iOS and Keystore/encrypted storage on Android.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
