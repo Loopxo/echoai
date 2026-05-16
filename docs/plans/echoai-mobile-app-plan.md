@@ -154,6 +154,7 @@ Audio capture for M-066 lives in `apps/mobile/src/files/audioCapture.ts` and `ap
 The note list for M-067 lives in `apps/mobile/src/notes/types.ts` and `apps/mobile/src/screens/NoteListScreen.tsx`, exposing searchable synced notes.
 The note editor for M-068 lives in `apps/mobile/src/notes/editor.ts` and `apps/mobile/src/screens/NoteEditorScreen.tsx`, supporting lightweight markdown draft editing.
 The memories page for M-069 lives in `apps/mobile/src/memories/types.ts` and `apps/mobile/src/screens/MemoriesScreen.tsx`, exposing add, edit, and delete actions.
+Memory suggestions for M-070 live in `apps/mobile/src/memories/suggestions.ts` and `apps/mobile/src/screens/MemorySuggestionsScreen.tsx`, allowing assistant-proposed memories to be approved or dismissed.
 
 ## Device Trust Model
 
