@@ -7,6 +7,7 @@ import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
+import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { SignInScreen } from "./screens/SignInScreen";
@@ -30,6 +31,7 @@ export default function App() {
         <QrPairingScreen onPair={() => undefined} />
         <PairApprovalScreen onCancel={() => undefined} />
         <TlsPinningScreen onDisconnect={() => undefined} onTrustFingerprint={() => undefined} />
+        <PairedDevicesScreen devices={[]} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
