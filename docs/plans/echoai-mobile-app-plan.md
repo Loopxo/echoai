@@ -121,6 +121,7 @@ The manual gateway connect flow for M-033 lives in `apps/mobile/src/screens/Manu
 The QR pairing flow for M-034 lives in `apps/mobile/src/gateway/qrPairing.ts` and `apps/mobile/src/screens/QrPairingScreen.tsx`, parsing signed desktop QR/deep-link payloads before starting native gateway pairing.
 The pair approval flow for M-035 lives in `apps/mobile/src/gateway/pairApproval.ts` and `apps/mobile/src/screens/PairApprovalScreen.tsx`, keeping mobile pairing blocked until the desktop challenge is approved.
 TLS pinning for M-036 lives in `apps/mobile/src/gateway/tlsPinning.ts` and `apps/mobile/src/screens/TlsPinningScreen.tsx`, remembering gateway fingerprints and warning on mismatches.
+Reconnect logic for M-037 lives in `apps/mobile/src/gateway/reconnect.ts`, providing foreground/network/manual reconnect triggers with bounded backoff state.
 
 ## Device Trust Model
 
