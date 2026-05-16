@@ -55,6 +55,7 @@ import { SafetyWarningScreen } from "./screens/SafetyWarningScreen";
 import { SendToDesktopScreen } from "./screens/SendToDesktopScreen";
 import { ShareIntakeScreen } from "./screens/ShareIntakeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
+import { SmsCapabilityDecisionScreen } from "./screens/SmsCapabilityDecisionScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
 import { StopRunScreen } from "./screens/StopRunScreen";
 import { TalkModeScreen } from "./screens/TalkModeScreen";
@@ -132,6 +133,7 @@ export default function App() {
         <LocationContextCommandScreen onShare={() => undefined} />
         <AndroidScreenCaptureScreen onStart={() => undefined} />
         <IosScreenFlowScreen />
+        <SmsCapabilityDecisionScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
