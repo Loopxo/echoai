@@ -125,6 +125,7 @@ Reconnect logic for M-037 lives in `apps/mobile/src/gateway/reconnect.ts`, provi
 The paired device list for M-038 lives in `apps/mobile/src/screens/PairedDevicesScreen.tsx` and renders trusted desktop status, workspace, and capabilities.
 The unpair/revoke flow for M-039 lives in `apps/mobile/src/screens/DeviceRevokeScreen.tsx` and calls the typed `device.revoke` mobile API.
 Remote tunnel support for M-040 lives in `apps/mobile/src/gateway/remoteTunnel.ts` and `apps/mobile/src/screens/RemoteTunnelScreen.tsx`, exposing cloud-routed desktop endpoints when enabled.
+The chat list for M-041 lives in `apps/mobile/src/screens/ChatListScreen.tsx` and labels synced cloud plus desktop gateway sessions by source.
 
 ## Device Trust Model
 
