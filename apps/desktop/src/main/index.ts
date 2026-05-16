@@ -16,6 +16,7 @@ import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
 import { TerminalTaskService, classifyCommand, getSandboxStatus } from './terminal-task-service';
+import { DesktopToolingService } from './tooling-service';
 import { WorkspaceFileService } from './workspace-file-service';
 import { WorkspaceStore } from './workspace-store';
 import {
@@ -48,6 +49,7 @@ let authStore: AuthStore | null = null;
 let workspaceStore: WorkspaceStore | null = null;
 let workspaceFileService: WorkspaceFileService | null = null;
 let terminalTaskService: TerminalTaskService | null = null;
+let toolingService: DesktopToolingService | null = null;
 let runtimeService: DesktopRuntimeService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
@@ -130,6 +132,7 @@ async function bootstrap(): Promise<void> {
       mainWindow.webContents.send('tasks:update', task);
     }
   });
+  toolingService = new DesktopToolingService(appPaths.dataDir, appPaths.skillsDir, appPaths.cacheDir);
   runtimeService = new DesktopRuntimeService(appPaths.sessionsDir, logger, (event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('runtime:event', event);
@@ -469,6 +472,98 @@ function registerIpcHandlers(): void {
     return getSandboxStatus(process.platform);
   });
 
+  ipcMain.handle('mcp:listServers', () => {
+    return requireServices().toolingService.listMcpServers();
+  });
+
+  ipcMain.handle('mcp:addServer', async (_event, server: unknown) => {
+    if (!isRecord(server) || typeof server.name !== 'string' || typeof server.command !== 'string') {
+      throw new Error('Invalid MCP server');
+    }
+
+    return requireServices().toolingService.addMcpServer({
+      name: server.name,
+      command: server.command,
+      args: Array.isArray(server.args) ? server.args.filter((arg): arg is string => typeof arg === 'string') : [],
+      enabled: server.enabled !== false,
+    });
+  });
+
+  ipcMain.handle('mcp:removeServer', (_event, serverId: unknown) => {
+    return typeof serverId === 'string' ? requireServices().toolingService.removeMcpServer(serverId) : false;
+  });
+
+  ipcMain.handle('mcp:testServer', (_event, serverId: unknown) => {
+    return typeof serverId === 'string' ? requireServices().toolingService.testMcpServer(serverId) : false;
+  });
+
+  ipcMain.handle('mcp:listTools', () => {
+    return requireServices().toolingService.listMcpTools();
+  });
+
+  ipcMain.handle('skills:list', () => {
+    return requireServices().toolingService.listSkills();
+  });
+
+  ipcMain.handle('skills:create', (_event, name: unknown, description: unknown) => {
+    if (typeof name !== 'string' || typeof description !== 'string') {
+      throw new Error('Invalid skill');
+    }
+
+    return requireServices().toolingService.createSkill(name, description);
+  });
+
+  ipcMain.handle('skills:delete', (_event, skillId: unknown) => {
+    return typeof skillId === 'string' ? requireServices().toolingService.deleteSkill(skillId) : false;
+  });
+
+  ipcMain.handle('browser:listProfiles', () => {
+    return requireServices().toolingService.listBrowserProfiles();
+  });
+
+  ipcMain.handle('browser:createProfile', (_event, name: unknown, workspacePath: unknown) => {
+    if (typeof name !== 'string') {
+      throw new Error('Invalid browser profile name');
+    }
+
+    return requireServices().toolingService.createBrowserProfile(
+      name,
+      typeof workspacePath === 'string' ? workspacePath : undefined
+    );
+  });
+
+  ipcMain.handle('browser:getAutomationStatus', () => {
+    return requireServices().toolingService.getBrowserAutomationStatus();
+  });
+
+  ipcMain.handle('gui:getPermissionStatus', () => {
+    return requireServices().toolingService.getGuiPermissionStatus();
+  });
+
+  ipcMain.handle('computer:requestAction', (_event, action: unknown) => {
+    if (typeof action !== 'string') {
+      throw new Error('Invalid computer-use action');
+    }
+
+    return requireServices().toolingService.requestComputerAction(action);
+  });
+
+  ipcMain.handle('canvas:list', () => {
+    return requireServices().toolingService.listCanvasEntries();
+  });
+
+  ipcMain.handle('canvas:open', (_event, title: unknown) => {
+    if (typeof title !== 'string') {
+      throw new Error('Invalid canvas title');
+    }
+
+    return requireServices().toolingService.openCanvasEntry(title);
+  });
+
+  ipcMain.handle('tools:summarizeOutput', (_event, output: unknown) => {
+    return requireServices().toolingService.summarizeToolOutput(typeof output === 'string' ? output : '');
+  });
+
   ipcMain.handle('logs:search', async (_event, query: unknown) => {
     const services = requireServices();
     return services.logger.search(typeof query === 'string' ? query : '');
@@ -696,6 +791,7 @@ function requireServices(): {
   workspaceStore: WorkspaceStore;
   workspaceFileService: WorkspaceFileService;
   terminalTaskService: TerminalTaskService;
+  toolingService: DesktopToolingService;
   runtimeService: DesktopRuntimeService;
   updateService: AutoUpdateService;
 } {
@@ -707,6 +803,7 @@ function requireServices(): {
     !workspaceStore ||
     !workspaceFileService ||
     !terminalTaskService ||
+    !toolingService ||
     !runtimeService ||
     !updateService
   ) {
@@ -721,6 +818,7 @@ function requireServices(): {
     workspaceStore,
     workspaceFileService,
     terminalTaskService,
+    toolingService,
     runtimeService,
     updateService,
   };

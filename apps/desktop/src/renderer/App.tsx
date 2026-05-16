@@ -16,6 +16,13 @@ import type {
   DesktopWorkspaceSymbol,
   DesktopSandboxStatus,
   DesktopTaskRecord,
+  DesktopToolSummary,
+  DesktopBrowserAutomationStatus,
+  DesktopBrowserProfile,
+  DesktopCanvasEntry,
+  DesktopGuiPermissionStatus,
+  DesktopMcpServer,
+  DesktopSkillEntry,
   DesktopUpdateStatus,
   DesktopWindowState,
   LogSearchEntry,
@@ -111,6 +118,13 @@ export function App(): ReactElement {
   const [terminalTasks, setTerminalTasks] = useState<DesktopTaskRecord[]>([]);
   const [terminalLog, setTerminalLog] = useState('');
   const [sandboxStatus, setSandboxStatus] = useState<DesktopSandboxStatus | null>(null);
+  const [mcpServers, setMcpServers] = useState<DesktopMcpServer[]>([]);
+  const [skills, setSkills] = useState<DesktopSkillEntry[]>([]);
+  const [browserProfiles, setBrowserProfiles] = useState<DesktopBrowserProfile[]>([]);
+  const [browserStatus, setBrowserStatus] = useState<DesktopBrowserAutomationStatus | null>(null);
+  const [guiStatus, setGuiStatus] = useState<DesktopGuiPermissionStatus | null>(null);
+  const [canvasEntries, setCanvasEntries] = useState<DesktopCanvasEntry[]>([]);
+  const [toolSummary, setToolSummary] = useState<DesktopToolSummary | null>(null);
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -174,6 +188,7 @@ export function App(): ReactElement {
 
     void refreshRuntimeStatus();
     void refreshTerminalState();
+    void refreshToolingState();
 
     return () => {
       isMounted = false;
@@ -432,6 +447,38 @@ export function App(): ReactElement {
 
   async function loadTerminalLog(taskId: string): Promise<void> {
     setTerminalLog(await window.echoaiDesktop.getTerminalLog(taskId));
+  }
+
+  async function refreshToolingState(): Promise<void> {
+    const [servers, skillList, profiles, status, permissions, canvases] = await Promise.all([
+      window.echoaiDesktop.listMcpServers(),
+      window.echoaiDesktop.listSkills(),
+      window.echoaiDesktop.listBrowserProfiles(),
+      window.echoaiDesktop.getBrowserAutomationStatus(),
+      window.echoaiDesktop.getGuiPermissionStatus(),
+      window.echoaiDesktop.listCanvasEntries(),
+    ]);
+    setMcpServers(servers);
+    setSkills(skillList);
+    setBrowserProfiles(profiles);
+    setBrowserStatus(status);
+    setGuiStatus(permissions);
+    setCanvasEntries(canvases);
+  }
+
+  async function createDefaultTooling(): Promise<void> {
+    await Promise.all([
+      window.echoaiDesktop.addMcpServer({
+        name: 'local-echoai',
+        command: 'echoai',
+        args: ['mcp'],
+        enabled: true,
+      }),
+      window.echoaiDesktop.createBrowserProfile('Default profile', workspace?.path),
+      window.echoaiDesktop.openCanvasEntry('Desktop canvas'),
+      window.echoaiDesktop.summarizeToolOutput(terminalLog || 'No output selected').then(setToolSummary),
+    ]);
+    await refreshToolingState();
   }
 
   async function cancelRuntimeRun(): Promise<void> {
@@ -886,6 +933,39 @@ export function App(): ReactElement {
                 )}
               </div>
               <pre className="terminal-log">{terminalLog || 'Select a task log'}</pre>
+            </div>
+          </div>
+
+          <div className="tooling-panel">
+            <div className="panel-header">
+              <div>
+                <div className="panel-kicker">Tools</div>
+                <h2>MCP, Skills, Browser, Canvas</h2>
+              </div>
+              <button className="small-action" onClick={createDefaultTooling} type="button">
+                Prepare
+              </button>
+            </div>
+            <div className="tooling-grid">
+              <SectionList title="MCP Servers" items={mcpServers.map((server) => server.name)} />
+              <SectionList title="Skills" items={skills.slice(0, 8).map((skill) => skill.name)} />
+              <SectionList title="Browser Profiles" items={browserProfiles.map((profile) => profile.name)} />
+              <SectionList
+                title="GUI Permissions"
+                items={[
+                  `screen ${guiStatus?.screenRecording ?? 'unknown'}`,
+                  `accessibility ${guiStatus?.accessibility ?? 'unknown'}`,
+                ]}
+              />
+              <SectionList title="Canvas" items={canvasEntries.map((entry) => entry.title)} />
+              <SectionList
+                title="Tool Summary"
+                items={[
+                  toolSummary
+                    ? `${toolSummary.lineCount} lines / ${toolSummary.truncated ? 'truncated' : 'full'}`
+                    : browserStatus?.message ?? 'No summary',
+                ]}
+              />
             </div>
           </div>
 

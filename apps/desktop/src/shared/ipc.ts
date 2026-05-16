@@ -34,6 +34,22 @@ export const IPC_INVOKE_CHANNELS = [
   'terminal:getLog',
   'sandbox:classifyCommand',
   'sandbox:getStatus',
+  'mcp:listServers',
+  'mcp:addServer',
+  'mcp:removeServer',
+  'mcp:testServer',
+  'mcp:listTools',
+  'skills:list',
+  'skills:create',
+  'skills:delete',
+  'browser:listProfiles',
+  'browser:createProfile',
+  'browser:getAutomationStatus',
+  'gui:getPermissionStatus',
+  'computer:requestAction',
+  'canvas:list',
+  'canvas:open',
+  'tools:summarizeOutput',
   'logs:search',
   'shell:openExternal',
   'updates:check',
@@ -319,6 +335,69 @@ export interface DesktopSandboxStatus {
   platform: NodeJS.Platform;
 }
 
+export interface DesktopMcpServer {
+  id: string;
+  name: string;
+  command: string;
+  args: string[];
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface DesktopMcpToolInfo {
+  serverId: string;
+  name: string;
+  description: string;
+  schema: Record<string, unknown>;
+}
+
+export interface DesktopSkillEntry {
+  id: string;
+  name: string;
+  description: string;
+  path: string;
+  updatedAt: string;
+}
+
+export interface DesktopBrowserProfile {
+  id: string;
+  name: string;
+  workspacePath: string | null;
+  createdAt: string;
+}
+
+export interface DesktopBrowserAutomationStatus {
+  installed: boolean;
+  activeProfileId: string | null;
+  message: string;
+}
+
+export interface DesktopGuiPermissionStatus {
+  screenRecording: 'unknown' | 'granted' | 'missing';
+  accessibility: 'unknown' | 'granted' | 'missing';
+}
+
+export interface DesktopComputerUseAudit {
+  id: string;
+  action: string;
+  status: 'queued' | 'requires-permission';
+  createdAt: string;
+}
+
+export interface DesktopCanvasEntry {
+  id: string;
+  title: string;
+  path: string;
+  createdAt: string;
+}
+
+export interface DesktopToolSummary {
+  lineCount: number;
+  charCount: number;
+  preview: string;
+  truncated: boolean;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
@@ -355,6 +434,22 @@ export interface EchoAIDesktopApi {
   getTerminalLog: (taskId: string) => Promise<string>;
   classifyCommand: (command: string) => Promise<DesktopCommandClassification>;
   getSandboxStatus: () => Promise<DesktopSandboxStatus>;
+  listMcpServers: () => Promise<DesktopMcpServer[]>;
+  addMcpServer: (server: Omit<DesktopMcpServer, 'id' | 'createdAt'>) => Promise<DesktopMcpServer>;
+  removeMcpServer: (serverId: string) => Promise<boolean>;
+  testMcpServer: (serverId: string) => Promise<boolean>;
+  listMcpTools: () => Promise<DesktopMcpToolInfo[]>;
+  listSkills: () => Promise<DesktopSkillEntry[]>;
+  createSkill: (name: string, description: string) => Promise<DesktopSkillEntry>;
+  deleteSkill: (skillId: string) => Promise<boolean>;
+  listBrowserProfiles: () => Promise<DesktopBrowserProfile[]>;
+  createBrowserProfile: (name: string, workspacePath?: string) => Promise<DesktopBrowserProfile>;
+  getBrowserAutomationStatus: () => Promise<DesktopBrowserAutomationStatus>;
+  getGuiPermissionStatus: () => Promise<DesktopGuiPermissionStatus>;
+  requestComputerAction: (action: string) => Promise<DesktopComputerUseAudit>;
+  listCanvasEntries: () => Promise<DesktopCanvasEntry[]>;
+  openCanvasEntry: (title: string) => Promise<DesktopCanvasEntry>;
+  summarizeToolOutput: (output: string) => Promise<DesktopToolSummary>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;
