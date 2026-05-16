@@ -22,6 +22,7 @@ import { FileUploadScreen } from "./screens/FileUploadScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
+import { MemoriesScreen } from "./screens/MemoriesScreen";
 import { ModelPickerScreen } from "./screens/ModelPickerScreen";
 import { NewChatScreen } from "./screens/NewChatScreen";
 import { NoteEditorScreen } from "./screens/NoteEditorScreen";
@@ -92,6 +93,7 @@ export default function App() {
         <AudioCaptureScreen onRecord={() => undefined} onTranscribe={() => undefined} />
         <NoteListScreen notes={[]} onOpenNote={() => undefined} />
         <NoteEditorScreen onSave={() => undefined} />
+        <MemoriesScreen memories={[]} onAdd={() => undefined} onDelete={() => undefined} onEdit={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
