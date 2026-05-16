@@ -40,6 +40,7 @@ import { ModelPickerScreen } from "./screens/ModelPickerScreen";
 import { NewChatScreen } from "./screens/NewChatScreen";
 import { NoteEditorScreen } from "./screens/NoteEditorScreen";
 import { NoteListScreen } from "./screens/NoteListScreen";
+import { OfflineCaptureQueueScreen } from "./screens/OfflineCaptureQueueScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
@@ -134,6 +135,7 @@ export default function App() {
         <AndroidScreenCaptureScreen onStart={() => undefined} />
         <IosScreenFlowScreen />
         <SmsCapabilityDecisionScreen />
+        <OfflineCaptureQueueScreen items={[]} onSync={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

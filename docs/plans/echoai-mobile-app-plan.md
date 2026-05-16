@@ -174,6 +174,7 @@ Location context command for M-086 lives in `apps/mobile/src/capture/locationCon
 Android screen capture for M-087 lives in `apps/mobile/src/capture/androidScreenCapture.ts` and `apps/mobile/src/screens/AndroidScreenCaptureScreen.tsx`, starting snapshot or stream sessions after user permission.
 iOS screen flow for M-088 lives in `apps/mobile/src/capture/iosScreenFlow.ts` and `apps/mobile/src/screens/IosScreenFlowScreen.tsx`, scoping support to in-app snapshots and explicit ReplayKit extensions.
 SMS capability decision for M-089 lives in `apps/mobile/src/capture/smsDecision.ts` and `apps/mobile/src/screens/SmsCapabilityDecisionScreen.tsx`; SMS is removed until strict product, privacy, and store approval exists.
+Offline capture queue for M-090 lives in `apps/mobile/src/capture/offlineQueue.ts` and `apps/mobile/src/screens/OfflineCaptureQueueScreen.tsx`, queueing notes, photos, and audio for later sync.
 
 ## Device Trust Model
 
