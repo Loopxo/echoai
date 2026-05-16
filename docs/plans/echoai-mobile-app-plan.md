@@ -143,6 +143,7 @@ Approval details for M-055 live in `apps/mobile/src/approvals/details.ts` and `a
 Timeout handling for M-056 lives in `apps/mobile/src/approvals/timeouts.ts` and `apps/mobile/src/screens/ApprovalTimeoutScreen.tsx`, marking expired pending requests as non-actionable.
 Remote logs for M-057 live in `apps/mobile/src/tooling/remoteLogs.ts` and `apps/mobile/src/screens/RemoteLogsScreen.tsx`, rendering a bounded tail of active desktop task logs.
 Desktop screen snapshot preview for M-058 lives in `apps/mobile/src/tooling/snapshot.ts` and `apps/mobile/src/screens/DesktopSnapshotScreen.tsx`, rendering image previews only when snapshot access is allowed.
+Push notifications for approvals in M-059 live in `apps/mobile/src/approvals/pushNotifications.ts` and `apps/mobile/src/screens/ApprovalPushScreen.tsx`, registering the native approval push handler with approval deep links.
 
 ## Device Trust Model
 

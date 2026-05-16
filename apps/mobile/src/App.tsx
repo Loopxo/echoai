@@ -6,6 +6,7 @@ import { AccountScreen } from "./screens/AccountScreen";
 import { ApprovalDecisionScreen } from "./screens/ApprovalDecisionScreen";
 import { ApprovalDetailsScreen } from "./screens/ApprovalDetailsScreen";
 import { ApprovalInboxScreen } from "./screens/ApprovalInboxScreen";
+import { ApprovalPushScreen } from "./screens/ApprovalPushScreen";
 import { ApprovalTimeoutScreen } from "./screens/ApprovalTimeoutScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
@@ -70,6 +71,7 @@ export default function App() {
         <ApprovalDetailsScreen />
         <ApprovalDecisionScreen onDecide={() => undefined} />
         <ApprovalTimeoutScreen approvals={[]} />
+        <ApprovalPushScreen onRegister={() => undefined} />
         <RemoteLogsScreen lines={[]} />
         <DesktopSnapshotScreen />
         <HomeScreen apiReady={clientFactoryReady} />
