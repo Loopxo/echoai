@@ -105,6 +105,8 @@ Web-to-mobile auth completion for M-023 lives in `apps/mobile/src/auth/mobileAut
 
 Secure token storage for M-024 lives in `apps/mobile/src/auth/tokenStore.ts`, wrapping the React Native native secure-storage interface backed by Keychain on iOS and Keystore/encrypted storage on Android.
 
+Secure storage recovery for M-025 is handled by `EchoAITokenStoreState` and `EchoAITokenStoreError`, covering unavailable, permission-denied, corrupted, and revoked token states.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
