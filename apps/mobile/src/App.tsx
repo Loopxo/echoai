@@ -54,6 +54,7 @@ import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
 import { RunStatusScreen } from "./screens/RunStatusScreen";
 import { SafetyWarningScreen } from "./screens/SafetyWarningScreen";
 import { SendToDesktopScreen } from "./screens/SendToDesktopScreen";
+import { SettingsHomeScreen } from "./screens/SettingsHomeScreen";
 import { ShareIntakeScreen } from "./screens/ShareIntakeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { SmsCapabilityDecisionScreen } from "./screens/SmsCapabilityDecisionScreen";
@@ -136,6 +137,7 @@ export default function App() {
         <IosScreenFlowScreen />
         <SmsCapabilityDecisionScreen />
         <OfflineCaptureQueueScreen items={[]} onSync={() => undefined} />
+        <SettingsHomeScreen onOpenSection={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
