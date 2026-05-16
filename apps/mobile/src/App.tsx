@@ -52,6 +52,7 @@ import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
 import { StopRunScreen } from "./screens/StopRunScreen";
 import { TlsPinningScreen } from "./screens/TlsPinningScreen";
 import { ToolCallCardsScreen } from "./screens/ToolCallCardsScreen";
+import { WakeDesktopScreen } from "./screens/WakeDesktopScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
 const clientFactoryReady = typeof createEchoAIMobileClient === "function";
@@ -112,6 +113,7 @@ export default function App() {
         <RemoteDiffApprovalScreen onDecide={() => undefined} />
         <DesktopBrowserTaskScreen />
         <DesktopNotificationControlsScreen onToggle={() => undefined} />
+        <WakeDesktopScreen onWake={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

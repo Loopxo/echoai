@@ -5,4 +5,5 @@ export * from "./home";
 export * from "./notificationControls";
 export * from "./prompt";
 export * from "./terminal";
+export * from "./wake";
 export * from "./workspaces";
