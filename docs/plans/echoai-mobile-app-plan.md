@@ -137,6 +137,7 @@ The attachment picker for M-049 lives in `apps/mobile/src/chat/attachments.ts` a
 Share target intake for M-050 lives in `apps/mobile/src/chat/shareIntake.ts` and `apps/mobile/src/screens/ShareIntakeScreen.tsx`, converting shared text, URLs, and files into chat drafts.
 The run status screen for M-051 lives in `apps/mobile/src/tooling/runStatus.ts` and `apps/mobile/src/screens/RunStatusScreen.tsx`, listing active and completed runs by latest update.
 Tool call cards for M-052 live in `apps/mobile/src/tooling/toolCalls.ts` and `apps/mobile/src/screens/ToolCallCardsScreen.tsx`, rendering file, shell, browser, MCP, and desktop actions clearly.
+The approval inbox for M-053 lives in `apps/mobile/src/approvals/inbox.ts` and `apps/mobile/src/screens/ApprovalInboxScreen.tsx`, showing pending approvals with high-risk items first.
 
 ## Device Trust Model
 

@@ -3,6 +3,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 
 import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
+import { ApprovalInboxScreen } from "./screens/ApprovalInboxScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { ChatComposerScreen } from "./screens/ChatComposerScreen";
@@ -60,6 +61,7 @@ export default function App() {
         <ShareIntakeScreen onStartChat={() => undefined} />
         <RunStatusScreen runs={[]} />
         <ToolCallCardsScreen toolCalls={[]} />
+        <ApprovalInboxScreen approvals={[]} onOpenApproval={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
