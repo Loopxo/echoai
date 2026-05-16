@@ -8,6 +8,7 @@ import { ApprovalDetailsScreen } from "./screens/ApprovalDetailsScreen";
 import { ApprovalInboxScreen } from "./screens/ApprovalInboxScreen";
 import { ApprovalPushScreen } from "./screens/ApprovalPushScreen";
 import { ApprovalTimeoutScreen } from "./screens/ApprovalTimeoutScreen";
+import { AudioCaptureScreen } from "./screens/AudioCaptureScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { CameraCaptureScreen } from "./screens/CameraCaptureScreen";
@@ -86,6 +87,7 @@ export default function App() {
         <FileUploadScreen uploads={[]} onPick={() => undefined} />
         <FilePreviewScreen />
         <CameraCaptureScreen onCapture={() => undefined} />
+        <AudioCaptureScreen onRecord={() => undefined} onTranscribe={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
