@@ -13,6 +13,7 @@ import { AudioCaptureScreen } from "./screens/AudioCaptureScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { CameraCaptureScreen } from "./screens/CameraCaptureScreen";
+import { CameraContextCommandScreen } from "./screens/CameraContextCommandScreen";
 import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
@@ -124,6 +125,7 @@ export default function App() {
         <IosVoiceWakeFeasibilityScreen />
         <AndroidVoiceWakeScreen onEnable={() => undefined} />
         <TalkModeScreen onToggle={() => undefined} />
+        <CameraContextCommandScreen onApprove={() => undefined} onDeny={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
