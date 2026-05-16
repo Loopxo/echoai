@@ -99,6 +99,8 @@ Approval API helpers for M-020 live in `apps/mobile/src/api/approvalApi.ts` and 
 
 React Native sign-in for M-021 lives in `apps/mobile/src/screens/SignInScreen.tsx` with `EchoAIAuthApi.startSignIn`, secure browser opening through `Linking.openURL`, and callback completion through the shared auth-complete protocol method.
 
+React Native sign-up for M-022 uses the same secure-browser surface with `EchoAIAuthApi.startSignUp` and `completeSignUp`, creating the first workspace through the shared auth protocol.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:

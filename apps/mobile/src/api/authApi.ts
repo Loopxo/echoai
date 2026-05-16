@@ -19,6 +19,14 @@ export class EchoAIAuthApi {
     return this.client.request(MobileProtocolMethods.AUTH_SIGN_IN_COMPLETE, request);
   }
 
+  startSignUp(request: MobileAuthStartRequest): Promise<MobileAuthStartResponse> {
+    return this.client.request(MobileProtocolMethods.AUTH_SIGN_UP_START, request);
+  }
+
+  completeSignUp(request: MobileAuthCompleteRequest): Promise<MobileAuthState> {
+    return this.client.request(MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE, request);
+  }
+
   getState(): Promise<MobileAuthState> {
     return this.client.request(MobileProtocolMethods.AUTH_STATE_GET, {});
   }

@@ -329,6 +329,8 @@ export const mobileFeatureFlagDefaults = {
 export const MobileProtocolMethods = {
     AUTH_SIGN_IN_START: "auth.signIn.start",
     AUTH_SIGN_IN_COMPLETE: "auth.signIn.complete",
+    AUTH_SIGN_UP_START: "auth.signUp.start",
+    AUTH_SIGN_UP_COMPLETE: "auth.signUp.complete",
     AUTH_STATE_GET: "auth.state.get",
     AUTH_LOGOUT: "auth.logout",
     SESSION_LIST: "session.list",
@@ -356,6 +358,8 @@ export type MobileProtocolMethod = (typeof MobileProtocolMethods)[keyof typeof M
 export interface MobileProtocolRequestMap {
     [MobileProtocolMethods.AUTH_SIGN_IN_START]: MobileAuthStartRequest;
     [MobileProtocolMethods.AUTH_SIGN_IN_COMPLETE]: MobileAuthCompleteRequest;
+    [MobileProtocolMethods.AUTH_SIGN_UP_START]: MobileAuthStartRequest;
+    [MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE]: MobileAuthCompleteRequest;
     [MobileProtocolMethods.AUTH_STATE_GET]: Record<string, never>;
     [MobileProtocolMethods.AUTH_LOGOUT]: Record<string, never>;
     [MobileProtocolMethods.SESSION_LIST]: { workspaceId: MobileEntityId; source?: MobileSessionSource; projectId?: MobileEntityId };
@@ -381,6 +385,8 @@ export interface MobileProtocolRequestMap {
 export interface MobileProtocolResponseMap {
     [MobileProtocolMethods.AUTH_SIGN_IN_START]: MobileAuthStartResponse;
     [MobileProtocolMethods.AUTH_SIGN_IN_COMPLETE]: MobileAuthState;
+    [MobileProtocolMethods.AUTH_SIGN_UP_START]: MobileAuthStartResponse;
+    [MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE]: MobileAuthState;
     [MobileProtocolMethods.AUTH_STATE_GET]: MobileAuthState;
     [MobileProtocolMethods.AUTH_LOGOUT]: { signedOut: true };
     [MobileProtocolMethods.SESSION_LIST]: { sessions: MobileSessionSummary[] };
@@ -476,6 +482,22 @@ export const mobileApiContract = {
             auth: "guest",
             requestType: MobileProtocolMethods.AUTH_SIGN_IN_COMPLETE,
             responseType: MobileProtocolMethods.AUTH_SIGN_IN_COMPLETE,
+        },
+        [MobileProtocolMethods.AUTH_SIGN_UP_START]: {
+            method: MobileProtocolMethods.AUTH_SIGN_UP_START,
+            domain: "auth",
+            transports: ["https"],
+            auth: "guest",
+            requestType: MobileProtocolMethods.AUTH_SIGN_UP_START,
+            responseType: MobileProtocolMethods.AUTH_SIGN_UP_START,
+        },
+        [MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE]: {
+            method: MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE,
+            domain: "auth",
+            transports: ["https"],
+            auth: "guest",
+            requestType: MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE,
+            responseType: MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE,
         },
         [MobileProtocolMethods.AUTH_LOGOUT]: {
             method: MobileProtocolMethods.AUTH_LOGOUT,
@@ -643,6 +665,8 @@ export const mobileProtocolSchema = {
             methods: [
                 MobileProtocolMethods.AUTH_SIGN_IN_START,
                 MobileProtocolMethods.AUTH_SIGN_IN_COMPLETE,
+                MobileProtocolMethods.AUTH_SIGN_UP_START,
+                MobileProtocolMethods.AUTH_SIGN_UP_COMPLETE,
                 MobileProtocolMethods.AUTH_STATE_GET,
                 MobileProtocolMethods.AUTH_LOGOUT,
             ],
