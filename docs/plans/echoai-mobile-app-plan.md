@@ -145,6 +145,7 @@ Remote logs for M-057 live in `apps/mobile/src/tooling/remoteLogs.ts` and `apps/
 Desktop screen snapshot preview for M-058 lives in `apps/mobile/src/tooling/snapshot.ts` and `apps/mobile/src/screens/DesktopSnapshotScreen.tsx`, rendering image previews only when snapshot access is allowed.
 Push notifications for approvals in M-059 live in `apps/mobile/src/approvals/pushNotifications.ts` and `apps/mobile/src/screens/ApprovalPushScreen.tsx`, registering the native approval push handler with approval deep links.
 Safety warnings for M-060 live in `apps/mobile/src/approvals/safetyWarnings.ts` and `apps/mobile/src/screens/SafetyWarningScreen.tsx`, escalating destructive or external actions to stronger confirmation.
+The project list for M-061 lives in `apps/mobile/src/projects/search.ts` and `apps/mobile/src/screens/ProjectListScreen.tsx`, providing synced project search and open actions.
 
 ## Device Trust Model
 

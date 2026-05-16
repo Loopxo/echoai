@@ -23,6 +23,7 @@ import { NewChatScreen } from "./screens/NewChatScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
+import { ProjectListScreen } from "./screens/ProjectListScreen";
 import { RemoteLogsScreen } from "./screens/RemoteLogsScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
@@ -76,6 +77,7 @@ export default function App() {
         <SafetyWarningScreen />
         <RemoteLogsScreen lines={[]} />
         <DesktopSnapshotScreen />
+        <ProjectListScreen projects={[]} onOpenProject={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
