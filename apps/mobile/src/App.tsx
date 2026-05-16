@@ -25,6 +25,7 @@ import { SignInScreen } from "./screens/SignInScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
 import { StopRunScreen } from "./screens/StopRunScreen";
 import { TlsPinningScreen } from "./screens/TlsPinningScreen";
+import { ToolCallCardsScreen } from "./screens/ToolCallCardsScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
 const clientFactoryReady = typeof createEchoAIMobileClient === "function";
@@ -58,6 +59,7 @@ export default function App() {
         <AttachmentPickerScreen attachments={[]} onPick={() => undefined} onRemove={() => undefined} />
         <ShareIntakeScreen onStartChat={() => undefined} />
         <RunStatusScreen runs={[]} />
+        <ToolCallCardsScreen toolCalls={[]} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

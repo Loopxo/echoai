@@ -136,6 +136,7 @@ Retry/edit for M-048 lives in `apps/mobile/src/chat/retry.ts` and `apps/mobile/s
 The attachment picker for M-049 lives in `apps/mobile/src/chat/attachments.ts` and `apps/mobile/src/screens/AttachmentPickerScreen.tsx`, covering image, document, audio, and file attachments.
 Share target intake for M-050 lives in `apps/mobile/src/chat/shareIntake.ts` and `apps/mobile/src/screens/ShareIntakeScreen.tsx`, converting shared text, URLs, and files into chat drafts.
 The run status screen for M-051 lives in `apps/mobile/src/tooling/runStatus.ts` and `apps/mobile/src/screens/RunStatusScreen.tsx`, listing active and completed runs by latest update.
+Tool call cards for M-052 live in `apps/mobile/src/tooling/toolCalls.ts` and `apps/mobile/src/screens/ToolCallCardsScreen.tsx`, rendering file, shell, browser, MCP, and desktop actions clearly.
 
 ## Device Trust Model
 
