@@ -31,6 +31,7 @@ import { FileUploadScreen } from "./screens/FileUploadScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { IosVoiceWakeFeasibilityScreen } from "./screens/IosVoiceWakeFeasibilityScreen";
+import { IosScreenFlowScreen } from "./screens/IosScreenFlowScreen";
 import { LocationContextCommandScreen } from "./screens/LocationContextCommandScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
 import { MemoriesScreen } from "./screens/MemoriesScreen";
@@ -130,6 +131,7 @@ export default function App() {
         <CameraContextCommandScreen onApprove={() => undefined} onDeny={() => undefined} />
         <LocationContextCommandScreen onShare={() => undefined} />
         <AndroidScreenCaptureScreen onStart={() => undefined} />
+        <IosScreenFlowScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

@@ -172,6 +172,7 @@ Talk mode for M-084 lives in `apps/mobile/src/voice/talkMode.ts` and `apps/mobil
 Camera context command for M-085 lives in `apps/mobile/src/capture/cameraContext.ts` and `apps/mobile/src/screens/CameraContextCommandScreen.tsx`, requiring explicit approval before capture.
 Location context command for M-086 lives in `apps/mobile/src/capture/locationContext.ts` and `apps/mobile/src/screens/LocationContextCommandScreen.tsx`, allowing approximate or precise sharing per request.
 Android screen capture for M-087 lives in `apps/mobile/src/capture/androidScreenCapture.ts` and `apps/mobile/src/screens/AndroidScreenCaptureScreen.tsx`, starting snapshot or stream sessions after user permission.
+iOS screen flow for M-088 lives in `apps/mobile/src/capture/iosScreenFlow.ts` and `apps/mobile/src/screens/IosScreenFlowScreen.tsx`, scoping support to in-app snapshots and explicit ReplayKit extensions.
 
 ## Device Trust Model
 
