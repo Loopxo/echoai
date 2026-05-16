@@ -7,6 +7,7 @@ import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
+import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
@@ -24,6 +25,7 @@ export default function App() {
         <AuthAuditScreen events={[]} />
         <GatewayDiscoveryScreen />
         <ManualGatewayConnectScreen onConnect={() => undefined} />
+        <QrPairingScreen onPair={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
