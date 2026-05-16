@@ -16,6 +16,7 @@ import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
+import { DesktopHomeScreen } from "./screens/DesktopHomeScreen";
 import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
 import { FilePreviewScreen } from "./screens/FilePreviewScreen";
 import { FileUploadScreen } from "./screens/FileUploadScreen";
@@ -96,6 +97,7 @@ export default function App() {
         <NoteEditorScreen onSave={() => undefined} />
         <MemoriesScreen memories={[]} onAdd={() => undefined} onDelete={() => undefined} onEdit={() => undefined} />
         <MemorySuggestionsScreen suggestions={[]} onApprove={() => undefined} onDismiss={() => undefined} />
+        <DesktopHomeScreen state={{ quickActions: [] }} onAction={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
