@@ -147,6 +147,7 @@ Push notifications for approvals in M-059 live in `apps/mobile/src/approvals/pus
 Safety warnings for M-060 live in `apps/mobile/src/approvals/safetyWarnings.ts` and `apps/mobile/src/screens/SafetyWarningScreen.tsx`, escalating destructive or external actions to stronger confirmation.
 The project list for M-061 lives in `apps/mobile/src/projects/search.ts` and `apps/mobile/src/screens/ProjectListScreen.tsx`, providing synced project search and open actions.
 The project detail for M-062 lives in `apps/mobile/src/projects/detail.ts` and `apps/mobile/src/screens/ProjectDetailScreen.tsx`, grouping chats, notes, files, memories, automations, and outputs.
+File upload for M-063 lives in `apps/mobile/src/files/upload.ts` and `apps/mobile/src/screens/FileUploadScreen.tsx`, tracking photo, video, document, and file upload progress.
 
 ## Device Trust Model
 

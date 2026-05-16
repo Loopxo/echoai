@@ -15,6 +15,7 @@ import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
+import { FileUploadScreen } from "./screens/FileUploadScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
@@ -80,6 +81,7 @@ export default function App() {
         <DesktopSnapshotScreen />
         <ProjectListScreen projects={[]} onOpenProject={() => undefined} />
         <ProjectDetailScreen />
+        <FileUploadScreen uploads={[]} onPick={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
