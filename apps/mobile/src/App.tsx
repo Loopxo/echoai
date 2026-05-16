@@ -4,6 +4,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
+import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
@@ -20,6 +21,7 @@ export default function App() {
         <AccountScreen />
         <WorkspaceSwitcher workspaces={[]} onSelect={() => undefined} />
         <AuthAuditScreen events={[]} />
+        <GatewayDiscoveryScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
