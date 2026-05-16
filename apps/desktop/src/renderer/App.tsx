@@ -41,6 +41,8 @@ import type {
   DesktopWebTicketStatus,
   DesktopWebToolPolicy,
   DesktopWindowState,
+  DesktopMemorySearchResult,
+  DesktopSandboxCommandPlan,
   DesktopWorkbenchSnapshot,
   LogSearchEntry,
   WorkspaceSelection,
@@ -369,6 +371,31 @@ export function App(): ReactElement {
 
   async function startWorkbenchWorkflow(): Promise<void> {
     await window.echoaiDesktop.startWorkbenchWorkflow('End-to-end desktop agent run');
+    await refreshWorkbenchState();
+  }
+
+  async function advanceWorkbenchWorkflow(runId: string): Promise<void> {
+    await window.echoaiDesktop.advanceWorkbenchWorkflow(runId);
+    await refreshWorkbenchState();
+  }
+
+  async function planWorkbenchSandboxCommand(command: string): Promise<DesktopSandboxCommandPlan> {
+    const plan = await window.echoaiDesktop.planSandboxCommand(command, workspace?.path);
+    await refreshWorkbenchState();
+    return plan;
+  }
+
+  async function searchWorkbenchMemory(query: string): Promise<DesktopMemorySearchResult[]> {
+    return window.echoaiDesktop.searchWorkbenchMemory(query);
+  }
+
+  async function recordWorkbenchBrowserAction(sessionId: string): Promise<void> {
+    await window.echoaiDesktop.recordBrowserAction({
+      sessionId,
+      action: 'navigate',
+      url: 'https://echoai.local/desktop-agent',
+      detail: 'Recorded browser workspace action from the native workbench.',
+    });
     await refreshWorkbenchState();
   }
 
@@ -992,10 +1019,14 @@ export function App(): ReactElement {
           <MarketWorkbench
             snapshot={workbench}
             onAddMemory={addWorkbenchMemory}
+            onAdvanceWorkflow={advanceWorkbenchWorkflow}
             onCreateApproval={createWorkbenchApproval}
             onCreateProject={createWorkbenchProject}
             onPinMemory={pinWorkbenchMemory}
+            onPlanSandboxCommand={planWorkbenchSandboxCommand}
+            onRecordBrowserAction={recordWorkbenchBrowserAction}
             onRespondApproval={respondWorkbenchApproval}
+            onSearchMemory={searchWorkbenchMemory}
             onStartWorkflow={startWorkbenchWorkflow}
           />
 

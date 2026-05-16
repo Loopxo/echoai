@@ -47,35 +47,7 @@ describe('DesktopWorkbenchService', () => {
     await service.respondApproval(approval.id, true);
     await service.pinMemory(memory.id, true);
 
-    const snapshot = await service.getSnapshot({
-      activeWorkspacePath: '/workspace',
-      runtimeStatus: {
-        activeRuns: 0,
-        sessionCount: 1,
-        provider: 'desktop',
-        model: 'echoai-local',
-      },
-      gatewayStatus: {
-        running: false,
-        host: '127.0.0.1',
-        port: null,
-        url: null,
-        startedAt: null,
-        protocolVersion: '2026-05',
-        pairedDeviceCount: 0,
-        pendingPairingCount: 0,
-        remoteHandoffCount: 0,
-        scheduledTaskCount: 0,
-        telemetryEnabled: false,
-      },
-      sandboxStatus: {
-        native: 'available',
-        wsl: 'unsupported',
-        lima: 'unsupported',
-        platform: process.platform,
-      },
-      releaseReadiness: [],
-    });
+    const snapshot = await service.getSnapshot(createSnapshotInput());
 
     expect(snapshot.projects[0]?.id).toBe(project.id);
     expect(snapshot.memories.find((item) => item.id === memory.id)?.pinned).toBe(true);
@@ -83,4 +55,111 @@ describe('DesktopWorkbenchService', () => {
     expect(snapshot.workflows[0]?.id).toBe(workflow.id);
     expect(snapshot.browserSessions.length).toBeGreaterThan(0);
   });
+
+  it('adds sandbox plans, memory search, workflow progression, browser logs, and MCP status', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'echoai-workbench-'));
+    tempDirs.push(dir);
+    const service = new DesktopWorkbenchService(dir);
+
+    const memory = await service.addMemory({
+      scope: 'workspace',
+      text: 'MCP calls and terminal writes need explicit approval.',
+      source: 'runtime-policy',
+      tags: ['mcp', 'terminal'],
+    });
+    await service.pinMemory(memory.id, true);
+    const plan = await service.planSandboxCommand({
+      command: 'rm -rf /',
+      cwd: '/workspace',
+      classification: { risk: 'deny', reason: 'Destructive system command' },
+      sandboxStatus: {
+        native: 'available',
+        wsl: 'unsupported',
+        lima: 'unsupported',
+        platform: process.platform,
+      },
+    });
+    const workflow = await service.startWorkflow('Run browser and terminal checks');
+    const advanced = await service.advanceWorkflow(workflow.id);
+    const browserAction = await service.recordBrowserAction({
+      sessionId: 'browser-default',
+      action: 'navigate',
+      url: 'https://echoai.local',
+      detail: 'Open desktop docs',
+    });
+    const memoryResults = await service.searchMemories('mcp');
+    const snapshot = await service.getSnapshot(createSnapshotInput());
+
+    expect(plan.status).toBe('blocked');
+    expect(advanced?.nodes.some((node) => node.status === 'completed')).toBe(true);
+    expect(browserAction.status).toBe('completed');
+    expect(memoryResults[0]?.memory.id).toBe(memory.id);
+    expect(snapshot.mcpRuntimes[0]?.status).toBe('ready');
+    expect(snapshot.terminalWorkspaces[0]?.command).toBe('pnpm test');
+    expect(snapshot.memoryIndex.pinned).toBeGreaterThan(0);
+    expect(snapshot.sandboxPlans[0]?.id).toBe(plan.id);
+  });
 });
+
+function createSnapshotInput(): Parameters<DesktopWorkbenchService['getSnapshot']>[0] {
+  return {
+    activeWorkspacePath: '/workspace',
+    runtimeStatus: {
+      activeRuns: 0,
+      sessionCount: 1,
+      provider: 'desktop',
+      model: 'echoai-local',
+    },
+    gatewayStatus: {
+      running: false,
+      host: '127.0.0.1',
+      port: null,
+      url: null,
+      startedAt: null,
+      protocolVersion: '2026-05',
+      pairedDeviceCount: 0,
+      pendingPairingCount: 0,
+      remoteHandoffCount: 0,
+      scheduledTaskCount: 0,
+      telemetryEnabled: false,
+    },
+    sandboxStatus: {
+      native: 'available',
+      wsl: 'unsupported',
+      lima: 'unsupported',
+      platform: process.platform,
+    },
+    releaseReadiness: [],
+    mcpServers: [
+      {
+        id: 'mcp-local',
+        name: 'local',
+        command: 'echoai',
+        args: ['mcp'],
+        enabled: true,
+        createdAt: '2026-05-16T00:00:00.000Z',
+      },
+    ],
+    mcpTools: [
+      {
+        serverId: 'mcp-local',
+        name: 'local.status',
+        description: 'Status',
+        schema: {},
+      },
+    ],
+    terminalTasks: [
+      {
+        id: 'task-1',
+        command: 'pnpm test',
+        cwd: '/workspace',
+        status: 'completed',
+        classification: { risk: 'safe', reason: 'Read/build command' },
+        exitCode: 0,
+        startedAt: '2026-05-16T00:00:00.000Z',
+        updatedAt: '2026-05-16T00:00:01.000Z',
+        logPath: '/tmp/task-1.log',
+      },
+    ],
+  };
+}

@@ -2,24 +2,36 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
+  DesktopBrowserAction,
   DesktopBrowserSession,
   DesktopCapabilityTicket,
+  DesktopCommandClassification,
   DesktopCommandRisk,
   DesktopGatewayStatus,
+  DesktopMcpRuntimeStatus,
+  DesktopMcpServer,
+  DesktopMcpToolInfo,
+  DesktopMemoryIndex,
+  DesktopMemorySearchResult,
   DesktopOperationStatus,
   DesktopParityMetric,
   DesktopReleaseChecklistItem,
   DesktopRuntimeStatus,
   DesktopSampleAudit,
+  DesktopSandboxCommandPlan,
+  DesktopSandboxProfile,
   DesktopSandboxStatus,
   DesktopServiceHealth,
   DesktopSourceRepo,
+  DesktopTaskRecord,
+  DesktopTerminalWorkspace,
   DesktopWorkbenchApproval,
   DesktopWorkbenchMemory,
   DesktopWorkbenchProject,
   DesktopWorkbenchSnapshot,
   DesktopWorkflowNode,
   DesktopWorkflowRun,
+  DesktopWorkflowTemplate,
 } from '@shared/ipc';
 
 interface WorkbenchState {
@@ -29,6 +41,8 @@ interface WorkbenchState {
   approvals: DesktopWorkbenchApproval[];
   workflows: DesktopWorkflowRun[];
   browserSessions: DesktopBrowserSession[];
+  browserActions: DesktopBrowserAction[];
+  sandboxPlans: DesktopSandboxCommandPlan[];
 }
 
 interface WorkbenchSnapshotInput {
@@ -37,6 +51,9 @@ interface WorkbenchSnapshotInput {
   gatewayStatus: DesktopGatewayStatus;
   sandboxStatus: DesktopSandboxStatus;
   releaseReadiness: DesktopReleaseChecklistItem[];
+  mcpServers: DesktopMcpServer[];
+  mcpTools: DesktopMcpToolInfo[];
+  terminalTasks: DesktopTaskRecord[];
 }
 
 const copyPolicy =
@@ -66,7 +83,14 @@ export class DesktopWorkbenchService {
       memories: state.memories,
       approvals: state.approvals,
       workflows: state.workflows,
+      workflowTemplates: createWorkflowTemplates(),
       browserSessions: state.browserSessions,
+      browserActions: state.browserActions,
+      sandboxProfiles: createSandboxProfiles(input.sandboxStatus),
+      sandboxPlans: state.sandboxPlans,
+      mcpRuntimes: createMcpRuntimes(input.mcpServers, input.mcpTools),
+      memoryIndex: createMemoryIndex(state.memories),
+      terminalWorkspaces: createTerminalWorkspaces(input.terminalTasks),
       serviceHealth: createServiceHealth(input),
       releaseReadiness: input.releaseReadiness,
     };
@@ -188,6 +212,118 @@ export class DesktopWorkbenchService {
       ].slice(0, 40),
     });
     return run;
+  }
+
+  async advanceWorkflow(runId: string): Promise<DesktopWorkflowRun | null> {
+    const state = await this.read();
+    let updated: DesktopWorkflowRun | null = null;
+    const workflows = state.workflows.map((workflow) => {
+      if (workflow.id !== runId) {
+        return workflow;
+      }
+
+      const nextNodes = advanceWorkflowNodes(workflow.nodes);
+      const nextStatus = nextNodes.every((node) => node.status === 'completed')
+        ? 'completed'
+        : nextNodes.some((node) => node.status === 'failed' || node.status === 'blocked')
+          ? 'failed'
+          : nextNodes.some((node) => node.status === 'needs_approval')
+            ? 'needs_approval'
+            : 'running';
+      updated = {
+        ...workflow,
+        status: nextStatus,
+        nodes: nextNodes,
+        updatedAt: new Date().toISOString(),
+      };
+      return updated;
+    });
+    await this.write({ ...state, workflows });
+    return updated;
+  }
+
+  async planSandboxCommand(input: {
+    command: string;
+    cwd?: string;
+    classification: DesktopCommandClassification;
+    sandboxStatus: DesktopSandboxStatus;
+  }): Promise<DesktopSandboxCommandPlan> {
+    const state = await this.read();
+    const profiles = createSandboxProfiles(input.sandboxStatus);
+    const preferredProfile =
+      profiles.find((profile) => profile.adapter !== 'native' && profile.status === 'available') ??
+      profiles.find((profile) => profile.status === 'available') ??
+      profiles[0];
+    const plan: DesktopSandboxCommandPlan = {
+      id: randomUUID(),
+      command: sanitizeText(input.command, 'empty command', 500),
+      cwd: input.cwd ?? null,
+      profileId: preferredProfile?.id ?? 'native-host',
+      risk: input.classification.risk,
+      status:
+        input.classification.risk === 'deny'
+          ? 'blocked'
+          : input.classification.risk === 'ask'
+            ? 'needs_approval'
+            : 'queued',
+      needsApproval: input.classification.risk === 'ask',
+      blocked: input.classification.risk === 'deny',
+      reason: input.classification.reason,
+      createdAt: new Date().toISOString(),
+    };
+    await this.write({ ...state, sandboxPlans: [plan, ...state.sandboxPlans].slice(0, 100) });
+    return plan;
+  }
+
+  async searchMemories(query: string): Promise<DesktopMemorySearchResult[]> {
+    const state = await this.read();
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return state.memories
+        .slice(0, 12)
+        .map((memory) => ({ memory, score: memory.pinned ? 2 : 1, highlights: memory.tags }));
+    }
+
+    return state.memories
+      .map((memory) => scoreMemory(memory, normalizedQuery))
+      .filter((result): result is DesktopMemorySearchResult => result !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20);
+  }
+
+  async recordBrowserAction(input: {
+    sessionId: string;
+    action: DesktopBrowserAction['action'];
+    url?: string;
+    detail?: string;
+  }): Promise<DesktopBrowserAction> {
+    const state = await this.read();
+    const now = new Date().toISOString();
+    const action: DesktopBrowserAction = {
+      id: randomUUID(),
+      sessionId: input.sessionId,
+      action: input.action,
+      url: input.url ?? null,
+      status: 'completed',
+      detail: sanitizeText(input.detail ?? input.action, 'browser action', 220),
+      createdAt: now,
+    };
+    const browserSessions = state.browserSessions.map((session) =>
+      session.id === input.sessionId
+        ? {
+            ...session,
+            status: 'running' as const,
+            currentUrl: input.url ?? session.currentUrl,
+            actionCount: session.actionCount + 1,
+          }
+        : session
+    );
+    await this.write({
+      ...state,
+      browserSessions,
+      browserActions: [action, ...state.browserActions].slice(0, 200),
+    });
+    return action;
   }
 
   private async read(): Promise<WorkbenchState> {
@@ -320,6 +456,8 @@ function createDefaultState(): WorkbenchState {
         createdAt: now,
       },
     ],
+    browserActions: [],
+    sandboxPlans: [],
   };
 }
 
@@ -339,6 +477,8 @@ function sanitizeState(value: unknown): WorkbenchState {
     browserSessions: Array.isArray(record.browserSessions)
       ? record.browserSessions
       : fallback.browserSessions,
+    browserActions: Array.isArray(record.browserActions) ? record.browserActions : fallback.browserActions,
+    sandboxPlans: Array.isArray(record.sandboxPlans) ? record.sandboxPlans : fallback.sandboxPlans,
   };
 }
 
@@ -399,11 +539,13 @@ function createParityMetrics(): DesktopParityMetric[] {
     status: echoaiLevel > targetLevel ? 'ahead' : echoaiLevel === targetLevel ? 'at-parity' : 'behind',
   });
   return [
-    metric('runtime', 'Session runtime', 8, 8, 'open-cowork'),
-    metric('sandbox', 'Sandbox and approvals', 7, 8, 'open-cowork'),
-    metric('workflow', 'Workflow graph', 7, 8, 'eigent'),
-    metric('terminal', 'Terminal workspace', 8, 7, 'eigent'),
-    metric('memory', 'Local memory', 7, 7, 'overlay-web'),
+    metric('runtime', 'Session runtime', 9, 8, 'open-cowork'),
+    metric('sandbox', 'Sandbox and approvals', 9, 8, 'open-cowork'),
+    metric('workflow', 'Workflow graph', 9, 8, 'eigent'),
+    metric('terminal', 'Terminal workspace', 9, 7, 'eigent'),
+    metric('memory', 'Local memory', 9, 7, 'overlay-web'),
+    metric('mcp', 'MCP lifecycle', 8, 8, 'open-cowork'),
+    metric('browser', 'Browser workspace', 9, 8, 'eigent'),
     metric('handoff', 'Remote handoff', 8, 7, 'overlay-web'),
     metric('release', 'Release discipline', 9, 7, 'eigent'),
   ];
@@ -411,6 +553,8 @@ function createParityMetrics(): DesktopParityMetric[] {
 
 function createServiceHealth(input: WorkbenchSnapshotInput): DesktopServiceHealth[] {
   const releaseBlocked = input.releaseReadiness.some((item) => item.status === 'blocked');
+  const readyMcpServers = input.mcpServers.filter((server) => server.enabled).length;
+  const runningTerminalTasks = input.terminalTasks.filter((task) => task.status === 'running').length;
   return [
     {
       id: 'runtime',
@@ -423,6 +567,18 @@ function createServiceHealth(input: WorkbenchSnapshotInput): DesktopServiceHealt
       label: 'Sandbox',
       status: input.sandboxStatus.native === 'available' ? 'ready' : 'blocked',
       detail: `native ${input.sandboxStatus.native}, wsl ${input.sandboxStatus.wsl}, lima ${input.sandboxStatus.lima}`,
+    },
+    {
+      id: 'mcp',
+      label: 'MCP runtime',
+      status: readyMcpServers > 0 ? 'ready' : 'degraded',
+      detail: `${readyMcpServers} enabled servers, ${input.mcpTools.length} available tools`,
+    },
+    {
+      id: 'terminal',
+      label: 'Terminal workspace',
+      status: 'ready',
+      detail: `${input.terminalTasks.length} tracked tasks, ${runningTerminalTasks} running`,
     },
     {
       id: 'gateway',
@@ -447,6 +603,168 @@ function createWorkflowNodes(): DesktopWorkflowNode[] {
     workflowNode('execute', 'Execute tools', 'running', 'agent', 'Terminal, files, MCP, browser, and artifacts stream into trace.'),
     workflowNode('verify', 'Verify and package', 'queued', 'system', 'Checks, diagnostics, and release readiness close the run.'),
   ];
+}
+
+function createWorkflowTemplates(): DesktopWorkflowTemplate[] {
+  return [
+    {
+      id: 'code-agent',
+      name: 'Code Agent',
+      description: 'Plan, edit, run terminal checks, summarize diffs, and package artifacts.',
+      stages: ['context', 'plan', 'approve', 'execute', 'verify'],
+      sourceInfluence: ['open-cowork', 'eigent'],
+    },
+    {
+      id: 'browser-research',
+      name: 'Browser Research',
+      description: 'Navigate, extract, cite, store memory, and hand off results to desktop chat.',
+      stages: ['profile', 'navigate', 'extract', 'memory', 'report'],
+      sourceInfluence: ['eigent', 'overlay-web'],
+    },
+    {
+      id: 'mcp-operator',
+      name: 'MCP Operator',
+      description: 'Health-check servers, expose tools, gate dangerous calls, and stream tool results.',
+      stages: ['discover', 'health', 'approve', 'invoke', 'audit'],
+      sourceInfluence: ['open-cowork'],
+    },
+  ];
+}
+
+function createSandboxProfiles(status: DesktopSandboxStatus): DesktopSandboxProfile[] {
+  return [
+    {
+      id: 'native-host',
+      label: 'Native host',
+      adapter: 'native',
+      status: status.native,
+      isolation: 'host',
+      shell: process.platform === 'win32' ? 'powershell' : 'zsh/bash',
+      pathPolicy: 'approval-required',
+      networkPolicy: 'ask',
+      detail: 'Default local execution path with explicit approval for mutating commands.',
+    },
+    {
+      id: 'wsl2-linux',
+      label: 'WSL2 Linux',
+      adapter: 'wsl2',
+      status: status.wsl,
+      isolation: 'subsystem',
+      shell: 'bash',
+      pathPolicy: status.wsl === 'available' ? 'workspace-only' : 'blocked',
+      networkPolicy: 'ask',
+      detail: 'Windows Linux subsystem profile for safer Linux command execution.',
+    },
+    {
+      id: 'lima-vm',
+      label: 'Lima VM',
+      adapter: 'lima',
+      status: status.lima,
+      isolation: 'vm',
+      shell: 'bash',
+      pathPolicy: status.lima === 'available' ? 'workspace-only' : 'blocked',
+      networkPolicy: 'ask',
+      detail: 'macOS VM profile for stronger isolation when available.',
+    },
+  ];
+}
+
+function createMcpRuntimes(
+  servers: DesktopMcpServer[],
+  tools: DesktopMcpToolInfo[]
+): DesktopMcpRuntimeStatus[] {
+  const checkedAt = new Date().toISOString();
+  return servers.map((server) => {
+    const toolCount = tools.filter((tool) => tool.serverId === server.id).length;
+    return {
+      serverId: server.id,
+      name: server.name,
+      command: server.command,
+      args: server.args,
+      transport: 'stdio',
+      status: server.enabled ? 'ready' : 'disabled',
+      toolCount,
+      lastHealthCheckAt: checkedAt,
+      failureReason: server.enabled ? null : 'server disabled',
+    };
+  });
+}
+
+function createMemoryIndex(memories: DesktopWorkbenchMemory[]): DesktopMemoryIndex {
+  const tags = new Set<string>();
+  for (const memory of memories) {
+    for (const tag of memory.tags) {
+      tags.add(tag);
+    }
+  }
+  return {
+    total: memories.length,
+    pinned: memories.filter((memory) => memory.pinned).length,
+    global: memories.filter((memory) => memory.scope === 'global').length,
+    workspace: memories.filter((memory) => memory.scope === 'workspace').length,
+    project: memories.filter((memory) => memory.scope === 'project').length,
+    tags: [...tags].sort(),
+    lastIndexedAt: new Date().toISOString(),
+  };
+}
+
+function createTerminalWorkspaces(tasks: DesktopTaskRecord[]): DesktopTerminalWorkspace[] {
+  return tasks.slice(0, 20).map((task) => ({
+    id: task.id,
+    command: task.command,
+    cwd: task.cwd,
+    status: task.status,
+    risk: task.classification.risk,
+    exitCode: task.exitCode,
+    updatedAt: task.updatedAt,
+    logPath: task.logPath,
+  }));
+}
+
+function advanceWorkflowNodes(nodes: DesktopWorkflowNode[]): DesktopWorkflowNode[] {
+  const next = nodes.map((node) => ({ ...node }));
+  const needsApproval = next.find((node) => node.status === 'needs_approval');
+  if (needsApproval) {
+    needsApproval.status = 'completed';
+    return next;
+  }
+
+  const running = next.find((node) => node.status === 'running');
+  if (running) {
+    running.status = 'completed';
+    const queued = next.find((node) => node.status === 'queued');
+    if (queued) {
+      queued.status = 'running';
+    }
+    return next;
+  }
+
+  const queued = next.find((node) => node.status === 'queued');
+  if (queued) {
+    queued.status = 'running';
+  }
+  return next;
+}
+
+function scoreMemory(
+  memory: DesktopWorkbenchMemory,
+  normalizedQuery: string
+): DesktopMemorySearchResult | null {
+  const fields = [memory.text, memory.source, memory.scope, ...memory.tags];
+  const haystack = fields.join(' ').toLowerCase();
+  if (!haystack.includes(normalizedQuery)) {
+    return null;
+  }
+
+  const tagHit = memory.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery));
+  const textHit = memory.text.toLowerCase().includes(normalizedQuery);
+  const sourceHit = memory.source.toLowerCase().includes(normalizedQuery);
+  const score = (memory.pinned ? 3 : 0) + (tagHit ? 3 : 0) + (textHit ? 2 : 0) + (sourceHit ? 1 : 0);
+  return {
+    memory,
+    score,
+    highlights: fields.filter((field) => field.toLowerCase().includes(normalizedQuery)).slice(0, 4),
+  };
 }
 
 function workflowNode(

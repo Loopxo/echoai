@@ -29,6 +29,14 @@ EchoAI Desktop is a local-first professional agent workspace. It is not a hosted
 | Eigent | project UX, workflow graph, browser/terminal workspaces | integrated workbench panel with workflows, approvals, terminal, files, browser state |
 | Overlay | projects, memory, automations, outputs, handoff | local-first desktop-owned equivalents with optional web/mobile companions |
 
+## Depth Added After Initial Foundation
+
+- Sandbox planner: maps commands to native, WSL2, or Lima profiles and marks safe, approval-required, or blocked work before execution.
+- MCP lifecycle: exposes enabled/disabled server state, stdio transport metadata, tool counts, and health status in the native workbench.
+- Memory depth: keeps a local memory index, tags, pinning, and ranked search results for workspace/project/global context.
+- Workflow depth: supports operator templates, node progression, approval pauses, execution state, and verification stages.
+- Browser/terminal UX: records browser workspace actions and summarizes terminal task state alongside workflow and approval context.
+
 ## Release Gate
 
 A release candidate is not market-ready until typecheck, unit tests, package dry-run, release checklist, diagnostics export, and manual Electron launch all pass.

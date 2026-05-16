@@ -273,11 +273,20 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('desktop:getWorkbenchSnapshot', async () => {
     const services = requireServices();
-    const [recovery, runtimeStatus, gatewayStatus, releaseReadiness] = await Promise.all([
+    const [
+      recovery,
+      runtimeStatus,
+      gatewayStatus,
+      releaseReadiness,
+      mcpServers,
+      mcpTools,
+    ] = await Promise.all([
       services.recoveryStore.read(),
       services.runtimeService.getStatus(),
       services.gatewayService.getStatus(),
       services.gatewayService.getReleaseChecklist(),
+      services.toolingService.listMcpServers(),
+      services.toolingService.listMcpTools(),
     ]);
     return services.workbenchService.getSnapshot({
       activeWorkspacePath: recovery.lastWorkspacePath,
@@ -285,6 +294,9 @@ function registerIpcHandlers(): void {
       gatewayStatus,
       sandboxStatus: getSandboxStatus(process.platform),
       releaseReadiness,
+      mcpServers,
+      mcpTools,
+      terminalTasks: services.terminalTaskService.list(),
     });
   });
 
@@ -344,6 +356,47 @@ function registerIpcHandlers(): void {
     return requireServices().workbenchService.startWorkflow(
       typeof title === 'string' ? title : 'Market leader workflow'
     );
+  });
+
+  ipcMain.handle('desktop:advanceWorkbenchWorkflow', (_event, runId: unknown) => {
+    return typeof runId === 'string'
+      ? requireServices().workbenchService.advanceWorkflow(runId)
+      : null;
+  });
+
+  ipcMain.handle('desktop:planSandboxCommand', (_event, command: unknown, cwd: unknown) => {
+    const normalizedCommand = typeof command === 'string' ? command : '';
+    return requireServices().workbenchService.planSandboxCommand({
+      command: normalizedCommand,
+      cwd: typeof cwd === 'string' ? cwd : undefined,
+      classification: classifyCommand(normalizedCommand),
+      sandboxStatus: getSandboxStatus(process.platform),
+    });
+  });
+
+  ipcMain.handle('desktop:searchWorkbenchMemory', (_event, query: unknown) => {
+    return requireServices().workbenchService.searchMemories(typeof query === 'string' ? query : '');
+  });
+
+  ipcMain.handle('desktop:recordBrowserAction', (_event, input: unknown) => {
+    if (!isRecord(input) || typeof input.sessionId !== 'string') {
+      throw new Error('Invalid browser action');
+    }
+
+    const action =
+      input.action === 'click' ||
+      input.action === 'type' ||
+      input.action === 'screenshot' ||
+      input.action === 'extract' ||
+      input.action === 'handoff'
+        ? input.action
+        : 'navigate';
+    return requireServices().workbenchService.recordBrowserAction({
+      sessionId: input.sessionId,
+      action,
+      url: typeof input.url === 'string' ? input.url : undefined,
+      detail: typeof input.detail === 'string' ? input.detail : undefined,
+    });
   });
 
   ipcMain.handle('auth:getStatus', async () => {

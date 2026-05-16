@@ -249,7 +249,10 @@ button {
 
 .workbench-actions button,
 .approval-row button,
-.memory-row button {
+.browser-session-row button,
+.memory-row button,
+.workflow-card button,
+.workbench-compose button {
   min-height: 32px;
   padding: 0 10px;
   border: 1px solid #b9c7bf;
@@ -524,6 +527,113 @@ button {
 
 .health-row.blocked {
   border-color: #d99a9a;
+}
+
+.workbench-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.workbench-compose input {
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #cfd8d2;
+  border-radius: 7px;
+  background: #fbfdfb;
+  color: #1d2925;
+}
+
+.sandbox-plan,
+.profile-row,
+.mcp-row,
+.terminal-depth-row,
+.browser-session-row,
+.browser-action-row,
+.memory-result,
+.template-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #e2e7e4;
+  border-radius: 7px;
+  background: #fbfdfb;
+}
+
+.sandbox-plan {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.sandbox-plan.needs_approval,
+.profile-row.missing,
+.profile-row.unsupported,
+.mcp-row.disabled {
+  border-color: #e5c07b;
+  background: #fff8ea;
+}
+
+.sandbox-plan.blocked,
+.mcp-row.failed {
+  border-color: #d99a9a;
+  background: #fff0ef;
+}
+
+.profile-list,
+.mcp-list,
+.terminal-depth-list,
+.browser-session-list,
+.browser-action-list,
+.memory-results,
+.template-list {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-row strong,
+.mcp-row strong,
+.terminal-depth-row strong,
+.browser-session-row strong,
+.browser-action-row strong,
+.memory-result strong,
+.template-row strong {
+  overflow: hidden;
+  color: #1d2925;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sandbox-plan span,
+.profile-row span,
+.mcp-row span,
+.terminal-depth-row span,
+.browser-session-row span,
+.browser-action-row span,
+.memory-result span,
+.template-row span {
+  overflow: hidden;
+  color: #617169;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-index {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.memory-index span,
+.empty-inline {
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: #eef3f0;
+  color: #5b6a63;
+  font-size: 12px;
 }
 
 .top-bar {
@@ -1789,7 +1899,9 @@ button {
   .workbench-grid,
   .ticket-band,
   .ticket-samples,
-  .workflow-nodes {
+  .workflow-nodes,
+  .workbench-compose,
+  .memory-index {
     grid-template-columns: 1fr;
   }
 

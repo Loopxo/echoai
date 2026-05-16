@@ -10,6 +10,10 @@ export const IPC_INVOKE_CHANNELS = [
   'desktop:createWorkbenchApproval',
   'desktop:respondWorkbenchApproval',
   'desktop:startWorkbenchWorkflow',
+  'desktop:advanceWorkbenchWorkflow',
+  'desktop:planSandboxCommand',
+  'desktop:searchWorkbenchMemory',
+  'desktop:recordBrowserAction',
   'auth:getStatus',
   'auth:startDeviceLogin',
   'auth:refresh',
@@ -257,6 +261,14 @@ export interface DesktopWorkflowRun {
   updatedAt: string;
 }
 
+export interface DesktopWorkflowTemplate {
+  id: string;
+  name: string;
+  description: string;
+  stages: string[];
+  sourceInfluence: DesktopSourceRepo[];
+}
+
 export interface DesktopBrowserSession {
   id: string;
   profileName: string;
@@ -265,6 +277,80 @@ export interface DesktopBrowserSession {
   currentUrl: string | null;
   actionCount: number;
   createdAt: string;
+}
+
+export interface DesktopBrowserAction {
+  id: string;
+  sessionId: string;
+  action: 'navigate' | 'click' | 'type' | 'screenshot' | 'extract' | 'handoff';
+  url: string | null;
+  status: DesktopOperationStatus;
+  detail: string;
+  createdAt: string;
+}
+
+export interface DesktopSandboxProfile {
+  id: string;
+  label: string;
+  adapter: 'native' | 'wsl2' | 'lima';
+  status: 'available' | 'missing' | 'unsupported';
+  isolation: 'host' | 'subsystem' | 'vm';
+  shell: string;
+  pathPolicy: 'workspace-only' | 'approval-required' | 'blocked';
+  networkPolicy: 'allow' | 'ask' | 'deny';
+  detail: string;
+}
+
+export interface DesktopSandboxCommandPlan {
+  id: string;
+  command: string;
+  cwd: string | null;
+  profileId: string;
+  risk: DesktopCommandRisk;
+  status: DesktopOperationStatus;
+  needsApproval: boolean;
+  blocked: boolean;
+  reason: string;
+  createdAt: string;
+}
+
+export interface DesktopMcpRuntimeStatus {
+  serverId: string;
+  name: string;
+  command: string;
+  args: string[];
+  transport: 'stdio';
+  status: 'disabled' | 'ready' | 'failed';
+  toolCount: number;
+  lastHealthCheckAt: string;
+  failureReason: string | null;
+}
+
+export interface DesktopMemoryIndex {
+  total: number;
+  pinned: number;
+  global: number;
+  workspace: number;
+  project: number;
+  tags: string[];
+  lastIndexedAt: string;
+}
+
+export interface DesktopMemorySearchResult {
+  memory: DesktopWorkbenchMemory;
+  score: number;
+  highlights: string[];
+}
+
+export interface DesktopTerminalWorkspace {
+  id: string;
+  command: string;
+  cwd: string;
+  status: DesktopTaskRecord['status'];
+  risk: DesktopCommandRisk;
+  exitCode: number | null;
+  updatedAt: string;
+  logPath: string;
 }
 
 export interface DesktopServiceHealth {
@@ -288,7 +374,14 @@ export interface DesktopWorkbenchSnapshot {
   memories: DesktopWorkbenchMemory[];
   approvals: DesktopWorkbenchApproval[];
   workflows: DesktopWorkflowRun[];
+  workflowTemplates: DesktopWorkflowTemplate[];
   browserSessions: DesktopBrowserSession[];
+  browserActions: DesktopBrowserAction[];
+  sandboxProfiles: DesktopSandboxProfile[];
+  sandboxPlans: DesktopSandboxCommandPlan[];
+  mcpRuntimes: DesktopMcpRuntimeStatus[];
+  memoryIndex: DesktopMemoryIndex;
+  terminalWorkspaces: DesktopTerminalWorkspace[];
   serviceHealth: DesktopServiceHealth[];
   releaseReadiness: DesktopReleaseChecklistItem[];
 }
@@ -904,6 +997,15 @@ export interface EchoAIDesktopApi {
     approved: boolean
   ) => Promise<DesktopWorkbenchApproval | null>;
   startWorkbenchWorkflow: (title: string) => Promise<DesktopWorkflowRun>;
+  advanceWorkbenchWorkflow: (runId: string) => Promise<DesktopWorkflowRun | null>;
+  planSandboxCommand: (command: string, cwd?: string) => Promise<DesktopSandboxCommandPlan>;
+  searchWorkbenchMemory: (query: string) => Promise<DesktopMemorySearchResult[]>;
+  recordBrowserAction: (input: {
+    sessionId: string;
+    action: DesktopBrowserAction['action'];
+    url?: string;
+    detail?: string;
+  }) => Promise<DesktopBrowserAction>;
   getAccountStatus: () => Promise<DesktopAccountStatus>;
   startDeviceLogin: () => Promise<DesktopDeviceLogin>;
   refreshAccount: () => Promise<DesktopAccountStatus>;

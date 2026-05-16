@@ -57,6 +57,9 @@ import {
   type DesktopWebTicketStatus,
   type DesktopWebToolPolicy,
   type DesktopWindowState,
+  type DesktopBrowserAction,
+  type DesktopMemorySearchResult,
+  type DesktopSandboxCommandPlan,
   type DesktopWorkbenchApproval,
   type DesktopWorkbenchMemory,
   type DesktopWorkbenchProject,
@@ -114,6 +117,14 @@ const api: EchoAIDesktopApi = {
     invoke<DesktopWorkbenchApproval | null>('desktop:respondWorkbenchApproval', approvalId, approved),
   startWorkbenchWorkflow: (title: string) =>
     invoke<DesktopWorkflowRun>('desktop:startWorkbenchWorkflow', title),
+  advanceWorkbenchWorkflow: (runId: string) =>
+    invoke<DesktopWorkflowRun | null>('desktop:advanceWorkbenchWorkflow', runId),
+  planSandboxCommand: (command: string, cwd?: string) =>
+    invoke<DesktopSandboxCommandPlan>('desktop:planSandboxCommand', command, cwd),
+  searchWorkbenchMemory: (query: string) =>
+    invoke<DesktopMemorySearchResult[]>('desktop:searchWorkbenchMemory', query),
+  recordBrowserAction: (input) =>
+    invoke<DesktopBrowserAction>('desktop:recordBrowserAction', input),
   getAccountStatus: () => invoke<DesktopAccountStatus>('auth:getStatus'),
   startDeviceLogin: () => invoke<DesktopDeviceLogin>('auth:startDeviceLogin'),
   refreshAccount: () => invoke<DesktopAccountStatus>('auth:refresh'),
