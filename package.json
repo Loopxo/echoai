@@ -65,6 +65,7 @@
   ],
   "workspaces": [
     "apps/desktop",
+    "apps/web",
     "packages/*",
     "channels/*"
   ],
@@ -81,6 +82,9 @@
     "desktop:dev": "pnpm --filter @echoai/desktop dev",
     "desktop:build": "pnpm --filter @echoai/desktop build",
     "desktop:typecheck": "pnpm --filter @echoai/desktop typecheck",
+    "web:dev": "pnpm --filter @echoai/web-app dev",
+    "web:build": "pnpm --filter @echoai/web-app build",
+    "web:typecheck": "pnpm --filter @echoai/web-app typecheck",
     "build:watch": "tsc --watch",
     "dev": "tsx src/cli.ts",
     "test": "vitest run --passWithNoTests",
