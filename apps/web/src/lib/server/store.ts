@@ -60,7 +60,9 @@ function ensureNewFields(state: EchoAIWorkspaceState): EchoAIWorkspaceState {
     ...state,
     usageEvents: state.usageEvents ?? [],
     providerKeys: state.providerKeys ?? [],
+    storedObjects: state.storedObjects ?? [],
     externalAdapters: state.externalAdapters ?? [],
+    readiness: state.readiness ?? [],
   };
 }
 
@@ -108,6 +110,14 @@ export class FileWorkspaceStore {
     return this.write(maybeNext ?? state);
   }
 
+  async mutateAsync(
+    mutator: (state: EchoAIWorkspaceState) => Promise<void | EchoAIWorkspaceState>,
+  ): Promise<EchoAIWorkspaceState> {
+    const state = await this.read();
+    const maybeNext = await mutator(state);
+    return this.write(maybeNext ?? state);
+  }
+
   async reset(): Promise<EchoAIWorkspaceState> {
     return this.write(ensureNewFields(cloneState(seedWorkspaceState)));
   }
@@ -122,6 +132,10 @@ export function getWorkspaceStore(): FileWorkspaceStore {
 
 export function setWorkspaceStoreForTests(store: FileWorkspaceStore | null) {
   singleton = store;
+}
+
+export function getWorkspaceDataDir() {
+  return defaultDataDir();
 }
 
 export function findChat(state: EchoAIWorkspaceState, sessionId: string): EchoAIChatSession | undefined {

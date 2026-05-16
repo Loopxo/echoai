@@ -268,6 +268,27 @@ export interface EchoAIExternalAdapter {
   capability: string;
 }
 
+export interface EchoAIProductionReadinessItem {
+  id: EchoAIId;
+  area: "auth" | "billing" | "storage" | "model" | "oauth" | "sandbox" | "runtime" | "devices";
+  status: EchoAIAdapterStatus;
+  summary: string;
+  missingEnv: string[];
+  localFallback: string;
+}
+
+export interface EchoAIStoredObject {
+  id: EchoAIId;
+  workspaceId: EchoAIId;
+  ownerId: EchoAIId;
+  kind: "upload" | "artifact" | "export" | "media";
+  name: string;
+  contentType: string;
+  sizeBytes: number;
+  storageKey: string;
+  createdAt: string;
+}
+
 export interface EchoAIDevice {
   id: EchoAIId;
   name: string;
@@ -313,7 +334,9 @@ export interface EchoAIWorkspaceState {
   billing: EchoAIBillingAccount;
   usageEvents: EchoAIUsageEvent[];
   providerKeys: EchoAIProviderKeyRecord[];
+  storedObjects: EchoAIStoredObject[];
   externalAdapters: EchoAIExternalAdapter[];
+  readiness?: EchoAIProductionReadinessItem[];
   devices: EchoAIDevice[];
   backgroundRuns: EchoAIBackgroundRun[];
 }

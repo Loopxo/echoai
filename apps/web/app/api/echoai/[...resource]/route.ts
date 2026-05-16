@@ -6,11 +6,16 @@ import { exportNote, proposeMemory, retrieveMemories } from "@/lib/notes-memory"
 import { browserAutomationTool, codeSandboxTool, exposedIntegrationTools, mcpToolBrowser, skillLibrary, toolPolicyMatrix } from "@/lib/tools";
 import { ticketCoverage, ticketSummary } from "@/lib/tickets";
 import { clearSessionCookie, createNativeBearerToken, createSignedSession, makeSessionCookie, readBearerSession, readSessionFromRequest } from "@/lib/server/auth-service";
-import { requireAdapter, resolveExternalAdapters } from "@/lib/server/adapters";
+import { productionCredentialChecklist, requireAdapter, resolveExternalAdapters } from "@/lib/server/adapters";
 import { addIndexedFile, hardDeleteFile, searchWorkspaceKnowledge } from "@/lib/server/knowledge-service";
+import { completeWithGateway } from "@/lib/server/model-gateway-service";
+import { localObjectMetadata, putLocalObject, readLocalObject } from "@/lib/server/object-storage-service";
 import { abortRun, appendUserMessage, createChatSession, forkChat, runAssistantTurn } from "@/lib/server/runtime-service";
 import { handoffToDeviceById, pairDeviceById, queueAutomation, recordUsage, updateToolPolicy } from "@/lib/server/operations-service";
-import { createAuditEvent, getWorkspaceStore } from "@/lib/server/store";
+import { productionReadiness } from "@/lib/server/readiness-service";
+import { runSchedulerTick } from "@/lib/server/scheduler-service";
+import { createAuditEvent, createBackgroundRun, findChat, getWorkspaceStore, makeId } from "@/lib/server/store";
+import { upsertProviderKey } from "@/lib/server/vault-service";
 
 function json(data: unknown, init?: ResponseInit) {
   return NextResponse.json(data, init);
@@ -22,7 +27,12 @@ function stateWithAdapters(state: EchoAIWorkspaceState): EchoAIWorkspaceState {
   return {
     ...state,
     externalAdapters: [...existing, ...configured],
+    readiness: productionReadiness(),
   };
+}
+
+function storedObjectKind(value: unknown) {
+  return value === "artifact" || value === "export" || value === "media" || value === "upload" ? value : "upload";
 }
 
 function searchState(state: EchoAIWorkspaceState, query: string) {
@@ -82,6 +92,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   const state = stateWithAdapters(await getWorkspaceStore().read());
 
   if (path === "env") return json({ ok: true, appUrl: getWebEnv().ECHOAI_WEB_APP_URL, adapters: state.externalAdapters });
+  if (path === "readiness") return json({ readiness: productionReadiness(), credentials: productionCredentialChecklist() });
+  if (path === "credentials/checklist") return json(productionCredentialChecklist());
   if (path === "auth/session") return json(readBearerSession(request) ?? readSessionFromRequest(request) ?? state.session);
   if (path === "auth/refresh") {
     const session = createSignedSession(state);
@@ -104,6 +116,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   if (path === "models/estimate") return json(estimateModelCost(url.searchParams.get("modelId") ?? "model_echoai_code", 12000, 2400));
   if (path === "models/fallback") return json(resolveFallbackChain(url.searchParams.get("modelId") ?? "model_free_router"));
   if (path === "provider-keys") return json(state.providerKeys.map((key) => ({ ...key, encryptedRef: "redacted" })));
+  if (path === "objects") return json(state.storedObjects);
+  if (path === "objects/meta") {
+    const storageKey = url.searchParams.get("key") ?? url.searchParams.get("storageKey");
+    if (!storageKey) return json({ error: "Missing storage object key" }, { status: 400 });
+    return json(await localObjectMetadata(storageKey));
+  }
+  if (path === "objects/read") {
+    const storageKey = url.searchParams.get("key") ?? url.searchParams.get("storageKey");
+    if (!storageKey) return json({ error: "Missing storage object key" }, { status: 400 });
+    return json({ storageKey, content: await readLocalObject(storageKey) });
+  }
   if (path === "projects") return json(state.projects);
   if (path === "files") return json(state.files);
   if (path === "files/delete-plan") return json({ fileId: url.searchParams.get("fileId") ?? "file_plan", steps: ["database record", "storage object", "chunks", "embeddings", "audit"] });
@@ -122,6 +145,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   if (path === "browser/session") return json({ ...browserAutomationTool, adapter: requireAdapter("adapter_ai_gateway") });
   if (path === "code/sandbox") return json({ ...codeSandboxTool, adapter: requireAdapter("adapter_daytona") });
   if (path === "automations") return json(state.automations);
+  if (path === "scheduler/preview") return json({ activeAutomations: state.automations.filter((automation) => automation.status === "active") });
   if (path === "outputs") return json(state.outputs);
   if (path === "billing") return json(state.billing);
   if (path === "billing/usage") return json(state.usageEvents);
@@ -172,6 +196,90 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
   }
 
   if (path === "workspace/reset") return json(await getWorkspaceStore().reset());
+
+  if (path === "objects/put") {
+    let object = null;
+    const state = await getWorkspaceStore().mutateAsync(async (draft) => {
+      object = await putLocalObject(draft, {
+        name: String(body.name ?? "upload.txt"),
+        content: String(body.content ?? ""),
+        contentType: typeof body.contentType === "string" ? body.contentType : undefined,
+        kind: storedObjectKind(body.kind),
+      });
+      return draft;
+    });
+    return json({ object, state: stateWithAdapters(state) });
+  }
+
+  if (path === "vault/provider-key") {
+    let key = null;
+    const state = await getWorkspaceStore().mutate((draft) => {
+      key = upsertProviderKey(draft, {
+        provider: String(body.provider ?? "openai"),
+        label: String(body.label ?? "Provider key"),
+        secret: String(body.secret ?? ""),
+      });
+      return draft;
+    });
+    return json({ key, state: stateWithAdapters(state) });
+  }
+
+  if (path === "scheduler/tick") {
+    let tick = null;
+    const state = await getWorkspaceStore().mutate((draft) => {
+      tick = runSchedulerTick(draft);
+      return draft;
+    });
+    return json({ tick, state: stateWithAdapters(state) });
+  }
+
+  if (path === "gateway/complete") {
+    let completion: ReturnType<typeof completeWithGateway> | null = null;
+    let sessionId = "";
+    const state = await getWorkspaceStore().mutate((draft) => {
+      const prompt = String(body.prompt ?? "Complete EchoAI request");
+      const requestedSessionId = typeof body.sessionId === "string" ? body.sessionId : undefined;
+      let session = requestedSessionId ? findChat(draft, requestedSessionId) : undefined;
+      if (!session) {
+        session = createChatSession(draft, {
+          title: String(body.title ?? "Gateway completion"),
+          projectId: String(body.projectId ?? draft.projects[0]?.id ?? "project_web"),
+          modelId: String(body.modelId ?? draft.models[0]?.id ?? "model_echoai_code"),
+        });
+      }
+      appendUserMessage(draft, { sessionId: session.id, content: prompt });
+      const run = createBackgroundRun(session.id);
+      draft.backgroundRuns.unshift(run);
+      completion = completeWithGateway(draft, { session, prompt, runId: run.id });
+      const timestamp = new Date().toISOString();
+      session.messages.push({
+        id: makeId("msg"),
+        role: "assistant",
+        content: completion.text,
+        createdAt: timestamp,
+        modelId: session.modelId,
+        runId: run.id,
+        reasoningSummary: `Completed by ${completion.provider}.`,
+        toolCalls: [
+          {
+            id: makeId("tool"),
+            kind: "mcp",
+            title: "Model gateway",
+            status: "complete",
+            policy: "allow",
+            summary: completion.provider,
+          },
+        ],
+      });
+      run.status = "complete";
+      run.updatedAt = timestamp;
+      session.updatedAt = timestamp;
+      sessionId = session.id;
+      draft.auditEvents.push(createAuditEvent("runtime.event", `Completed gateway run for ${session.title}`, draft, run.id));
+      return draft;
+    });
+    return json({ completion, sessionId, state: stateWithAdapters(state) });
+  }
 
   const state = await getWorkspaceStore().mutate((draft) => {
     if (path === "chat/create") return createChatSession(draft, {

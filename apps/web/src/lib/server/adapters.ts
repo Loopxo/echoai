@@ -4,6 +4,34 @@ type AdapterDefinition = Omit<EchoAIExternalAdapter, "status">;
 
 const adapterDefinitions: AdapterDefinition[] = [
   {
+    id: "adapter_local_object_store",
+    name: "Local object storage",
+    category: "storage",
+    requiredEnv: [],
+    capability: "Owner-scoped upload and artifact storage for local development.",
+  },
+  {
+    id: "adapter_local_vault",
+    name: "Local encrypted vault references",
+    category: "model",
+    requiredEnv: [],
+    capability: "Encrypted provider key references for local development and tests.",
+  },
+  {
+    id: "adapter_local_scheduler",
+    name: "Local automation scheduler",
+    category: "realtime",
+    requiredEnv: [],
+    capability: "Manual scheduler ticks with audit and durable run records.",
+  },
+  {
+    id: "adapter_local_model_gateway",
+    name: "Local model gateway fallback",
+    category: "model",
+    requiredEnv: [],
+    capability: "Deterministic local completion fallback plus production provider routing boundary.",
+  },
+  {
     id: "adapter_workos",
     name: "WorkOS-compatible auth",
     category: "auth",
@@ -48,6 +76,7 @@ const adapterDefinitions: AdapterDefinition[] = [
 ];
 
 function isConfigured(requiredEnv: string[]) {
+  if (requiredEnv.length === 0) return true;
   return requiredEnv.every((key) => {
     const value = process.env[key];
     return Boolean(value && !value.includes("replace") && !value.includes("mock"));
@@ -76,4 +105,19 @@ export function requireAdapter(adapterId: string) {
   }
 
   return { ok: true as const, adapter };
+}
+
+export function productionCredentialChecklist() {
+  return resolveExternalAdapters()
+    .filter((adapter) => adapter.requiredEnv.length > 0)
+    .map((adapter) => ({
+      id: adapter.id,
+      name: adapter.name,
+      status: adapter.status,
+      missingEnv: adapter.requiredEnv.filter((key) => {
+        const value = process.env[key];
+        return !value || value.includes("replace") || value.includes("mock");
+      }),
+      capability: adapter.capability,
+    }));
 }

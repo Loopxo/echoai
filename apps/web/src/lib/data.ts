@@ -15,6 +15,7 @@ import type {
   EchoAIOutputArtifact,
   EchoAIProject,
   EchoAISkill,
+  EchoAIStoredObject,
   EchoAIToolPolicy,
   EchoAIWorkspaceState,
 } from "@echoai/contracts";
@@ -348,6 +349,8 @@ export const backgroundRuns: EchoAIBackgroundRun[] = [
   { id: "run_mobile_approval", sessionId: "chat_mobile_handoff", status: "waiting_for_approval", survivesRefresh: true, updatedAt: "2026-05-16T08:17:00.000Z" },
 ];
 
+export const storedObjects: EchoAIStoredObject[] = [];
+
 export const workspaceState: EchoAIWorkspaceState = {
   session: {
     id: "session_web_owner",
@@ -397,6 +400,7 @@ export const workspaceState: EchoAIWorkspaceState = {
       createdAt: "2026-05-16T08:12:00.000Z",
     },
   ],
+  storedObjects,
   externalAdapters: [
     {
       id: "adapter_local_store",
