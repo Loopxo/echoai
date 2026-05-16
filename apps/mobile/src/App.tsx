@@ -7,6 +7,7 @@ import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
+import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
@@ -26,6 +27,7 @@ export default function App() {
         <GatewayDiscoveryScreen />
         <ManualGatewayConnectScreen onConnect={() => undefined} />
         <QrPairingScreen onPair={() => undefined} />
+        <PairApprovalScreen onCancel={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

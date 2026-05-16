@@ -119,6 +119,7 @@ The desktop discovery interface for M-031 lives in `apps/mobile/src/gateway/disc
 The discovery UI for M-032 lives in `apps/mobile/src/screens/GatewayDiscoveryScreen.tsx` and renders discovered plus manual gateway endpoints in one pairing surface.
 The manual gateway connect flow for M-033 lives in `apps/mobile/src/screens/ManualGatewayConnectScreen.tsx` with a typed `EchoAIGatewayConnection.connectManual` service for host, port, TLS, and token input.
 The QR pairing flow for M-034 lives in `apps/mobile/src/gateway/qrPairing.ts` and `apps/mobile/src/screens/QrPairingScreen.tsx`, parsing signed desktop QR/deep-link payloads before starting native gateway pairing.
+The pair approval flow for M-035 lives in `apps/mobile/src/gateway/pairApproval.ts` and `apps/mobile/src/screens/PairApprovalScreen.tsx`, keeping mobile pairing blocked until the desktop challenge is approved.
 
 ## Device Trust Model
 
