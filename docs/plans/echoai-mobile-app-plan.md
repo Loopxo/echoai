@@ -131,6 +131,7 @@ The new chat flow for M-043 lives in `apps/mobile/src/screens/NewChatScreen.tsx`
 The model picker for M-044 lives in `apps/mobile/src/screens/ModelPickerScreen.tsx` and filters hosted, free, BYOK, and desktop-local models by capability.
 Chat send for M-045 lives in `apps/mobile/src/chat/sendRequest.ts` and `apps/mobile/src/screens/ChatComposerScreen.tsx`, producing typed `MobileChatSendRequest` payloads for cloud or desktop gateway.
 Streaming display for M-046 lives in `apps/mobile/src/chat/streaming.ts` and `apps/mobile/src/screens/StreamingResponseScreen.tsx`, accumulating live deltas and retaining state through reconnects.
+The stop button for M-047 lives in `apps/mobile/src/screens/StopRunScreen.tsx` and carries session, run, and source into the typed abort request.
 
 ## Device Trust Model
 

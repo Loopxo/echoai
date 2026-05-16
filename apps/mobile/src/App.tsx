@@ -19,6 +19,7 @@ import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
+import { StopRunScreen } from "./screens/StopRunScreen";
 import { TlsPinningScreen } from "./screens/TlsPinningScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
@@ -48,6 +49,7 @@ export default function App() {
         <ModelPickerScreen models={[]} onSelectModel={() => undefined} />
         <ChatComposerScreen onSend={() => undefined} />
         <StreamingResponseScreen />
+        <StopRunScreen onStop={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
