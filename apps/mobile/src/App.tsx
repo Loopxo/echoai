@@ -39,6 +39,7 @@ import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { ProjectDetailScreen } from "./screens/ProjectDetailScreen";
 import { ProjectListScreen } from "./screens/ProjectListScreen";
+import { PushToTalkScreen } from "./screens/PushToTalkScreen";
 import { RemoteDiffApprovalScreen } from "./screens/RemoteDiffApprovalScreen";
 import { RemoteLogsScreen } from "./screens/RemoteLogsScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
@@ -116,6 +117,7 @@ export default function App() {
         <DesktopNotificationControlsScreen onToggle={() => undefined} />
         <WakeDesktopScreen onWake={() => undefined} />
         <WebHandoffScreen onOpen={() => undefined} />
+        <PushToTalkScreen onStart={() => undefined} onStop={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
