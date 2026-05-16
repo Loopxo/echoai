@@ -11,6 +11,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AuthStore } from './auth-store';
 import { AutoUpdateService } from './auto-update-service';
+import { DesktopRuntimeService } from './desktop-runtime-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
@@ -43,6 +44,7 @@ let logger: DesktopLogger | null = null;
 let recoveryStore: RecoveryStore | null = null;
 let authStore: AuthStore | null = null;
 let workspaceStore: WorkspaceStore | null = null;
+let runtimeService: DesktopRuntimeService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
 
@@ -117,6 +119,11 @@ async function bootstrap(): Promise<void> {
   recoveryStore = new RecoveryStore(appPaths.dataDir);
   authStore = new AuthStore(appPaths.dataDir);
   workspaceStore = new WorkspaceStore(appPaths.dataDir);
+  runtimeService = new DesktopRuntimeService(appPaths.sessionsDir, logger, (event) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('runtime:event', event);
+    }
+  });
   updateService = new AutoUpdateService(logger, app.isPackaged);
 }
 
@@ -281,6 +288,61 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('account:listAudit', async () => {
     return requireServices().authStore.listAudit();
+  });
+
+  ipcMain.handle('runtime:getStatus', async () => {
+    return requireServices().runtimeService.getStatus();
+  });
+
+  ipcMain.handle('runtime:listSessions', async () => {
+    return requireServices().runtimeService.listSessions();
+  });
+
+  ipcMain.handle('runtime:createSession', async (_event, title: unknown) => {
+    if (typeof title !== 'string') {
+      throw new Error('Invalid runtime session title');
+    }
+
+    return requireServices().runtimeService.createSession(title);
+  });
+
+  ipcMain.handle('runtime:runPrompt', async (_event, request: unknown) => {
+    if (!isRecord(request) || typeof request.input !== 'string') {
+      throw new Error('Invalid runtime request');
+    }
+
+    return requireServices().runtimeService.runPrompt({
+      sessionId: typeof request.sessionId === 'string' ? request.sessionId : undefined,
+      input: request.input,
+      workspaceRoot: typeof request.workspaceRoot === 'string' ? request.workspaceRoot : undefined,
+      mode: request.mode === 'plan' ? 'plan' : 'default',
+      provider: typeof request.provider === 'string' ? request.provider : undefined,
+      model: typeof request.model === 'string' ? request.model : undefined,
+    });
+  });
+
+  ipcMain.handle('runtime:cancelRun', (_event, runId: unknown) => {
+    if (typeof runId !== 'string') {
+      return false;
+    }
+
+    return requireServices().runtimeService.cancelRun(runId);
+  });
+
+  ipcMain.handle('runtime:getSession', async (_event, sessionId: unknown) => {
+    if (typeof sessionId !== 'string') {
+      return null;
+    }
+
+    return requireServices().runtimeService.getSession(sessionId);
+  });
+
+  ipcMain.handle('runtime:exportSession', async (_event, sessionId: unknown) => {
+    if (typeof sessionId !== 'string') {
+      throw new Error('Invalid runtime session id');
+    }
+
+    return requireServices().runtimeService.exportSession(sessionId);
   });
 
   ipcMain.handle('logs:search', async (_event, query: unknown) => {
@@ -508,11 +570,20 @@ function requireServices(): {
   recoveryStore: RecoveryStore;
   authStore: AuthStore;
   workspaceStore: WorkspaceStore;
+  runtimeService: DesktopRuntimeService;
   updateService: AutoUpdateService;
 } {
-  if (!appPaths || !logger || !recoveryStore || !authStore || !workspaceStore || !updateService) {
+  if (
+    !appPaths ||
+    !logger ||
+    !recoveryStore ||
+    !authStore ||
+    !workspaceStore ||
+    !runtimeService ||
+    !updateService
+  ) {
     throw new Error('EchoAI desktop services are not ready');
   }
 
-  return { appPaths, logger, recoveryStore, authStore, workspaceStore, updateService };
+  return { appPaths, logger, recoveryStore, authStore, workspaceStore, runtimeService, updateService };
 }

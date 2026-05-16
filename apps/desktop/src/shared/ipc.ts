@@ -11,6 +11,13 @@ export const IPC_INVOKE_CHANNELS = [
   'sync:updateSettings',
   'sync:listQueue',
   'account:listAudit',
+  'runtime:getStatus',
+  'runtime:listSessions',
+  'runtime:createSession',
+  'runtime:runPrompt',
+  'runtime:cancelRun',
+  'runtime:getSession',
+  'runtime:exportSession',
   'logs:search',
   'shell:openExternal',
   'updates:check',
@@ -26,6 +33,7 @@ export const IPC_EVENT_CHANNELS = [
   'protocol:url',
   'updates:status',
   'notifications:push',
+  'runtime:event',
   'window:state',
 ] as const;
 
@@ -168,6 +176,45 @@ export interface DesktopAccountAuditEvent {
   createdAt: string;
 }
 
+export interface DesktopRuntimeStatus {
+  activeRuns: number;
+  sessionCount: number;
+  provider: string;
+  model: string;
+}
+
+export interface DesktopRuntimeSessionSummary {
+  id: string;
+  title: string;
+  provider: string | null;
+  model: string | null;
+  mode: 'default' | 'plan';
+  messageCount: number;
+  artifactCount: number;
+  updatedAt: number;
+}
+
+export interface DesktopRuntimeRunRequest {
+  sessionId?: string;
+  input: string;
+  workspaceRoot?: string;
+  mode?: 'default' | 'plan';
+  provider?: string;
+  model?: string;
+}
+
+export interface DesktopRuntimeRunHandle {
+  runId: string;
+}
+
+export interface DesktopRuntimeEvent {
+  runId: string;
+  type: string;
+  sessionId: string | null;
+  createdAt: string;
+  payload: unknown;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
@@ -181,6 +228,13 @@ export interface EchoAIDesktopApi {
   updateSyncSettings: (settings: Partial<DesktopSyncSettings>) => Promise<DesktopSyncSettings>;
   listSyncQueue: () => Promise<DesktopSyncQueueItem[]>;
   listAccountAudit: () => Promise<DesktopAccountAuditEvent[]>;
+  getRuntimeStatus: () => Promise<DesktopRuntimeStatus>;
+  listRuntimeSessions: () => Promise<DesktopRuntimeSessionSummary[]>;
+  createRuntimeSession: (title: string) => Promise<DesktopRuntimeSessionSummary>;
+  runPrompt: (request: DesktopRuntimeRunRequest) => Promise<DesktopRuntimeRunHandle>;
+  cancelRun: (runId: string) => Promise<boolean>;
+  getRuntimeSession: (sessionId: string) => Promise<DesktopRuntimeSessionSummary | null>;
+  exportRuntimeSession: (sessionId: string) => Promise<string>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;
@@ -193,6 +247,7 @@ export interface EchoAIDesktopApi {
   onProtocolUrl: (callback: (url: string) => void) => () => void;
   onUpdateStatus: (callback: (status: DesktopUpdateStatus) => void) => () => void;
   onNotification: (callback: (notification: DesktopNotification) => void) => () => void;
+  onRuntimeEvent: (callback: (event: DesktopRuntimeEvent) => void) => () => void;
   onWindowState: (callback: (state: DesktopWindowState) => void) => () => void;
 }
 

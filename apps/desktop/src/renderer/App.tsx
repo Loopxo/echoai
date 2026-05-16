@@ -4,6 +4,8 @@ import type {
   DesktopAccountStatus,
   DesktopSyncSettings,
   DesktopNotification,
+  DesktopRuntimeEvent,
+  DesktopRuntimeStatus,
   DesktopRecentWorkspace,
   DesktopUpdateStatus,
   DesktopWindowState,
@@ -73,6 +75,10 @@ export function App(): ReactElement {
   const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(null);
   const [account, setAccount] = useState<DesktopAccountStatus | null>(null);
   const [syncSettings, setSyncSettings] = useState<DesktopSyncSettings | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<DesktopRuntimeStatus | null>(null);
+  const [runtimeEvents, setRuntimeEvents] = useState<DesktopRuntimeEvent[]>([]);
+  const [runtimePrompt, setRuntimePrompt] = useState('');
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -114,13 +120,23 @@ export function App(): ReactElement {
     const unsubscribeNotifications = window.echoaiDesktop.onNotification((notification) => {
       setNotifications((current) => [notification, ...current].slice(0, 4));
     });
+    const unsubscribeRuntime = window.echoaiDesktop.onRuntimeEvent((event) => {
+      setRuntimeEvents((current) => [event, ...current].slice(0, 12));
+      if (event.type === 'run.completed' || event.type === 'run.failed' || event.type === 'run.cancelled') {
+        setActiveRunId(null);
+        void refreshRuntimeStatus();
+      }
+    });
     const unsubscribeWindow = window.echoaiDesktop.onWindowState((state) => setWindowState(state));
+
+    void refreshRuntimeStatus();
 
     return () => {
       isMounted = false;
       unsubscribeProtocol();
       unsubscribeUpdates();
       unsubscribeNotifications();
+      unsubscribeRuntime();
       unsubscribeWindow();
     };
   }, []);
@@ -274,6 +290,36 @@ export function App(): ReactElement {
     setSyncSettings(settings);
     const status = await window.echoaiDesktop.getAccountStatus();
     setAccount(status);
+  }
+
+  async function refreshRuntimeStatus(): Promise<void> {
+    const status = await window.echoaiDesktop.getRuntimeStatus();
+    setRuntimeStatus(status);
+  }
+
+  async function runRuntimePrompt(): Promise<void> {
+    if (!runtimePrompt.trim()) {
+      return;
+    }
+
+    const handle = await window.echoaiDesktop.runPrompt({
+      input: runtimePrompt,
+      workspaceRoot: workspace?.path,
+      mode: activePage === 'Tasks' ? 'plan' : 'default',
+    });
+    setActiveRunId(handle.runId);
+    setRuntimePrompt('');
+    await refreshRuntimeStatus();
+  }
+
+  async function cancelRuntimeRun(): Promise<void> {
+    if (!activeRunId) {
+      return;
+    }
+
+    await window.echoaiDesktop.cancelRun(activeRunId);
+    setActiveRunId(null);
+    await refreshRuntimeStatus();
   }
 
   function pushLocalNotification(
@@ -481,6 +527,48 @@ export function App(): ReactElement {
                 />
                 Memories
               </label>
+            </div>
+          </div>
+
+          <div className="runtime-panel">
+            <div className="panel-header">
+              <div>
+                <div className="panel-kicker">Runtime</div>
+                <h2>Agent Kernel</h2>
+              </div>
+              <div className="runtime-status">
+                {runtimeStatus
+                  ? `${runtimeStatus.sessionCount} sessions / ${runtimeStatus.activeRuns} active`
+                  : 'Loading'}
+              </div>
+            </div>
+            <div className="runtime-compose">
+              <input
+                onChange={(event) => setRuntimePrompt(event.target.value)}
+                placeholder="Run a local desktop prompt"
+                value={runtimePrompt}
+              />
+              {activeRunId ? (
+                <button onClick={cancelRuntimeRun} type="button">
+                  Stop
+                </button>
+              ) : (
+                <button onClick={runRuntimePrompt} type="button">
+                  Run
+                </button>
+              )}
+            </div>
+            <div className="runtime-events">
+              {runtimeEvents.length === 0 ? (
+                <div className="empty-row">No runtime events</div>
+              ) : (
+                runtimeEvents.map((event) => (
+                  <div className="runtime-event" key={`${event.runId}-${event.createdAt}-${event.type}`}>
+                    <strong>{event.type}</strong>
+                    <span>{event.sessionId ?? event.runId}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
