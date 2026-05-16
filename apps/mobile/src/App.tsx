@@ -53,6 +53,7 @@ import { ShareIntakeScreen } from "./screens/ShareIntakeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
 import { StopRunScreen } from "./screens/StopRunScreen";
+import { TalkModeScreen } from "./screens/TalkModeScreen";
 import { TlsPinningScreen } from "./screens/TlsPinningScreen";
 import { ToolCallCardsScreen } from "./screens/ToolCallCardsScreen";
 import { WakeDesktopScreen } from "./screens/WakeDesktopScreen";
@@ -122,6 +123,7 @@ export default function App() {
         <PushToTalkScreen onStart={() => undefined} onStop={() => undefined} />
         <IosVoiceWakeFeasibilityScreen />
         <AndroidVoiceWakeScreen onEnable={() => undefined} />
+        <TalkModeScreen onToggle={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
