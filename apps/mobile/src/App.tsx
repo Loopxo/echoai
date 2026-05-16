@@ -4,6 +4,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
 import { ApprovalDecisionScreen } from "./screens/ApprovalDecisionScreen";
+import { ApprovalDetailsScreen } from "./screens/ApprovalDetailsScreen";
 import { ApprovalInboxScreen } from "./screens/ApprovalInboxScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
@@ -63,6 +64,7 @@ export default function App() {
         <RunStatusScreen runs={[]} />
         <ToolCallCardsScreen toolCalls={[]} />
         <ApprovalInboxScreen approvals={[]} onOpenApproval={() => undefined} />
+        <ApprovalDetailsScreen />
         <ApprovalDecisionScreen onDecide={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
