@@ -109,6 +109,8 @@ Secure storage recovery for M-025 is handled by `EchoAITokenStoreState` and `Ech
 
 Refresh-token support for M-026 is exposed through `EchoAIAuthApi.refresh` and `EchoAITokenStore.refresh`, updating secure storage without forcing manual relogin.
 
+Logout for M-027 is handled by `EchoAIAuthSession.logout`, which revokes the server session and clears local secure token storage.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
