@@ -123,6 +123,7 @@ The pair approval flow for M-035 lives in `apps/mobile/src/gateway/pairApproval.
 TLS pinning for M-036 lives in `apps/mobile/src/gateway/tlsPinning.ts` and `apps/mobile/src/screens/TlsPinningScreen.tsx`, remembering gateway fingerprints and warning on mismatches.
 Reconnect logic for M-037 lives in `apps/mobile/src/gateway/reconnect.ts`, providing foreground/network/manual reconnect triggers with bounded backoff state.
 The paired device list for M-038 lives in `apps/mobile/src/screens/PairedDevicesScreen.tsx` and renders trusted desktop status, workspace, and capabilities.
+The unpair/revoke flow for M-039 lives in `apps/mobile/src/screens/DeviceRevokeScreen.tsx` and calls the typed `device.revoke` mobile API.
 
 ## Device Trust Model
 

@@ -4,6 +4,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
+import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
@@ -32,6 +33,7 @@ export default function App() {
         <PairApprovalScreen onCancel={() => undefined} />
         <TlsPinningScreen onDisconnect={() => undefined} onTrustFingerprint={() => undefined} />
         <PairedDevicesScreen devices={[]} />
+        <DeviceRevokeScreen devices={[]} onRevoke={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
