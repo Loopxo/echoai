@@ -16,6 +16,7 @@ import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
+import { DesktopBrowserTaskScreen } from "./screens/DesktopBrowserTaskScreen";
 import { DesktopChangedFilesScreen } from "./screens/DesktopChangedFilesScreen";
 import { DesktopHomeScreen } from "./screens/DesktopHomeScreen";
 import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
@@ -108,6 +109,7 @@ export default function App() {
         <DesktopTerminalRunScreen />
         <DesktopChangedFilesScreen files={[]} />
         <RemoteDiffApprovalScreen onDecide={() => undefined} />
+        <DesktopBrowserTaskScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

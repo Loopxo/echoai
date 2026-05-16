@@ -161,6 +161,7 @@ Desktop workspace selector for M-073 lives in `apps/mobile/src/desktop/workspace
 Desktop terminal run view for M-074 lives in `apps/mobile/src/desktop/terminal.ts` and `apps/mobile/src/screens/DesktopTerminalRunScreen.tsx`, tailing long command output.
 Desktop file changed view for M-075 lives in `apps/mobile/src/desktop/changedFiles.ts` and `apps/mobile/src/screens/DesktopChangedFilesScreen.tsx`, summarizing changed paths and diff counts.
 Remote diff approval for M-076 lives in `apps/mobile/src/desktop/diffApproval.ts` and `apps/mobile/src/screens/RemoteDiffApprovalScreen.tsx`, letting mobile approve or reject pending desktop patches.
+Desktop browser task view for M-077 lives in `apps/mobile/src/desktop/browserTask.ts` and `apps/mobile/src/screens/DesktopBrowserTaskScreen.tsx`, showing automation status, URL, and screenshot preview.
 
 ## Device Trust Model
 
