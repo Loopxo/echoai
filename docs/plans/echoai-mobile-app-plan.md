@@ -142,6 +142,7 @@ The approve/deny flow for M-054 lives in `apps/mobile/src/approvals/decision.ts`
 Approval details for M-055 live in `apps/mobile/src/approvals/details.ts` and `apps/mobile/src/screens/ApprovalDetailsScreen.tsx`, exposing command, path, tool, risk, and reason before decision.
 Timeout handling for M-056 lives in `apps/mobile/src/approvals/timeouts.ts` and `apps/mobile/src/screens/ApprovalTimeoutScreen.tsx`, marking expired pending requests as non-actionable.
 Remote logs for M-057 live in `apps/mobile/src/tooling/remoteLogs.ts` and `apps/mobile/src/screens/RemoteLogsScreen.tsx`, rendering a bounded tail of active desktop task logs.
+Desktop screen snapshot preview for M-058 lives in `apps/mobile/src/tooling/snapshot.ts` and `apps/mobile/src/screens/DesktopSnapshotScreen.tsx`, rendering image previews only when snapshot access is allowed.
 
 ## Device Trust Model
 

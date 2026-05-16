@@ -13,6 +13,7 @@ import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
+import { DesktopSnapshotScreen } from "./screens/DesktopSnapshotScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
@@ -70,6 +71,7 @@ export default function App() {
         <ApprovalDecisionScreen onDecide={() => undefined} />
         <ApprovalTimeoutScreen approvals={[]} />
         <RemoteLogsScreen lines={[]} />
+        <DesktopSnapshotScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

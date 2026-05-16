@@ -22,6 +22,7 @@ declare module "react-native" {
   export const SafeAreaView: ComponentType<{ children?: ReactNode; style?: Style }>;
   export const StatusBar: ComponentType<{ barStyle?: "default" | "light-content" | "dark-content" }>;
   export const Text: ComponentType<{ children?: ReactNode; style?: Style }>;
+  export const Image: ComponentType<{ source?: { uri: string }; style?: Style }>;
   export const TextInput: ComponentType<{
     autoCapitalize?: "none" | "sentences" | "words" | "characters";
     keyboardType?: "default" | "number-pad" | "decimal-pad" | "numeric" | "email-address" | "phone-pad" | "url";
