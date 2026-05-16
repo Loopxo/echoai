@@ -5,6 +5,7 @@ import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
+import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
 const clientFactoryReady = typeof createEchoAIMobileClient === "function";
 
@@ -16,6 +17,7 @@ export default function App() {
         <Text style={styles.brand}>EchoAI</Text>
         <SignInScreen redirectUri="echoai://auth/mobile-complete" />
         <AccountScreen />
+        <WorkspaceSwitcher workspaces={[]} onSelect={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
