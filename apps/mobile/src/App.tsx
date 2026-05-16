@@ -41,6 +41,7 @@ import { ModelSettingsScreen } from "./screens/ModelSettingsScreen";
 import { NewChatScreen } from "./screens/NewChatScreen";
 import { NoteEditorScreen } from "./screens/NoteEditorScreen";
 import { NoteListScreen } from "./screens/NoteListScreen";
+import { NotificationSettingsScreen } from "./screens/NotificationSettingsScreen";
 import { OfflineCaptureQueueScreen } from "./screens/OfflineCaptureQueueScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
@@ -140,6 +141,7 @@ export default function App() {
         <OfflineCaptureQueueScreen items={[]} onSync={() => undefined} />
         <SettingsHomeScreen onOpenSection={() => undefined} />
         <ModelSettingsScreen onSelectPreference={() => undefined} />
+        <NotificationSettingsScreen onToggle={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
