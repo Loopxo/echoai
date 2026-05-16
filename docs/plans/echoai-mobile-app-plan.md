@@ -111,6 +111,8 @@ Refresh-token support for M-026 is exposed through `EchoAIAuthApi.refresh` and `
 
 Logout for M-027 is handled by `EchoAIAuthSession.logout`, which revokes the server session and clears local secure token storage.
 
+The account page for M-028 lives in `apps/mobile/src/screens/AccountScreen.tsx` and displays identity, plan, active workspace, connected devices, and usage summary from mobile auth/device state.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
