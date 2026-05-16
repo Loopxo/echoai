@@ -19,6 +19,7 @@ import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
+import { RunStatusScreen } from "./screens/RunStatusScreen";
 import { ShareIntakeScreen } from "./screens/ShareIntakeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
@@ -56,6 +57,7 @@ export default function App() {
         <RetryEditTurnScreen onRetry={() => undefined} />
         <AttachmentPickerScreen attachments={[]} onPick={() => undefined} onRemove={() => undefined} />
         <ShareIntakeScreen onStartChat={() => undefined} />
+        <RunStatusScreen runs={[]} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
