@@ -182,6 +182,7 @@ Permission dashboard for M-094 lives in `apps/mobile/src/settings/permissions.ts
 Privacy/export/delete for M-095 lives in `apps/mobile/src/settings/privacy.ts` and `apps/mobile/src/screens/PrivacySettingsScreen.tsx`, covering local cache export/delete and account data requests.
 Local cache encryption for M-096 lives in `apps/mobile/src/settings/cacheEncryption.ts` and `apps/mobile/src/screens/CacheEncryptionScreen.tsx`, marking tokens, sessions, and files for platform-keystore protection.
 Debug logs for M-097 live in `apps/mobile/src/settings/debugLogs.ts` and `apps/mobile/src/screens/DebugLogsScreen.tsx`, exporting redacted support logs.
+The React Native iOS build pipeline for M-098 lives in `apps/mobile/release/ios-build-pipeline.md` with the `ios:release` package script; TestFlight signing requires external Apple credentials.
 
 ## Device Trust Model
 
