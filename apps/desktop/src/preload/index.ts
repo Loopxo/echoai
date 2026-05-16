@@ -12,6 +12,13 @@ import {
   type DesktopRuntimeRunRequest,
   type DesktopRuntimeSessionSummary,
   type DesktopRuntimeStatus,
+  type DesktopArtifactEntry,
+  type DesktopFilePreview,
+  type DesktopWorkspaceDiagnostic,
+  type DesktopWorkspaceEntry,
+  type DesktopWorkspaceIndex,
+  type DesktopWorkspaceSearchResult,
+  type DesktopWorkspaceSymbol,
   type DesktopDeviceLogin,
   type DesktopSyncQueueItem,
   type DesktopSyncSettings,
@@ -75,6 +82,22 @@ const api: EchoAIDesktopApi = {
   getRuntimeSession: (sessionId: string) =>
     invoke<DesktopRuntimeSessionSummary | null>('runtime:getSession', sessionId),
   exportRuntimeSession: (sessionId: string) => invoke<string>('runtime:exportSession', sessionId),
+  listWorkspaceFiles: (rootPath: string) =>
+    invoke<DesktopWorkspaceEntry[]>('workspace:listFiles', rootPath),
+  previewWorkspaceFile: (rootPath: string, relativePath: string) =>
+    invoke<DesktopFilePreview>('workspace:previewFile', rootPath, relativePath),
+  searchWorkspace: (rootPath: string, query: string) =>
+    invoke<DesktopWorkspaceSearchResult[]>('workspace:search', rootPath, query),
+  listWorkspaceSymbols: (rootPath: string, query: string) =>
+    invoke<DesktopWorkspaceSymbol[]>('workspace:listSymbols', rootPath, query),
+  listWorkspaceDiagnostics: (rootPath: string) =>
+    invoke<DesktopWorkspaceDiagnostic[]>('workspace:listDiagnostics', rootPath),
+  indexWorkspace: (rootPath: string) => invoke<DesktopWorkspaceIndex>('workspace:index', rootPath),
+  listRecentWorkspaceFiles: (rootPath: string) =>
+    invoke<DesktopWorkspaceEntry[]>('workspace:listRecentFiles', rootPath),
+  listArtifacts: () => invoke<DesktopArtifactEntry[]>('artifacts:list'),
+  openArtifact: (path: string) => invoke<boolean>('artifacts:open', path),
+  revealArtifact: (path: string) => invoke<boolean>('artifacts:reveal', path),
   searchLogs: (query: string) => invoke<LogSearchEntry[]>('logs:search', query),
   openExternal: (url: string) => invoke<boolean>('shell:openExternal', url),
   checkForUpdates: () => invoke<DesktopUpdateStatus>('updates:check'),

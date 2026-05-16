@@ -7,6 +7,13 @@ import type {
   DesktopRuntimeEvent,
   DesktopRuntimeStatus,
   DesktopRecentWorkspace,
+  DesktopArtifactEntry,
+  DesktopFilePreview,
+  DesktopWorkspaceDiagnostic,
+  DesktopWorkspaceEntry,
+  DesktopWorkspaceIndex,
+  DesktopWorkspaceSearchResult,
+  DesktopWorkspaceSymbol,
   DesktopUpdateStatus,
   DesktopWindowState,
   LogSearchEntry,
@@ -89,6 +96,15 @@ export function App(): ReactElement {
   const [selectedModel, setSelectedModel] = useState('echoai-local');
   const [selectedMode, setSelectedMode] = useState<'default' | 'plan'>('default');
   const [attachments, setAttachments] = useState<string[]>([]);
+  const [workspaceFiles, setWorkspaceFiles] = useState<DesktopWorkspaceEntry[]>([]);
+  const [workspacePreview, setWorkspacePreview] = useState<DesktopFilePreview | null>(null);
+  const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('');
+  const [workspaceSearchResults, setWorkspaceSearchResults] = useState<DesktopWorkspaceSearchResult[]>([]);
+  const [workspaceSymbols, setWorkspaceSymbols] = useState<DesktopWorkspaceSymbol[]>([]);
+  const [workspaceDiagnostics, setWorkspaceDiagnostics] = useState<DesktopWorkspaceDiagnostic[]>([]);
+  const [workspaceIndex, setWorkspaceIndex] = useState<DesktopWorkspaceIndex | null>(null);
+  const [recentFiles, setRecentFiles] = useState<DesktopWorkspaceEntry[]>([]);
+  const [artifacts, setArtifacts] = useState<DesktopArtifactEntry[]>([]);
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -163,6 +179,12 @@ export function App(): ReactElement {
     const route = routeByPage.get(activePage) ?? '/';
     void window.echoaiDesktop.setLastRoute(route);
   }, [activePage]);
+
+  useEffect(() => {
+    if (workspace?.path) {
+      void refreshWorkspaceData(workspace.path);
+    }
+  }, [workspace?.path]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -330,6 +352,45 @@ export function App(): ReactElement {
     setRuntimePrompt('');
     setAttachments([]);
     await refreshRuntimeStatus();
+  }
+
+  async function refreshWorkspaceData(rootPath: string): Promise<void> {
+    const [files, index, diagnostics, recent, artifactsList, symbols] = await Promise.all([
+      window.echoaiDesktop.listWorkspaceFiles(rootPath),
+      window.echoaiDesktop.indexWorkspace(rootPath),
+      window.echoaiDesktop.listWorkspaceDiagnostics(rootPath),
+      window.echoaiDesktop.listRecentWorkspaceFiles(rootPath),
+      window.echoaiDesktop.listArtifacts(),
+      window.echoaiDesktop.listWorkspaceSymbols(rootPath, ''),
+    ]);
+    setWorkspaceFiles(files);
+    setWorkspaceIndex(index);
+    setWorkspaceDiagnostics(diagnostics);
+    setRecentFiles(recent);
+    setArtifacts(artifactsList);
+    setWorkspaceSymbols(symbols.slice(0, 8));
+  }
+
+  async function previewWorkspaceFile(path: string): Promise<void> {
+    if (!workspace?.path) {
+      return;
+    }
+
+    const preview = await window.echoaiDesktop.previewWorkspaceFile(workspace.path, path);
+    setWorkspacePreview(preview);
+  }
+
+  async function searchWorkspace(): Promise<void> {
+    if (!workspace?.path) {
+      return;
+    }
+
+    const [results, symbols] = await Promise.all([
+      window.echoaiDesktop.searchWorkspace(workspace.path, workspaceSearchQuery),
+      window.echoaiDesktop.listWorkspaceSymbols(workspace.path, workspaceSearchQuery),
+    ]);
+    setWorkspaceSearchResults(results);
+    setWorkspaceSymbols(symbols.slice(0, 8));
   }
 
   async function cancelRuntimeRun(): Promise<void> {
@@ -669,6 +730,79 @@ export function App(): ReactElement {
             </div>
           </div>
 
+          <div className="files-panel">
+            <div className="panel-header">
+              <div>
+                <div className="panel-kicker">Workspace Files</div>
+                <h2>{workspaceIndex ? `${workspaceIndex.fileCount} files indexed` : 'File Explorer'}</h2>
+              </div>
+              <div className="log-search">
+                <input
+                  aria-label="Workspace search"
+                  onChange={(event) => setWorkspaceSearchQuery(event.target.value)}
+                  placeholder="Search files"
+                  value={workspaceSearchQuery}
+                />
+                <button onClick={searchWorkspace} type="button">
+                  Search
+                </button>
+              </div>
+            </div>
+            <div className="files-layout">
+              <div className="file-list">
+                {workspaceFiles.length === 0 ? (
+                  <div className="empty-row">Select a workspace</div>
+                ) : (
+                  workspaceFiles.map((entry) => (
+                    <button
+                      disabled={entry.kind === 'directory'}
+                      key={entry.path}
+                      onClick={() => void previewWorkspaceFile(entry.path)}
+                      type="button"
+                    >
+                      <span>{entry.kind === 'directory' ? 'Dir' : 'File'}</span>
+                      <strong>{entry.name}</strong>
+                    </button>
+                  ))
+                )}
+              </div>
+              <div className="file-preview">
+                <div className="panel-kicker">Preview</div>
+                {workspacePreview ? (
+                  <>
+                    <strong>{workspacePreview.name}</strong>
+                    <small>{workspacePreview.kind} / {formatBytes(workspacePreview.size)}</small>
+                    <pre>{workspacePreview.content ?? workspacePreview.mediaPath ?? 'Binary preview unavailable'}</pre>
+                  </>
+                ) : (
+                  <div className="empty-row">Open a file</div>
+                )}
+              </div>
+              <div className="file-inspector">
+                <SectionList
+                  title="Search"
+                  items={workspaceSearchResults.slice(0, 5).map((result) => `${result.path}${result.line ? `:${result.line}` : ''}`)}
+                />
+                <SectionList
+                  title="Symbols"
+                  items={workspaceSymbols.map((symbol) => `${symbol.kind} ${symbol.name}`)}
+                />
+                <SectionList
+                  title="Diagnostics"
+                  items={workspaceDiagnostics.slice(0, 5).map((diagnostic) => `${diagnostic.severity}: ${diagnostic.path}`)}
+                />
+                <SectionList
+                  title="Recent"
+                  items={recentFiles.slice(0, 5).map((file) => file.path)}
+                />
+                <SectionList
+                  title="Artifacts"
+                  items={artifacts.slice(0, 5).map((artifact) => artifact.name)}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="activity-panel">
             <div className="panel-header">
               <div>
@@ -799,6 +933,19 @@ function Step({ title, state }: { title: string; state: 'active' | 'done' | 'rea
   );
 }
 
+function SectionList({ title, items }: { title: string; items: string[] }): ReactElement {
+  return (
+    <section className="section-list">
+      <div className="panel-kicker">{title}</div>
+      {items.length === 0 ? (
+        <span>None</span>
+      ) : (
+        items.map((item) => <span key={item}>{item}</span>)
+      )}
+    </section>
+  );
+}
+
 function formatUpdateState(status: DesktopUpdateStatus | null): string {
   if (!status) {
     return 'Idle';
@@ -827,6 +974,16 @@ function formatDate(value: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+  return `${Math.round(bytes / 1024 / 1024)} MB`;
 }
 
 function buildPromptWithAttachments(prompt: string, attachmentNames: string[]): string {

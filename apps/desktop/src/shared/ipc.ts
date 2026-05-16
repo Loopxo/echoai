@@ -18,6 +18,16 @@ export const IPC_INVOKE_CHANNELS = [
   'runtime:cancelRun',
   'runtime:getSession',
   'runtime:exportSession',
+  'workspace:listFiles',
+  'workspace:previewFile',
+  'workspace:search',
+  'workspace:listSymbols',
+  'workspace:listDiagnostics',
+  'workspace:index',
+  'workspace:listRecentFiles',
+  'artifacts:list',
+  'artifacts:open',
+  'artifacts:reveal',
   'logs:search',
   'shell:openExternal',
   'updates:check',
@@ -215,6 +225,62 @@ export interface DesktopRuntimeEvent {
   payload: unknown;
 }
 
+export type DesktopWorkspaceEntryKind = 'file' | 'directory';
+
+export interface DesktopWorkspaceEntry {
+  path: string;
+  name: string;
+  kind: DesktopWorkspaceEntryKind;
+  size: number;
+  modifiedAt: number;
+}
+
+export interface DesktopFilePreview {
+  path: string;
+  name: string;
+  kind: 'text' | 'code' | 'markdown' | 'image' | 'pdf' | 'csv' | 'binary' | 'missing';
+  size: number;
+  modifiedAt: number | null;
+  content: string | null;
+  mediaPath: string | null;
+}
+
+export interface DesktopWorkspaceSearchResult {
+  path: string;
+  line: number | null;
+  preview: string;
+}
+
+export interface DesktopWorkspaceSymbol {
+  path: string;
+  name: string;
+  kind: 'function' | 'class' | 'type' | 'constant' | 'heading';
+  line: number;
+}
+
+export interface DesktopWorkspaceDiagnostic {
+  path: string;
+  severity: 'info' | 'warning' | 'error';
+  message: string;
+  line: number | null;
+}
+
+export interface DesktopWorkspaceIndex {
+  root: string;
+  fileCount: number;
+  directoryCount: number;
+  indexedAt: string;
+  ignoredPaths: string[];
+}
+
+export interface DesktopArtifactEntry {
+  path: string;
+  name: string;
+  type: 'diff' | 'file' | 'report' | 'log' | 'other';
+  size: number;
+  modifiedAt: number;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
@@ -235,6 +301,16 @@ export interface EchoAIDesktopApi {
   cancelRun: (runId: string) => Promise<boolean>;
   getRuntimeSession: (sessionId: string) => Promise<DesktopRuntimeSessionSummary | null>;
   exportRuntimeSession: (sessionId: string) => Promise<string>;
+  listWorkspaceFiles: (rootPath: string) => Promise<DesktopWorkspaceEntry[]>;
+  previewWorkspaceFile: (rootPath: string, relativePath: string) => Promise<DesktopFilePreview>;
+  searchWorkspace: (rootPath: string, query: string) => Promise<DesktopWorkspaceSearchResult[]>;
+  listWorkspaceSymbols: (rootPath: string, query: string) => Promise<DesktopWorkspaceSymbol[]>;
+  listWorkspaceDiagnostics: (rootPath: string) => Promise<DesktopWorkspaceDiagnostic[]>;
+  indexWorkspace: (rootPath: string) => Promise<DesktopWorkspaceIndex>;
+  listRecentWorkspaceFiles: (rootPath: string) => Promise<DesktopWorkspaceEntry[]>;
+  listArtifacts: () => Promise<DesktopArtifactEntry[]>;
+  openArtifact: (path: string) => Promise<boolean>;
+  revealArtifact: (path: string) => Promise<boolean>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;

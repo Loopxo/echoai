@@ -315,6 +315,117 @@ button {
   background: #fffaf2;
 }
 
+.files-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: auto minmax(260px, 1fr);
+  overflow: hidden;
+  border: 1px solid #d7d0c4;
+  border-radius: 8px;
+  background: #fffaf2;
+}
+
+.files-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.65fr) minmax(320px, 1.35fr) minmax(240px, 0.75fr);
+  min-height: 0;
+}
+
+.file-list,
+.file-preview,
+.file-inspector {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.file-list,
+.file-preview {
+  border-right: 1px solid #ddd6ca;
+}
+
+.file-list {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.file-list button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 8px;
+  border: 1px solid #ddd5c6;
+  border-radius: 7px;
+  background: #f7f4ee;
+  color: #25211c;
+  text-align: left;
+}
+
+.file-list button:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.file-list span {
+  color: #756b5f;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.file-list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.file-preview small {
+  color: #756b5f;
+  font-size: 12px;
+}
+
+.file-preview pre {
+  max-height: 360px;
+  margin: 0;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 7px;
+  background: #292623;
+  color: #f9f5ed;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.file-inspector {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.section-list {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e3dbcf;
+}
+
+.section-list span {
+  overflow: hidden;
+  color: #5f554b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chat-toolbar {
   display: flex;
   gap: 8px;
@@ -912,5 +1023,15 @@ button {
 
   .onboarding-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .files-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .file-list,
+  .file-preview {
+    border-right: 0;
+    border-bottom: 1px solid #ddd6ca;
   }
 }

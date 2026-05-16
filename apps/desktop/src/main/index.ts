@@ -15,6 +15,7 @@ import { DesktopRuntimeService } from './desktop-runtime-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
+import { WorkspaceFileService } from './workspace-file-service';
 import { WorkspaceStore } from './workspace-store';
 import {
   type DesktopNotification,
@@ -44,6 +45,7 @@ let logger: DesktopLogger | null = null;
 let recoveryStore: RecoveryStore | null = null;
 let authStore: AuthStore | null = null;
 let workspaceStore: WorkspaceStore | null = null;
+let workspaceFileService: WorkspaceFileService | null = null;
 let runtimeService: DesktopRuntimeService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
@@ -119,6 +121,7 @@ async function bootstrap(): Promise<void> {
   recoveryStore = new RecoveryStore(appPaths.dataDir);
   authStore = new AuthStore(appPaths.dataDir);
   workspaceStore = new WorkspaceStore(appPaths.dataDir);
+  workspaceFileService = new WorkspaceFileService();
   runtimeService = new DesktopRuntimeService(appPaths.sessionsDir, logger, (event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('runtime:event', event);
@@ -343,6 +346,84 @@ function registerIpcHandlers(): void {
     }
 
     return requireServices().runtimeService.exportSession(sessionId);
+  });
+
+  ipcMain.handle('workspace:listFiles', async (_event, rootPath: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid workspace root');
+    }
+
+    return requireServices().workspaceFileService.listFiles(rootPath);
+  });
+
+  ipcMain.handle('workspace:previewFile', async (_event, rootPath: unknown, relativePath: unknown) => {
+    if (typeof rootPath !== 'string' || typeof relativePath !== 'string') {
+      throw new Error('Invalid workspace preview request');
+    }
+
+    return requireServices().workspaceFileService.previewFile(rootPath, relativePath);
+  });
+
+  ipcMain.handle('workspace:search', async (_event, rootPath: unknown, query: unknown) => {
+    if (typeof rootPath !== 'string' || typeof query !== 'string') {
+      throw new Error('Invalid workspace search request');
+    }
+
+    return requireServices().workspaceFileService.search(rootPath, query);
+  });
+
+  ipcMain.handle('workspace:listSymbols', async (_event, rootPath: unknown, query: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid workspace symbol request');
+    }
+
+    return requireServices().workspaceFileService.listSymbols(rootPath, typeof query === 'string' ? query : '');
+  });
+
+  ipcMain.handle('workspace:listDiagnostics', async (_event, rootPath: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid workspace diagnostics request');
+    }
+
+    return requireServices().workspaceFileService.listDiagnostics(rootPath);
+  });
+
+  ipcMain.handle('workspace:index', async (_event, rootPath: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid workspace index request');
+    }
+
+    return requireServices().workspaceFileService.indexWorkspace(rootPath);
+  });
+
+  ipcMain.handle('workspace:listRecentFiles', async (_event, rootPath: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid recent files request');
+    }
+
+    return requireServices().workspaceFileService.listRecentFiles(rootPath);
+  });
+
+  ipcMain.handle('artifacts:list', async () => {
+    return requireServices().workspaceFileService.listArtifacts(requireServices().appPaths.artifactsDir);
+  });
+
+  ipcMain.handle('artifacts:open', async (_event, artifactPath: unknown) => {
+    if (typeof artifactPath !== 'string') {
+      return false;
+    }
+
+    const result = await shell.openPath(artifactPath);
+    return result.length === 0;
+  });
+
+  ipcMain.handle('artifacts:reveal', (_event, artifactPath: unknown) => {
+    if (typeof artifactPath !== 'string') {
+      return false;
+    }
+
+    shell.showItemInFolder(artifactPath);
+    return true;
   });
 
   ipcMain.handle('logs:search', async (_event, query: unknown) => {
@@ -570,6 +651,7 @@ function requireServices(): {
   recoveryStore: RecoveryStore;
   authStore: AuthStore;
   workspaceStore: WorkspaceStore;
+  workspaceFileService: WorkspaceFileService;
   runtimeService: DesktopRuntimeService;
   updateService: AutoUpdateService;
 } {
@@ -579,11 +661,21 @@ function requireServices(): {
     !recoveryStore ||
     !authStore ||
     !workspaceStore ||
+    !workspaceFileService ||
     !runtimeService ||
     !updateService
   ) {
     throw new Error('EchoAI desktop services are not ready');
   }
 
-  return { appPaths, logger, recoveryStore, authStore, workspaceStore, runtimeService, updateService };
+  return {
+    appPaths,
+    logger,
+    recoveryStore,
+    authStore,
+    workspaceStore,
+    workspaceFileService,
+    runtimeService,
+    updateService,
+  };
 }
