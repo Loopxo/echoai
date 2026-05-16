@@ -4,6 +4,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
+import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
@@ -38,6 +39,7 @@ export default function App() {
         <DeviceRevokeScreen devices={[]} onRevoke={() => undefined} />
         <RemoteTunnelScreen tunnels={[]} onConnect={() => undefined} />
         <ChatListScreen sessions={[]} onOpenSession={() => undefined} />
+        <ChatDetailScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

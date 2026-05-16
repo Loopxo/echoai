@@ -20,6 +20,8 @@ export type {
   MobileDevice,
   MobileEntityId,
   MobileFileSummary,
+  MobileMessage,
+  MobileMessagePart,
   MobileModelRef,
   MobilePairingChallenge,
   MobileProjectContext,
