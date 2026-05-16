@@ -13,6 +13,7 @@ import { AndroidVoiceWakeScreen } from "./screens/AndroidVoiceWakeScreen";
 import { AudioCaptureScreen } from "./screens/AudioCaptureScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
+import { CacheEncryptionScreen } from "./screens/CacheEncryptionScreen";
 import { CameraCaptureScreen } from "./screens/CameraCaptureScreen";
 import { CameraContextCommandScreen } from "./screens/CameraContextCommandScreen";
 import { ChatComposerScreen } from "./screens/ChatComposerScreen";
@@ -146,6 +147,7 @@ export default function App() {
         <NotificationSettingsScreen onToggle={() => undefined} />
         <PermissionDashboardScreen permissions={[]} />
         <PrivacySettingsScreen onRequest={() => undefined} />
+        <CacheEncryptionScreen />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
