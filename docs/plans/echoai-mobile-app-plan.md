@@ -176,6 +176,7 @@ iOS screen flow for M-088 lives in `apps/mobile/src/capture/iosScreenFlow.ts` an
 SMS capability decision for M-089 lives in `apps/mobile/src/capture/smsDecision.ts` and `apps/mobile/src/screens/SmsCapabilityDecisionScreen.tsx`; SMS is removed until strict product, privacy, and store approval exists.
 Offline capture queue for M-090 lives in `apps/mobile/src/capture/offlineQueue.ts` and `apps/mobile/src/screens/OfflineCaptureQueueScreen.tsx`, queueing notes, photos, and audio for later sync.
 Settings home for M-091 lives in `apps/mobile/src/settings/home.ts` and `apps/mobile/src/screens/SettingsHomeScreen.tsx`, linking account, models, devices, permissions, notifications, privacy, and debug sections.
+Model settings for M-092 live in `apps/mobile/src/settings/modelSettings.ts` and `apps/mobile/src/screens/ModelSettingsScreen.tsx`, selecting default model preference across free, premium, BYOK, and desktop-local modes.
 
 ## Device Trust Model
 

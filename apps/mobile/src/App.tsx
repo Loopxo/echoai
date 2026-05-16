@@ -37,6 +37,7 @@ import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen
 import { MemoriesScreen } from "./screens/MemoriesScreen";
 import { MemorySuggestionsScreen } from "./screens/MemorySuggestionsScreen";
 import { ModelPickerScreen } from "./screens/ModelPickerScreen";
+import { ModelSettingsScreen } from "./screens/ModelSettingsScreen";
 import { NewChatScreen } from "./screens/NewChatScreen";
 import { NoteEditorScreen } from "./screens/NoteEditorScreen";
 import { NoteListScreen } from "./screens/NoteListScreen";
@@ -138,6 +139,7 @@ export default function App() {
         <SmsCapabilityDecisionScreen />
         <OfflineCaptureQueueScreen items={[]} onSync={() => undefined} />
         <SettingsHomeScreen onOpenSection={() => undefined} />
+        <ModelSettingsScreen onSelectPreference={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
