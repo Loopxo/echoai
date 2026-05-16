@@ -39,6 +39,7 @@ import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
 import { RunStatusScreen } from "./screens/RunStatusScreen";
 import { SafetyWarningScreen } from "./screens/SafetyWarningScreen";
+import { SendToDesktopScreen } from "./screens/SendToDesktopScreen";
 import { ShareIntakeScreen } from "./screens/ShareIntakeScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
@@ -98,6 +99,7 @@ export default function App() {
         <MemoriesScreen memories={[]} onAdd={() => undefined} onDelete={() => undefined} onEdit={() => undefined} />
         <MemorySuggestionsScreen suggestions={[]} onApprove={() => undefined} onDismiss={() => undefined} />
         <DesktopHomeScreen state={{ quickActions: [] }} onAction={() => undefined} />
+        <SendToDesktopScreen onSend={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
