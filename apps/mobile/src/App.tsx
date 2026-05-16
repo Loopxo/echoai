@@ -6,6 +6,7 @@ import { AccountScreen } from "./screens/AccountScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
+import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
@@ -22,6 +23,7 @@ export default function App() {
         <WorkspaceSwitcher workspaces={[]} onSelect={() => undefined} />
         <AuthAuditScreen events={[]} />
         <GatewayDiscoveryScreen />
+        <ManualGatewayConnectScreen onConnect={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

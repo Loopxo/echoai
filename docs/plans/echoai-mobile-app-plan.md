@@ -117,6 +117,7 @@ The workspace switcher for M-029 lives in `apps/mobile/src/screens/WorkspaceSwit
 The auth audit display for M-030 lives in `apps/mobile/src/screens/AuthAuditScreen.tsx`, backed by the shared `auth.audit.list` mobile protocol method for recent login and device events.
 The desktop discovery interface for M-031 lives in `apps/mobile/src/gateway/discovery.ts` and exposes native Bonjour/mDNS plus manual endpoint normalization through one React Native TypeScript API.
 The discovery UI for M-032 lives in `apps/mobile/src/screens/GatewayDiscoveryScreen.tsx` and renders discovered plus manual gateway endpoints in one pairing surface.
+The manual gateway connect flow for M-033 lives in `apps/mobile/src/screens/ManualGatewayConnectScreen.tsx` with a typed `EchoAIGatewayConnection.connectManual` service for host, port, TLS, and token input.
 
 ## Device Trust Model
 
