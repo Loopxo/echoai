@@ -325,6 +325,103 @@ button {
   background: #fffaf2;
 }
 
+.terminal-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: auto auto minmax(180px, 1fr);
+  overflow: hidden;
+  border: 1px solid #d7d0c4;
+  border-radius: 8px;
+  background: #fffaf2;
+}
+
+.terminal-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #ddd6ca;
+}
+
+.terminal-compose input {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #cfc6b7;
+  border-radius: 7px;
+  background: #fffdf8;
+}
+
+.terminal-compose button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #24332e;
+  border-radius: 7px;
+  background: #24332e;
+  color: #f8f4ee;
+  font-weight: 700;
+}
+
+.terminal-compose button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.terminal-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+  min-height: 0;
+}
+
+.terminal-task-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  padding: 14px;
+  border-right: 1px solid #ddd6ca;
+}
+
+.terminal-task-list button {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 10px;
+  border: 1px solid #ddd5c6;
+  border-radius: 7px;
+  background: #f7f4ee;
+  color: #25211c;
+  text-align: left;
+}
+
+.terminal-task-list strong,
+.terminal-task-list span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-task-list span,
+.terminal-task-list small {
+  color: #756b5f;
+  font-size: 12px;
+}
+
+.terminal-task-list small {
+  font-weight: 800;
+}
+
+.terminal-log {
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  padding: 14px;
+  background: #292623;
+  color: #f9f5ed;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .files-layout {
   display: grid;
   grid-template-columns: minmax(190px, 0.65fr) minmax(320px, 1.35fr) minmax(240px, 0.75fr);
@@ -1031,6 +1128,15 @@ button {
 
   .file-list,
   .file-preview {
+    border-right: 0;
+    border-bottom: 1px solid #ddd6ca;
+  }
+
+  .terminal-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .terminal-task-list {
     border-right: 0;
     border-bottom: 1px solid #ddd6ca;
   }

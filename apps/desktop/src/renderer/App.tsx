@@ -14,6 +14,8 @@ import type {
   DesktopWorkspaceIndex,
   DesktopWorkspaceSearchResult,
   DesktopWorkspaceSymbol,
+  DesktopSandboxStatus,
+  DesktopTaskRecord,
   DesktopUpdateStatus,
   DesktopWindowState,
   LogSearchEntry,
@@ -105,6 +107,10 @@ export function App(): ReactElement {
   const [workspaceIndex, setWorkspaceIndex] = useState<DesktopWorkspaceIndex | null>(null);
   const [recentFiles, setRecentFiles] = useState<DesktopWorkspaceEntry[]>([]);
   const [artifacts, setArtifacts] = useState<DesktopArtifactEntry[]>([]);
+  const [terminalCommand, setTerminalCommand] = useState('');
+  const [terminalTasks, setTerminalTasks] = useState<DesktopTaskRecord[]>([]);
+  const [terminalLog, setTerminalLog] = useState('');
+  const [sandboxStatus, setSandboxStatus] = useState<DesktopSandboxStatus | null>(null);
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -161,9 +167,13 @@ export function App(): ReactElement {
         void refreshRuntimeStatus();
       }
     });
+    const unsubscribeTasks = window.echoaiDesktop.onTaskUpdate((task) => {
+      setTerminalTasks((current) => [task, ...current.filter((item) => item.id !== task.id)].slice(0, 12));
+    });
     const unsubscribeWindow = window.echoaiDesktop.onWindowState((state) => setWindowState(state));
 
     void refreshRuntimeStatus();
+    void refreshTerminalState();
 
     return () => {
       isMounted = false;
@@ -171,6 +181,7 @@ export function App(): ReactElement {
       unsubscribeUpdates();
       unsubscribeNotifications();
       unsubscribeRuntime();
+      unsubscribeTasks();
       unsubscribeWindow();
     };
   }, []);
@@ -391,6 +402,36 @@ export function App(): ReactElement {
     ]);
     setWorkspaceSearchResults(results);
     setWorkspaceSymbols(symbols.slice(0, 8));
+  }
+
+  async function refreshTerminalState(): Promise<void> {
+    const [tasks, sandbox] = await Promise.all([
+      window.echoaiDesktop.listTerminalTasks(),
+      window.echoaiDesktop.getSandboxStatus(),
+    ]);
+    setTerminalTasks(tasks);
+    setSandboxStatus(sandbox);
+  }
+
+  async function runTerminalCommand(): Promise<void> {
+    if (!workspace?.path || !terminalCommand.trim()) {
+      return;
+    }
+
+    const task = await window.echoaiDesktop.runTerminalCommand({
+      command: terminalCommand,
+      cwd: workspace.path,
+    });
+    setTerminalTasks((current) => [task, ...current.filter((item) => item.id !== task.id)]);
+    setTerminalCommand('');
+  }
+
+  async function stopTerminalTask(taskId: string): Promise<void> {
+    await window.echoaiDesktop.stopTerminalTask(taskId);
+  }
+
+  async function loadTerminalLog(taskId: string): Promise<void> {
+    setTerminalLog(await window.echoaiDesktop.getTerminalLog(taskId));
   }
 
   async function cancelRuntimeRun(): Promise<void> {
@@ -800,6 +841,51 @@ export function App(): ReactElement {
                   items={artifacts.slice(0, 5).map((artifact) => artifact.name)}
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="terminal-panel">
+            <div className="panel-header">
+              <div>
+                <div className="panel-kicker">Terminal</div>
+                <h2>Managed Commands</h2>
+              </div>
+              <div className="runtime-status">
+                Native {sandboxStatus?.native ?? 'loading'} / WSL {sandboxStatus?.wsl ?? '-'} / Lima {sandboxStatus?.lima ?? '-'}
+              </div>
+            </div>
+            <div className="terminal-compose">
+              <input
+                onChange={(event) => setTerminalCommand(event.target.value)}
+                placeholder="npm test, pnpm build, git status"
+                value={terminalCommand}
+              />
+              <button disabled={!workspace?.path} onClick={runTerminalCommand} type="button">
+                Run
+              </button>
+            </div>
+            <div className="terminal-layout">
+              <div className="terminal-task-list">
+                {terminalTasks.length === 0 ? (
+                  <div className="empty-row">No terminal tasks</div>
+                ) : (
+                  terminalTasks.map((task) => (
+                    <button key={task.id} onClick={() => void loadTerminalLog(task.id)} type="button">
+                      <strong>{task.command}</strong>
+                      <span>{task.status} / {task.classification.risk}</span>
+                      {task.status === 'running' ? (
+                        <small onClick={(event) => {
+                          event.stopPropagation();
+                          void stopTerminalTask(task.id);
+                        }}>
+                          Stop
+                        </small>
+                      ) : null}
+                    </button>
+                  ))
+                )}
+              </div>
+              <pre className="terminal-log">{terminalLog || 'Select a task log'}</pre>
             </div>
           </div>
 

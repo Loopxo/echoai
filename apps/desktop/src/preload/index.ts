@@ -13,7 +13,11 @@ import {
   type DesktopRuntimeSessionSummary,
   type DesktopRuntimeStatus,
   type DesktopArtifactEntry,
+  type DesktopCommandClassification,
   type DesktopFilePreview,
+  type DesktopSandboxStatus,
+  type DesktopTaskRecord,
+  type DesktopTerminalRunRequest,
   type DesktopWorkspaceDiagnostic,
   type DesktopWorkspaceEntry,
   type DesktopWorkspaceIndex,
@@ -98,6 +102,14 @@ const api: EchoAIDesktopApi = {
   listArtifacts: () => invoke<DesktopArtifactEntry[]>('artifacts:list'),
   openArtifact: (path: string) => invoke<boolean>('artifacts:open', path),
   revealArtifact: (path: string) => invoke<boolean>('artifacts:reveal', path),
+  runTerminalCommand: (request: DesktopTerminalRunRequest) =>
+    invoke<DesktopTaskRecord>('terminal:run', request),
+  stopTerminalTask: (taskId: string) => invoke<boolean>('terminal:stop', taskId),
+  listTerminalTasks: () => invoke<DesktopTaskRecord[]>('terminal:listTasks'),
+  getTerminalLog: (taskId: string) => invoke<string>('terminal:getLog', taskId),
+  classifyCommand: (command: string) =>
+    invoke<DesktopCommandClassification>('sandbox:classifyCommand', command),
+  getSandboxStatus: () => invoke<DesktopSandboxStatus>('sandbox:getStatus'),
   searchLogs: (query: string) => invoke<LogSearchEntry[]>('logs:search', query),
   openExternal: (url: string) => invoke<boolean>('shell:openExternal', url),
   checkForUpdates: () => invoke<DesktopUpdateStatus>('updates:check'),
@@ -115,6 +127,8 @@ const api: EchoAIDesktopApi = {
     subscribe('notifications:push', callback, isDesktopNotification),
   onRuntimeEvent: (callback: (event: DesktopRuntimeEvent) => void) =>
     subscribe('runtime:event', callback, isDesktopRuntimeEvent),
+  onTaskUpdate: (callback: (task: DesktopTaskRecord) => void) =>
+    subscribe('tasks:update', callback, isDesktopTaskRecord),
   onWindowState: (callback: (state: DesktopWindowState) => void) =>
     subscribe('window:state', callback, isDesktopWindowState),
 };
@@ -170,5 +184,16 @@ function isDesktopRuntimeEvent(value: unknown): value is DesktopRuntimeEvent {
     typeof (value as { runId: unknown }).runId === 'string' &&
     'type' in value &&
     typeof (value as { type: unknown }).type === 'string'
+  );
+}
+
+function isDesktopTaskRecord(value: unknown): value is DesktopTaskRecord {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    typeof (value as { id: unknown }).id === 'string' &&
+    'status' in value &&
+    typeof (value as { status: unknown }).status === 'string'
   );
 }

@@ -28,6 +28,12 @@ export const IPC_INVOKE_CHANNELS = [
   'artifacts:list',
   'artifacts:open',
   'artifacts:reveal',
+  'terminal:run',
+  'terminal:stop',
+  'terminal:listTasks',
+  'terminal:getLog',
+  'sandbox:classifyCommand',
+  'sandbox:getStatus',
   'logs:search',
   'shell:openExternal',
   'updates:check',
@@ -44,6 +50,7 @@ export const IPC_EVENT_CHANNELS = [
   'updates:status',
   'notifications:push',
   'runtime:event',
+  'tasks:update',
   'window:state',
 ] as const;
 
@@ -281,6 +288,37 @@ export interface DesktopArtifactEntry {
   modifiedAt: number;
 }
 
+export type DesktopCommandRisk = 'safe' | 'ask' | 'deny';
+
+export interface DesktopCommandClassification {
+  risk: DesktopCommandRisk;
+  reason: string;
+}
+
+export interface DesktopTerminalRunRequest {
+  command: string;
+  cwd: string;
+}
+
+export interface DesktopTaskRecord {
+  id: string;
+  command: string;
+  cwd: string;
+  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'denied';
+  classification: DesktopCommandClassification;
+  exitCode: number | null;
+  startedAt: string;
+  updatedAt: string;
+  logPath: string;
+}
+
+export interface DesktopSandboxStatus {
+  native: 'available';
+  wsl: 'available' | 'missing' | 'unsupported';
+  lima: 'available' | 'missing' | 'unsupported';
+  platform: NodeJS.Platform;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
@@ -311,6 +349,12 @@ export interface EchoAIDesktopApi {
   listArtifacts: () => Promise<DesktopArtifactEntry[]>;
   openArtifact: (path: string) => Promise<boolean>;
   revealArtifact: (path: string) => Promise<boolean>;
+  runTerminalCommand: (request: DesktopTerminalRunRequest) => Promise<DesktopTaskRecord>;
+  stopTerminalTask: (taskId: string) => Promise<boolean>;
+  listTerminalTasks: () => Promise<DesktopTaskRecord[]>;
+  getTerminalLog: (taskId: string) => Promise<string>;
+  classifyCommand: (command: string) => Promise<DesktopCommandClassification>;
+  getSandboxStatus: () => Promise<DesktopSandboxStatus>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;
@@ -324,6 +368,7 @@ export interface EchoAIDesktopApi {
   onUpdateStatus: (callback: (status: DesktopUpdateStatus) => void) => () => void;
   onNotification: (callback: (notification: DesktopNotification) => void) => () => void;
   onRuntimeEvent: (callback: (event: DesktopRuntimeEvent) => void) => () => void;
+  onTaskUpdate: (callback: (task: DesktopTaskRecord) => void) => () => void;
   onWindowState: (callback: (state: DesktopWindowState) => void) => () => void;
 }
 

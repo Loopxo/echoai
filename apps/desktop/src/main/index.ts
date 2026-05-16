@@ -15,6 +15,7 @@ import { DesktopRuntimeService } from './desktop-runtime-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
+import { TerminalTaskService, classifyCommand, getSandboxStatus } from './terminal-task-service';
 import { WorkspaceFileService } from './workspace-file-service';
 import { WorkspaceStore } from './workspace-store';
 import {
@@ -46,6 +47,7 @@ let recoveryStore: RecoveryStore | null = null;
 let authStore: AuthStore | null = null;
 let workspaceStore: WorkspaceStore | null = null;
 let workspaceFileService: WorkspaceFileService | null = null;
+let terminalTaskService: TerminalTaskService | null = null;
 let runtimeService: DesktopRuntimeService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
@@ -105,6 +107,7 @@ app.on('activate', () => {
 });
 
 app.on('window-all-closed', () => {
+  terminalTaskService?.cleanup();
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -122,6 +125,11 @@ async function bootstrap(): Promise<void> {
   authStore = new AuthStore(appPaths.dataDir);
   workspaceStore = new WorkspaceStore(appPaths.dataDir);
   workspaceFileService = new WorkspaceFileService();
+  terminalTaskService = new TerminalTaskService(appPaths.logsDir, logger, (task) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('tasks:update', task);
+    }
+  });
   runtimeService = new DesktopRuntimeService(appPaths.sessionsDir, logger, (event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('runtime:event', event);
@@ -426,6 +434,41 @@ function registerIpcHandlers(): void {
     return true;
   });
 
+  ipcMain.handle('terminal:run', async (_event, request: unknown) => {
+    if (
+      !isRecord(request) ||
+      typeof request.command !== 'string' ||
+      typeof request.cwd !== 'string'
+    ) {
+      throw new Error('Invalid terminal run request');
+    }
+
+    return requireServices().terminalTaskService.run({
+      command: request.command,
+      cwd: request.cwd,
+    });
+  });
+
+  ipcMain.handle('terminal:stop', (_event, taskId: unknown) => {
+    return typeof taskId === 'string' ? requireServices().terminalTaskService.stop(taskId) : false;
+  });
+
+  ipcMain.handle('terminal:listTasks', () => {
+    return requireServices().terminalTaskService.list();
+  });
+
+  ipcMain.handle('terminal:getLog', async (_event, taskId: unknown) => {
+    return typeof taskId === 'string' ? requireServices().terminalTaskService.getLog(taskId) : '';
+  });
+
+  ipcMain.handle('sandbox:classifyCommand', (_event, command: unknown) => {
+    return classifyCommand(typeof command === 'string' ? command : '');
+  });
+
+  ipcMain.handle('sandbox:getStatus', () => {
+    return getSandboxStatus(process.platform);
+  });
+
   ipcMain.handle('logs:search', async (_event, query: unknown) => {
     const services = requireServices();
     return services.logger.search(typeof query === 'string' ? query : '');
@@ -652,6 +695,7 @@ function requireServices(): {
   authStore: AuthStore;
   workspaceStore: WorkspaceStore;
   workspaceFileService: WorkspaceFileService;
+  terminalTaskService: TerminalTaskService;
   runtimeService: DesktopRuntimeService;
   updateService: AutoUpdateService;
 } {
@@ -662,6 +706,7 @@ function requireServices(): {
     !authStore ||
     !workspaceStore ||
     !workspaceFileService ||
+    !terminalTaskService ||
     !runtimeService ||
     !updateService
   ) {
@@ -675,6 +720,7 @@ function requireServices(): {
     authStore,
     workspaceStore,
     workspaceFileService,
+    terminalTaskService,
     runtimeService,
     updateService,
   };
