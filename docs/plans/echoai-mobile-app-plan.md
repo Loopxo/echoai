@@ -91,6 +91,8 @@ Session API helpers for M-016 live in `apps/mobile/src/api/sessionApi.ts` and co
 
 Project API helpers for M-017 live in `apps/mobile/src/api/projectApi.ts` and cover project listing plus project context lookup.
 
+File API helpers for M-018 live in `apps/mobile/src/api/fileApi.ts` and cover upload creation, metadata listing/preview, and deletion.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
