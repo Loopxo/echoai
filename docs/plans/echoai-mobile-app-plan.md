@@ -101,6 +101,8 @@ React Native sign-in for M-021 lives in `apps/mobile/src/screens/SignInScreen.ts
 
 React Native sign-up for M-022 uses the same secure-browser surface with `EchoAIAuthApi.startSignUp` and `completeSignUp`, creating the first workspace through the shared auth protocol.
 
+Web-to-mobile auth completion for M-023 lives in `apps/mobile/src/auth/mobileAuthCallback.ts` and is wired into the sign-in screen through React Native deep-link handling.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:

@@ -26,6 +26,8 @@ declare module "react-native" {
   export const Pressable: ComponentType<{ children?: ReactNode; style?: Style; onPress?: () => void }>;
   export const Linking: {
     openURL(url: string): Promise<void>;
+    getInitialURL(): Promise<string | null>;
+    addEventListener(type: "url", handler: (event: { url: string }) => void): { remove(): void };
   };
 
   export const StyleSheet: {

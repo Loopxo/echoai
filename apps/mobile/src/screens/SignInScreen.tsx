@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { EchoAIAuthApi } from "../api";
+import { completeMobileAuthCallback } from "../auth/mobileAuthCallback";
 
 interface SignInScreenProps {
   authApi?: EchoAIAuthApi;
@@ -10,6 +11,37 @@ interface SignInScreenProps {
 
 export function SignInScreen({ authApi, redirectUri }: SignInScreenProps) {
   const [status, setStatus] = useState<"idle" | "opening-sign-in" | "opening-sign-up" | "error">("idle");
+
+  useEffect(() => {
+    if (!authApi) return undefined;
+
+    let cancelled = false;
+
+    async function complete(url: string) {
+      try {
+        const mode = status === "opening-sign-up" ? "sign-up" : "sign-in";
+        const result = await completeMobileAuthCallback(authApi!, redirectUri, url, mode);
+        if (result && !cancelled) {
+          setStatus("idle");
+        }
+      } catch {
+        if (!cancelled) setStatus("error");
+      }
+    }
+
+    Linking.getInitialURL().then((url) => {
+      if (url) void complete(url);
+    });
+
+    const subscription = Linking.addEventListener("url", (event) => {
+      void complete(event.url);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, [authApi, redirectUri, status]);
 
   async function startSignIn() {
     if (!authApi) {
