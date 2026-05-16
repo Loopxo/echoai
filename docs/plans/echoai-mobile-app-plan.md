@@ -128,6 +128,7 @@ Remote tunnel support for M-040 lives in `apps/mobile/src/gateway/remoteTunnel.t
 The chat list for M-041 lives in `apps/mobile/src/screens/ChatListScreen.tsx` and labels synced cloud plus desktop gateway sessions by source.
 The chat detail for M-042 lives in `apps/mobile/src/screens/ChatDetailScreen.tsx` and renders persisted messages, streaming text, attachments, tool blocks, and approval markers.
 The new chat flow for M-043 lives in `apps/mobile/src/screens/NewChatScreen.tsx` with cloud/desktop source, project, model, and prompt selection.
+The model picker for M-044 lives in `apps/mobile/src/screens/ModelPickerScreen.tsx` and filters hosted, free, BYOK, and desktop-local models by capability.
 
 ## Device Trust Model
 

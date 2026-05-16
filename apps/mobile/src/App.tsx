@@ -10,6 +10,7 @@ import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
 import { GatewayDiscoveryScreen } from "./screens/GatewayDiscoveryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
+import { ModelPickerScreen } from "./screens/ModelPickerScreen";
 import { NewChatScreen } from "./screens/NewChatScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
@@ -42,6 +43,7 @@ export default function App() {
         <ChatListScreen sessions={[]} onOpenSession={() => undefined} />
         <ChatDetailScreen />
         <NewChatScreen onStart={() => undefined} />
+        <ModelPickerScreen models={[]} onSelectModel={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
