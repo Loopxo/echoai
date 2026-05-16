@@ -146,6 +146,7 @@ Desktop screen snapshot preview for M-058 lives in `apps/mobile/src/tooling/snap
 Push notifications for approvals in M-059 live in `apps/mobile/src/approvals/pushNotifications.ts` and `apps/mobile/src/screens/ApprovalPushScreen.tsx`, registering the native approval push handler with approval deep links.
 Safety warnings for M-060 live in `apps/mobile/src/approvals/safetyWarnings.ts` and `apps/mobile/src/screens/SafetyWarningScreen.tsx`, escalating destructive or external actions to stronger confirmation.
 The project list for M-061 lives in `apps/mobile/src/projects/search.ts` and `apps/mobile/src/screens/ProjectListScreen.tsx`, providing synced project search and open actions.
+The project detail for M-062 lives in `apps/mobile/src/projects/detail.ts` and `apps/mobile/src/screens/ProjectDetailScreen.tsx`, grouping chats, notes, files, memories, automations, and outputs.
 
 ## Device Trust Model
 
