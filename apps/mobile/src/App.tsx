@@ -10,6 +10,7 @@ import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { SignInScreen } from "./screens/SignInScreen";
+import { TlsPinningScreen } from "./screens/TlsPinningScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
 const clientFactoryReady = typeof createEchoAIMobileClient === "function";
@@ -28,6 +29,7 @@ export default function App() {
         <ManualGatewayConnectScreen onConnect={() => undefined} />
         <QrPairingScreen onPair={() => undefined} />
         <PairApprovalScreen onCancel={() => undefined} />
+        <TlsPinningScreen onDisconnect={() => undefined} onTrustFingerprint={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
