@@ -21,6 +21,7 @@ import { NewChatScreen } from "./screens/NewChatScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
+import { RemoteLogsScreen } from "./screens/RemoteLogsScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
 import { RunStatusScreen } from "./screens/RunStatusScreen";
@@ -68,6 +69,7 @@ export default function App() {
         <ApprovalDetailsScreen />
         <ApprovalDecisionScreen onDecide={() => undefined} />
         <ApprovalTimeoutScreen approvals={[]} />
+        <RemoteLogsScreen lines={[]} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
