@@ -18,6 +18,7 @@ import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
 import { TerminalTaskService, classifyCommand, getSandboxStatus } from './terminal-task-service';
 import { DesktopToolingService } from './tooling-service';
+import { DesktopWebAppService } from './web-app-service';
 import { WorkspaceFileService } from './workspace-file-service';
 import { WorkspaceStore } from './workspace-store';
 import {
@@ -53,6 +54,7 @@ let terminalTaskService: TerminalTaskService | null = null;
 let toolingService: DesktopToolingService | null = null;
 let runtimeService: DesktopRuntimeService | null = null;
 let gatewayService: DesktopGatewayService | null = null;
+let webAppService: DesktopWebAppService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
 
@@ -147,6 +149,7 @@ async function bootstrap(): Promise<void> {
     }
   });
   gatewayService = new DesktopGatewayService(appPaths, logger);
+  webAppService = new DesktopWebAppService(appPaths);
   updateService = new AutoUpdateService(logger, app.isPackaged);
 }
 
@@ -710,6 +713,89 @@ function registerIpcHandlers(): void {
     return requireServices().gatewayService.getReleaseChecklist();
   });
 
+  ipcMain.handle('webapp:getSnapshot', () => {
+    return requireServices().webAppService.getSnapshot();
+  });
+
+  ipcMain.handle('webapp:getTickets', () => {
+    return requireServices().webAppService.getTickets();
+  });
+
+  ipcMain.handle('webapp:search', (_event, query: unknown) => {
+    return requireServices().webAppService.search(typeof query === 'string' ? query : '');
+  });
+
+  ipcMain.handle('webapp:runChat', (_event, request: unknown) => {
+    if (!isRecord(request) || typeof request.prompt !== 'string' || typeof request.modelId !== 'string') {
+      throw new Error('Invalid web app chat request');
+    }
+
+    return requireServices().webAppService.runChat({
+      conversationId: typeof request.conversationId === 'string' ? request.conversationId : undefined,
+      projectId: typeof request.projectId === 'string' ? request.projectId : undefined,
+      prompt: request.prompt,
+      modelId: request.modelId,
+      mode:
+        request.mode === 'act' ||
+        request.mode === 'code' ||
+        request.mode === 'research' ||
+        request.mode === 'media' ||
+        request.mode === 'automation'
+          ? request.mode
+          : 'ask',
+    });
+  });
+
+  ipcMain.handle('webapp:createProject', (_event, name: unknown, description: unknown) => {
+    return requireServices().webAppService.createProject(
+      typeof name === 'string' ? name : '',
+      typeof description === 'string' ? description : ''
+    );
+  });
+
+  ipcMain.handle('webapp:createNote', (_event, title: unknown, body: unknown, projectId: unknown) => {
+    return requireServices().webAppService.createNote(
+      typeof title === 'string' ? title : '',
+      typeof body === 'string' ? body : '',
+      typeof projectId === 'string' ? projectId : undefined
+    );
+  });
+
+  ipcMain.handle('webapp:createAutomation', (_event, name: unknown, prompt: unknown, schedule: unknown, projectId: unknown) => {
+    return requireServices().webAppService.createAutomation(
+      typeof name === 'string' ? name : '',
+      typeof prompt === 'string' ? prompt : '',
+      typeof schedule === 'string' ? schedule : '',
+      typeof projectId === 'string' ? projectId : undefined
+    );
+  });
+
+  ipcMain.handle('webapp:toggleIntegration', (_event, integrationId: unknown) => {
+    return typeof integrationId === 'string'
+      ? requireServices().webAppService.toggleIntegration(integrationId)
+      : null;
+  });
+
+  ipcMain.handle('webapp:updateMemoryPrivacy', (_event, patch: unknown) => {
+    if (!isRecord(patch)) {
+      throw new Error('Invalid web app memory privacy patch');
+    }
+
+    return requireServices().webAppService.updateMemoryPrivacy(patch);
+  });
+
+  ipcMain.handle('webapp:updateToolPolicy', (_event, category: unknown, policy: unknown) => {
+    if (typeof category !== 'string' || (policy !== 'allow' && policy !== 'ask' && policy !== 'deny')) {
+      throw new Error('Invalid web app tool policy');
+    }
+
+    return requireServices().webAppService.updateToolPolicy(category, policy);
+  });
+
+  ipcMain.handle('webapp:exportData', () => {
+    return requireServices().webAppService.exportData();
+  });
+
   ipcMain.handle('logs:search', async (_event, query: unknown) => {
     const services = requireServices();
     return services.logger.search(typeof query === 'string' ? query : '');
@@ -940,6 +1026,7 @@ function requireServices(): {
   toolingService: DesktopToolingService;
   runtimeService: DesktopRuntimeService;
   gatewayService: DesktopGatewayService;
+  webAppService: DesktopWebAppService;
   updateService: AutoUpdateService;
 } {
   if (
@@ -953,6 +1040,7 @@ function requireServices(): {
     !toolingService ||
     !runtimeService ||
     !gatewayService ||
+    !webAppService ||
     !updateService
   ) {
     throw new Error('EchoAI desktop services are not ready');
@@ -969,6 +1057,7 @@ function requireServices(): {
     toolingService,
     runtimeService,
     gatewayService,
+    webAppService,
     updateService,
   };
 }

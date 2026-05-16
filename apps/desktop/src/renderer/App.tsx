@@ -33,6 +33,12 @@ import type {
   DesktopScheduledTask,
   DesktopTelemetrySettings,
   DesktopUpdateStatus,
+  DesktopWebIntegration,
+  DesktopWebRunMode,
+  DesktopWebSearchResult,
+  DesktopWebSnapshot,
+  DesktopWebTicketStatus,
+  DesktopWebToolPolicy,
   DesktopWindowState,
   LogSearchEntry,
   WorkspaceSelection,
@@ -40,6 +46,7 @@ import type {
 
 const pages = [
   'Home',
+  'Web',
   'Chat',
   'Workspace',
   'Files',
@@ -76,6 +83,7 @@ type ChatMessage = {
 
 const pageDescriptions: Record<Page, string> = {
   Home: 'Command center',
+  Web: 'Cloud app in Electron',
   Chat: 'Runtime session',
   Workspace: 'Project context',
   Files: 'Workspace tree',
@@ -143,6 +151,13 @@ export function App(): ReactElement {
   const [privacyDashboard, setPrivacyDashboard] = useState<DesktopPrivacyDashboard | null>(null);
   const [telemetrySettings, setTelemetrySettings] = useState<DesktopTelemetrySettings | null>(null);
   const [releaseChecklist, setReleaseChecklist] = useState<DesktopReleaseChecklistItem[]>([]);
+  const [webApp, setWebApp] = useState<DesktopWebSnapshot | null>(null);
+  const [webTickets, setWebTickets] = useState<DesktopWebTicketStatus[]>([]);
+  const [webSearchQuery, setWebSearchQuery] = useState('');
+  const [webSearchResults, setWebSearchResults] = useState<DesktopWebSearchResult[]>([]);
+  const [webPrompt, setWebPrompt] = useState('Complete the web workflow inside Electron');
+  const [webMode, setWebMode] = useState<DesktopWebRunMode>('act');
+  const [webModelId, setWebModelId] = useState('echoai-premium-reasoner');
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -208,6 +223,7 @@ export function App(): ReactElement {
     void refreshTerminalState();
     void refreshToolingState();
     void refreshGatewayState();
+    void refreshWebAppState();
 
     return () => {
       isMounted = false;
@@ -609,6 +625,81 @@ export function App(): ReactElement {
     await refreshGatewayState();
   }
 
+  async function refreshWebAppState(): Promise<void> {
+    const [snapshot, tickets] = await Promise.all([
+      window.echoaiDesktop.getWebAppSnapshot(),
+      window.echoaiDesktop.getWebAppTickets(),
+    ]);
+    setWebApp(snapshot);
+    setWebTickets(tickets);
+    if (snapshot.models.length > 0 && !snapshot.models.some((model) => model.id === webModelId)) {
+      setWebModelId(snapshot.models[0]?.id ?? 'echoai-premium-reasoner');
+    }
+  }
+
+  async function runWebAppPrompt(): Promise<void> {
+    if (!webPrompt.trim()) {
+      return;
+    }
+
+    await window.echoaiDesktop.runWebAppChat({
+      prompt: webPrompt,
+      modelId: webModelId,
+      mode: webMode,
+      projectId: webApp?.projects[0]?.id,
+    });
+    setWebPrompt('');
+    await refreshWebAppState();
+  }
+
+  async function searchWebApp(): Promise<void> {
+    setWebSearchResults(await window.echoaiDesktop.searchWebApp(webSearchQuery));
+  }
+
+  async function createWebAppProject(): Promise<void> {
+    await window.echoaiDesktop.createWebProject('Electron Web Project', 'Created from the desktop web app surface.');
+    await refreshWebAppState();
+  }
+
+  async function createWebAppNote(): Promise<void> {
+    await window.echoaiDesktop.createWebNote(
+      'Electron web note',
+      'This note is available to chat context, exports, and project detail.',
+      webApp?.projects[0]?.id
+    );
+    await refreshWebAppState();
+  }
+
+  async function createWebAppAutomation(): Promise<void> {
+    await window.echoaiDesktop.createWebAutomation(
+      'Electron web digest',
+      'Summarize web app chats, projects, files, notes, and devices.',
+      'RRULE:FREQ=DAILY',
+      webApp?.projects[0]?.id
+    );
+    await refreshWebAppState();
+  }
+
+  async function toggleWebAppIntegration(integration: DesktopWebIntegration): Promise<void> {
+    await window.echoaiDesktop.toggleWebIntegration(integration.id);
+    await refreshWebAppState();
+  }
+
+  async function updateWebAppMemoryPrivacy(autoSave: boolean): Promise<void> {
+    await window.echoaiDesktop.updateWebMemoryPrivacy({ autoSave });
+    await refreshWebAppState();
+  }
+
+  async function updateWebAppToolPolicy(category: string, policy: DesktopWebToolPolicy): Promise<void> {
+    await window.echoaiDesktop.updateWebToolPolicy(category, policy);
+    await refreshWebAppState();
+  }
+
+  async function exportWebAppData(): Promise<void> {
+    const path = await window.echoaiDesktop.exportWebAppData();
+    pushLocalNotification('system', 'Electron web export ready', path);
+  }
+
   async function cancelRuntimeRun(): Promise<void> {
     if (!activeRunId) {
       return;
@@ -840,6 +931,181 @@ export function App(): ReactElement {
                 />
                 Memories
               </label>
+            </div>
+          </div>
+
+          <div className="webapp-panel">
+            <div className="panel-header">
+              <div>
+                <div className="panel-kicker">Web In Electron</div>
+                <h2>Overlay App Tickets W-001-W-100</h2>
+              </div>
+              <div className="webapp-actions">
+                <button onClick={createWebAppProject} type="button">Project</button>
+                <button onClick={createWebAppNote} type="button">Note</button>
+                <button onClick={createWebAppAutomation} type="button">Automation</button>
+                <button onClick={exportWebAppData} type="button">Export</button>
+              </div>
+            </div>
+            <div className="webapp-grid">
+              <section className="webapp-section hero">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Status</div>
+                    <strong>{webApp ? `${webApp.ticketSummary.complete}/${webApp.ticketSummary.total} tickets` : 'Loading'}</strong>
+                  </div>
+                  <span>{webApp?.identity.plan ?? 'team'} / {webApp?.identity.role ?? 'owner'}</span>
+                </div>
+                <div className="metric-row compact">
+                  {(webApp?.metrics ?? []).slice(0, 5).map((metric) => (
+                    <Metric key={metric.label} label={metric.label} value={metric.value} />
+                  ))}
+                </div>
+                <div className="webapp-search">
+                  <input
+                    aria-label="Search Electron web app"
+                    onChange={(event) => setWebSearchQuery(event.target.value)}
+                    placeholder="Search sessions, projects, files, notes, memories, settings"
+                    value={webSearchQuery}
+                  />
+                  <button onClick={searchWebApp} type="button">Search</button>
+                </div>
+                <div className="webapp-results">
+                  {(webSearchResults.length > 0 ? webSearchResults : []).slice(0, 5).map((result) => (
+                    <div className="webapp-row" key={result.id}>
+                      <span>{result.title}</span>
+                      <small>{result.type} / {result.detail}</small>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="webapp-section chat">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Chat</div>
+                    <strong>{webApp?.conversations.length ?? 0} sessions</strong>
+                  </div>
+                </div>
+                <div className="webapp-compose">
+                  <select
+                    aria-label="Web app model"
+                    onChange={(event) => setWebModelId(event.target.value)}
+                    value={webModelId}
+                  >
+                    {(webApp?.models ?? []).map((model) => (
+                      <option key={model.id} value={model.id}>{model.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Web app mode"
+                    onChange={(event) => setWebMode(event.target.value as DesktopWebRunMode)}
+                    value={webMode}
+                  >
+                    {['ask', 'act', 'code', 'research', 'media', 'automation'].map((mode) => (
+                      <option key={mode} value={mode}>{mode}</option>
+                    ))}
+                  </select>
+                  <input
+                    onChange={(event) => setWebPrompt(event.target.value)}
+                    placeholder="Run hosted/free/BYOK/local web chat"
+                    value={webPrompt}
+                  />
+                  <button onClick={runWebAppPrompt} type="button">Run</button>
+                </div>
+                <div className="webapp-message-list">
+                  {(webApp?.messages ?? []).slice(-4).map((message) => (
+                    <article className={`webapp-message ${message.role}`} key={message.id}>
+                      <strong>{message.role}</strong>
+                      <p>{message.content}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section className="webapp-section">
+                <SectionList title="Projects" items={(webApp?.projects ?? []).map((project) => project.name)} />
+                <SectionList title="Files" items={(webApp?.files ?? []).map((file) => `${file.name} / ${file.status}`)} />
+              </section>
+
+              <section className="webapp-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Memory</div>
+                    <strong>{webApp?.memoryPrivacy.autoSave ? 'Auto-save' : 'Approval required'}</strong>
+                  </div>
+                  <label className="telemetry-toggle">
+                    <input
+                      checked={webApp?.memoryPrivacy.autoSave ?? false}
+                      onChange={(event) => void updateWebAppMemoryPrivacy(event.target.checked)}
+                      type="checkbox"
+                    />
+                    Auto
+                  </label>
+                </div>
+                <SectionList title="Notes" items={(webApp?.notes ?? []).map((note) => note.title)} />
+                <SectionList title="Memories" items={(webApp?.memories ?? []).map((memory) => `${memory.scope}: ${memory.text}`)} />
+              </section>
+
+              <section className="webapp-section">
+                <SectionList title="Models" items={(webApp?.models ?? []).map((model) => `${model.mode} ${model.label}`)} />
+                <SectionList title="Usage" items={(webApp?.usage ?? []).map((usage) => `${usage.modelId} / ${formatUsdMicros(usage.costUsdMicros)}`)} />
+              </section>
+
+              <section className="webapp-section">
+                <div className="panel-kicker">Policies</div>
+                <div className="policy-grid">
+                  {Object.entries(webApp?.toolPolicies ?? {}).map(([category, policy]) => (
+                    <label key={category}>
+                      <span>{category}</span>
+                      <select
+                        aria-label={`${category} policy`}
+                        onChange={(event) => void updateWebAppToolPolicy(category, event.target.value as DesktopWebToolPolicy)}
+                        value={policy}
+                      >
+                        <option value="allow">allow</option>
+                        <option value="ask">ask</option>
+                        <option value="deny">deny</option>
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              </section>
+
+              <section className="webapp-section">
+                <div className="panel-kicker">Integrations</div>
+                <div className="channel-grid">
+                  {(webApp?.integrations ?? []).map((integration) => (
+                    <label key={integration.id}>
+                      <input
+                        checked={integration.connected}
+                        onChange={() => void toggleWebAppIntegration(integration)}
+                        type="checkbox"
+                      />
+                      {integration.name}
+                    </label>
+                  ))}
+                </div>
+                <SectionList title="Devices" items={(webApp?.devices ?? []).map((device) => `${device.name} / ${device.status}`)} />
+              </section>
+
+              <section className="webapp-section ticket-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Ticket Evidence</div>
+                    <strong>{webTickets.length} complete</strong>
+                  </div>
+                </div>
+                <div className="ticket-grid">
+                  {webTickets.slice(0, 24).map((ticket) => (
+                    <div className="ticket-row" key={ticket.id}>
+                      <strong>{ticket.id}</strong>
+                      <span>{ticket.area}</span>
+                      <small>{ticket.title}</small>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           </div>
 
@@ -1485,6 +1751,10 @@ function formatBytes(bytes: number): string {
     return `${Math.round(bytes / 1024)} KB`;
   }
   return `${Math.round(bytes / 1024 / 1024)} MB`;
+}
+
+function formatUsdMicros(value: number): string {
+  return `$${(value / 1_000_000).toFixed(2)}`;
 }
 
 function buildPromptWithAttachments(prompt: string, attachmentNames: string[]): string {

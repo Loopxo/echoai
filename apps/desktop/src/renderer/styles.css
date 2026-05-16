@@ -355,11 +355,150 @@ button {
   background: #fffaf2;
 }
 
+.webapp-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: auto auto;
+  overflow: hidden;
+  border: 1px solid #cfd8e3;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
 .tooling-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding: 14px 18px;
+}
+
+.webapp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 18px 18px;
+}
+
+.webapp-section {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 168px;
+  padding: 12px;
+  border: 1px solid #d7dee8;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.webapp-section.hero,
+.webapp-section.chat,
+.ticket-section {
+  grid-column: span 2;
+}
+
+.webapp-actions,
+.webapp-compose,
+.webapp-search,
+.policy-grid label {
+  display: flex;
+  gap: 8px;
+}
+
+.webapp-actions button,
+.webapp-compose button,
+.webapp-search button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #0f766e;
+  border-radius: 7px;
+  background: #0f766e;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.webapp-compose {
+  display: grid;
+  grid-template-columns: 150px 130px minmax(0, 1fr) auto;
+}
+
+.webapp-compose input,
+.webapp-compose select,
+.webapp-search input,
+.policy-grid select {
+  min-height: 34px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid #c6d0dc;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #172033;
+}
+
+.webapp-results,
+.webapp-message-list,
+.ticket-grid,
+.policy-grid {
+  display: grid;
+  gap: 7px;
+}
+
+.webapp-row,
+.ticket-row,
+.webapp-message {
+  display: grid;
+  gap: 4px;
+  min-height: 40px;
+  padding: 8px;
+  border-radius: 7px;
+  background: #f6f7fb;
+  color: #172033;
+  font-size: 12px;
+}
+
+.webapp-row span,
+.webapp-row small,
+.ticket-row span,
+.ticket-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webapp-message.user {
+  background: #e8f5f3;
+}
+
+.webapp-message.assistant {
+  background: #fff8df;
+}
+
+.webapp-message p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.policy-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.policy-grid label {
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 8px;
+  border-radius: 7px;
+  background: #f6f7fb;
+  color: #52606d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ticket-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: 260px;
+  overflow: auto;
 }
 
 .gateway-grid {
@@ -1352,8 +1491,24 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .webapp-grid,
   .gateway-grid,
   .release-list {
+    grid-template-columns: 1fr;
+  }
+
+  .webapp-section.hero,
+  .webapp-section.chat,
+  .ticket-section {
+    grid-column: span 1;
+  }
+
+  .webapp-compose {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-grid,
+  .policy-grid {
     grid-template-columns: 1fr;
   }
 

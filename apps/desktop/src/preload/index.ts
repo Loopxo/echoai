@@ -46,6 +46,16 @@ import {
   type DesktopSyncQueueItem,
   type DesktopSyncSettings,
   type DesktopUpdateStatus,
+  type DesktopWebAutomation,
+  type DesktopWebChatRunRequest,
+  type DesktopWebChatRunResult,
+  type DesktopWebIntegration,
+  type DesktopWebNote,
+  type DesktopWebProject,
+  type DesktopWebSearchResult,
+  type DesktopWebSnapshot,
+  type DesktopWebTicketStatus,
+  type DesktopWebToolPolicy,
   type DesktopWindowState,
   type EchoAIDesktopApi,
   type LogSearchEntry,
@@ -187,6 +197,24 @@ const api: EchoAIDesktopApi = {
   updateTelemetrySettings: (patch: Partial<DesktopTelemetrySettings>) =>
     invoke<DesktopTelemetrySettings>('telemetry:updateSettings', patch),
   getReleaseChecklist: () => invoke<DesktopReleaseChecklistItem[]>('release:getChecklist'),
+  getWebAppSnapshot: () => invoke<DesktopWebSnapshot>('webapp:getSnapshot'),
+  getWebAppTickets: () => invoke<DesktopWebTicketStatus[]>('webapp:getTickets'),
+  searchWebApp: (query: string) => invoke<DesktopWebSearchResult[]>('webapp:search', query),
+  runWebAppChat: (request: DesktopWebChatRunRequest) =>
+    invoke<DesktopWebChatRunResult>('webapp:runChat', request),
+  createWebProject: (name: string, description: string) =>
+    invoke<DesktopWebProject>('webapp:createProject', name, description),
+  createWebNote: (title: string, body: string, projectId?: string) =>
+    invoke<DesktopWebNote>('webapp:createNote', title, body, projectId),
+  createWebAutomation: (name: string, prompt: string, schedule: string, projectId?: string) =>
+    invoke<DesktopWebAutomation>('webapp:createAutomation', name, prompt, schedule, projectId),
+  toggleWebIntegration: (integrationId: string) =>
+    invoke<DesktopWebIntegration | null>('webapp:toggleIntegration', integrationId),
+  updateWebMemoryPrivacy: (patch: Partial<DesktopWebSnapshot['memoryPrivacy']>) =>
+    invoke<DesktopWebSnapshot['memoryPrivacy']>('webapp:updateMemoryPrivacy', patch),
+  updateWebToolPolicy: (category: string, policy: DesktopWebToolPolicy) =>
+    invoke<Record<string, DesktopWebToolPolicy>>('webapp:updateToolPolicy', category, policy),
+  exportWebAppData: () => invoke<string>('webapp:exportData'),
   searchLogs: (query: string) => invoke<LogSearchEntry[]>('logs:search', query),
   openExternal: (url: string) => invoke<boolean>('shell:openExternal', url),
   checkForUpdates: () => invoke<DesktopUpdateStatus>('updates:check'),

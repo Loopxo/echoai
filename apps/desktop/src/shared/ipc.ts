@@ -72,6 +72,17 @@ export const IPC_INVOKE_CHANNELS = [
   'telemetry:getSettings',
   'telemetry:updateSettings',
   'release:getChecklist',
+  'webapp:getSnapshot',
+  'webapp:getTickets',
+  'webapp:search',
+  'webapp:runChat',
+  'webapp:createProject',
+  'webapp:createNote',
+  'webapp:createAutomation',
+  'webapp:toggleIntegration',
+  'webapp:updateMemoryPrivacy',
+  'webapp:updateToolPolicy',
+  'webapp:exportData',
   'logs:search',
   'shell:openExternal',
   'updates:check',
@@ -527,6 +538,215 @@ export interface DesktopReleaseChecklistItem {
   detail: string;
 }
 
+export type DesktopWebRunMode = 'ask' | 'act' | 'code' | 'research' | 'media' | 'automation';
+export type DesktopWebModelMode = 'hosted' | 'free' | 'byok' | 'local';
+export type DesktopWebToolPolicy = 'allow' | 'ask' | 'deny';
+
+export interface DesktopWebFeatureFlags {
+  freeModels: boolean;
+  media: boolean;
+  integrations: boolean;
+  automations: boolean;
+  desktopHandoff: boolean;
+  mobileHandoff: boolean;
+  browserAutomation: boolean;
+  codeSandbox: boolean;
+  memoryAutoSave: boolean;
+}
+
+export interface DesktopWebMetric {
+  label: string;
+  value: string;
+}
+
+export interface DesktopWebModel {
+  id: string;
+  provider: string;
+  label: string;
+  mode: DesktopWebModelMode;
+  capabilities: string[];
+  contextTokens: number;
+  inputUsdMicros: number;
+  outputUsdMicros: number;
+  fallbackModelId: string | null;
+  healthy: boolean;
+}
+
+export interface DesktopWebProject {
+  id: string;
+  name: string;
+  description: string;
+  archived: boolean;
+  updatedAt: string;
+}
+
+export interface DesktopWebConversation {
+  id: string;
+  projectId: string | null;
+  title: string;
+  modelId: string;
+  mode: DesktopWebRunMode;
+  shared: boolean;
+  updatedAt: string;
+}
+
+export interface DesktopWebMessage {
+  id: string;
+  conversationId: string;
+  role: 'user' | 'assistant' | 'tool' | 'system';
+  content: string;
+  modelId: string | null;
+  createdAt: string;
+}
+
+export interface DesktopWebToolCall {
+  id: string;
+  name: string;
+  status: 'queued' | 'running' | 'requires-approval' | 'completed' | 'failed';
+  policy: DesktopWebToolPolicy;
+  preview: string;
+}
+
+export interface DesktopWebFile {
+  id: string;
+  projectId: string | null;
+  name: string;
+  kind: 'pdf' | 'image' | 'markdown' | 'code' | 'csv' | 'docx' | 'text';
+  status: 'uploaded' | 'extracting' | 'indexed' | 'failed';
+  embeddingStatus: 'queued' | 'ready' | 'disabled';
+  sizeBytes: number;
+}
+
+export interface DesktopWebMemory {
+  id: string;
+  scope: 'global' | 'workspace' | 'project';
+  text: string;
+  approved: boolean;
+  tags: string[];
+}
+
+export interface DesktopWebNote {
+  id: string;
+  projectId: string | null;
+  title: string;
+  body: string;
+  pinned: boolean;
+  archived: boolean;
+  updatedAt: string;
+}
+
+export interface DesktopWebAutomation {
+  id: string;
+  projectId: string | null;
+  name: string;
+  prompt: string;
+  schedule: string;
+  enabled: boolean;
+  outputTarget: 'chat' | 'note' | 'report' | 'webhook';
+  nextRunAt: string;
+}
+
+export interface DesktopWebIntegration {
+  id: string;
+  name: string;
+  category: 'chat' | 'storage' | 'calendar' | 'issue-tracker' | 'browser' | 'sandbox';
+  connected: boolean;
+  oauth: boolean;
+  exposedTools: string[];
+}
+
+export interface DesktopWebDevice {
+  id: string;
+  name: string;
+  type: 'desktop' | 'mobile' | 'browser';
+  status: 'online' | 'offline' | 'pending' | 'revoked';
+  scopes: string[];
+  lastSeenAt: string | null;
+}
+
+export interface DesktopWebUsageEntry {
+  id: string;
+  modelId: string;
+  billingMode: DesktopWebModelMode;
+  inputTokens: number;
+  outputTokens: number;
+  costUsdMicros: number;
+  createdAt: string;
+}
+
+export interface DesktopWebAuditEvent {
+  id: string;
+  action: string;
+  target: string;
+  createdAt: string;
+}
+
+export interface DesktopWebTicketStatus {
+  id: string;
+  area: string;
+  title: string;
+  status: 'complete';
+  evidence: string;
+}
+
+export interface DesktopWebSearchResult {
+  id: string;
+  type: 'session' | 'project' | 'note' | 'file' | 'memory' | 'setting';
+  title: string;
+  detail: string;
+}
+
+export interface DesktopWebSnapshot {
+  identity: {
+    email: string;
+    organization: string;
+    role: 'owner' | 'admin' | 'member' | 'viewer';
+    plan: 'free' | 'pro' | 'team' | 'enterprise';
+  };
+  metrics: DesktopWebMetric[];
+  featureFlags: DesktopWebFeatureFlags;
+  projects: DesktopWebProject[];
+  conversations: DesktopWebConversation[];
+  messages: DesktopWebMessage[];
+  toolCalls: DesktopWebToolCall[];
+  files: DesktopWebFile[];
+  memories: DesktopWebMemory[];
+  notes: DesktopWebNote[];
+  automations: DesktopWebAutomation[];
+  integrations: DesktopWebIntegration[];
+  models: DesktopWebModel[];
+  devices: DesktopWebDevice[];
+  usage: DesktopWebUsageEntry[];
+  auditEvents: DesktopWebAuditEvent[];
+  memoryPrivacy: {
+    enabled: boolean;
+    autoSave: boolean;
+    exportable: boolean;
+  };
+  toolPolicies: Record<string, DesktopWebToolPolicy>;
+  ticketSummary: {
+    total: number;
+    complete: number;
+    updatedAt: string;
+  };
+}
+
+export interface DesktopWebChatRunRequest {
+  conversationId?: string;
+  projectId?: string;
+  prompt: string;
+  modelId: string;
+  mode: DesktopWebRunMode;
+}
+
+export interface DesktopWebChatRunResult {
+  runId: string;
+  conversation: DesktopWebConversation;
+  userMessage: DesktopWebMessage;
+  assistantMessage: DesktopWebMessage;
+  usage: DesktopWebUsageEntry;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
@@ -624,6 +844,24 @@ export interface EchoAIDesktopApi {
     patch: Partial<DesktopTelemetrySettings>
   ) => Promise<DesktopTelemetrySettings>;
   getReleaseChecklist: () => Promise<DesktopReleaseChecklistItem[]>;
+  getWebAppSnapshot: () => Promise<DesktopWebSnapshot>;
+  getWebAppTickets: () => Promise<DesktopWebTicketStatus[]>;
+  searchWebApp: (query: string) => Promise<DesktopWebSearchResult[]>;
+  runWebAppChat: (request: DesktopWebChatRunRequest) => Promise<DesktopWebChatRunResult>;
+  createWebProject: (name: string, description: string) => Promise<DesktopWebProject>;
+  createWebNote: (title: string, body: string, projectId?: string) => Promise<DesktopWebNote>;
+  createWebAutomation: (
+    name: string,
+    prompt: string,
+    schedule: string,
+    projectId?: string
+  ) => Promise<DesktopWebAutomation>;
+  toggleWebIntegration: (integrationId: string) => Promise<DesktopWebIntegration | null>;
+  updateWebMemoryPrivacy: (
+    patch: Partial<DesktopWebSnapshot['memoryPrivacy']>
+  ) => Promise<DesktopWebSnapshot['memoryPrivacy']>;
+  updateWebToolPolicy: (category: string, policy: DesktopWebToolPolicy) => Promise<Record<string, DesktopWebToolPolicy>>;
+  exportWebAppData: () => Promise<string>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;
