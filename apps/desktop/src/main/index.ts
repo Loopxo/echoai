@@ -9,6 +9,7 @@ import {
 import type { OpenDialogOptions } from 'electron';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AuthStore } from './auth-store';
 import { AutoUpdateService } from './auto-update-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopLogger } from './logger';
@@ -40,6 +41,7 @@ let mainWindow: BrowserWindow | null = null;
 let appPaths: DesktopAppPaths | null = null;
 let logger: DesktopLogger | null = null;
 let recoveryStore: RecoveryStore | null = null;
+let authStore: AuthStore | null = null;
 let workspaceStore: WorkspaceStore | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
@@ -113,6 +115,7 @@ async function bootstrap(): Promise<void> {
   logger.info('desktop bootstrap complete', { version: app.getVersion(), platform: process.platform });
 
   recoveryStore = new RecoveryStore(appPaths.dataDir);
+  authStore = new AuthStore(appPaths.dataDir);
   workspaceStore = new WorkspaceStore(appPaths.dataDir);
   updateService = new AutoUpdateService(logger, app.isPackaged);
 }
@@ -193,6 +196,8 @@ function registerIpcHandlers(): void {
       recentWorkspaces: await services.workspaceStore.list(),
       pendingProtocolUrls: [...pendingProtocolUrls],
       security: securitySummary,
+      account: await services.authStore.getStatus(),
+      syncSettings: await services.authStore.getSyncSettings(),
     };
   });
 
@@ -227,6 +232,55 @@ function registerIpcHandlers(): void {
 
     const services = requireServices();
     await services.recoveryStore.update({ lastRoute: route });
+  });
+
+  ipcMain.handle('auth:getStatus', async () => {
+    return requireServices().authStore.getStatus();
+  });
+
+  ipcMain.handle('auth:startDeviceLogin', async () => {
+    const login = await requireServices().authStore.startDeviceLogin();
+    await openExternalSafely(`${login.verificationUrl}?code=${encodeURIComponent(login.userCode)}`);
+    pushNotification({
+      kind: 'device',
+      title: 'Device login started',
+      body: login.userCode,
+    });
+    return login;
+  });
+
+  ipcMain.handle('auth:refresh', async () => {
+    return requireServices().authStore.refresh();
+  });
+
+  ipcMain.handle('auth:logout', async () => {
+    const account = await requireServices().authStore.logout();
+    pushNotification({
+      kind: 'system',
+      title: 'Signed out',
+      body: 'Hosted features are disabled.',
+    });
+    return account;
+  });
+
+  ipcMain.handle('sync:getSettings', async () => {
+    return requireServices().authStore.getSyncSettings();
+  });
+
+  ipcMain.handle('sync:updateSettings', async (_event, patch: unknown) => {
+    if (!isRecord(patch)) {
+      throw new Error('Invalid sync settings');
+    }
+
+    return requireServices().authStore.updateSyncSettings(patch);
+  });
+
+  ipcMain.handle('sync:listQueue', async () => {
+    return requireServices().authStore.listQueue();
+  });
+
+  ipcMain.handle('account:listAudit', async () => {
+    return requireServices().authStore.listAudit();
   });
 
   ipcMain.handle('logs:search', async (_event, query: unknown) => {
@@ -322,6 +376,37 @@ async function handleProtocolUrl(url: string): Promise<void> {
       body: url,
     });
   }
+
+  await maybeCompleteHostedLogin(url);
+}
+
+async function maybeCompleteHostedLogin(url: string): Promise<void> {
+  if (!authStore) {
+    return;
+  }
+
+  const parsed = new URL(url);
+  if (parsed.hostname !== 'auth' && !parsed.pathname.includes('auth')) {
+    return;
+  }
+
+  const token = parsed.searchParams.get('token') ?? parsed.searchParams.get('code');
+  if (!token) {
+    return;
+  }
+
+  const credits = Number(parsed.searchParams.get('credits'));
+  await authStore.completeHostedLogin({
+    token,
+    email: parsed.searchParams.get('email'),
+    plan: parsed.searchParams.get('plan'),
+    credits: Number.isFinite(credits) ? credits : null,
+  });
+  pushNotification({
+    kind: 'device',
+    title: 'Account connected',
+    body: 'Hosted EchoAI sync is ready.',
+  });
 }
 
 async function openWorkspacePath(path: string): Promise<WorkspaceSelection> {
@@ -397,6 +482,10 @@ function getActiveWindow(): BrowserWindow | null {
   return window && !window.isDestroyed() ? window : null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function isInternalNavigation(url: string): boolean {
   if (devServerUrl && url.startsWith(devServerUrl)) {
     return true;
@@ -417,12 +506,13 @@ function requireServices(): {
   appPaths: DesktopAppPaths;
   logger: DesktopLogger;
   recoveryStore: RecoveryStore;
+  authStore: AuthStore;
   workspaceStore: WorkspaceStore;
   updateService: AutoUpdateService;
 } {
-  if (!appPaths || !logger || !recoveryStore || !workspaceStore || !updateService) {
+  if (!appPaths || !logger || !recoveryStore || !authStore || !workspaceStore || !updateService) {
     throw new Error('EchoAI desktop services are not ready');
   }
 
-  return { appPaths, logger, recoveryStore, workspaceStore, updateService };
+  return { appPaths, logger, recoveryStore, authStore, workspaceStore, updateService };
 }

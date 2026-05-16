@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import type {
   DesktopAppSnapshot,
+  DesktopAccountStatus,
+  DesktopSyncSettings,
   DesktopNotification,
   DesktopRecentWorkspace,
   DesktopUpdateStatus,
@@ -69,6 +71,8 @@ export function App(): ReactElement {
   const [recentWorkspaces, setRecentWorkspaces] = useState<DesktopRecentWorkspace[]>([]);
   const [protocolUrl, setProtocolUrl] = useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(null);
+  const [account, setAccount] = useState<DesktopAccountStatus | null>(null);
+  const [syncSettings, setSyncSettings] = useState<DesktopSyncSettings | null>(null);
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -194,6 +198,8 @@ export function App(): ReactElement {
     const nextSnapshot = await window.echoaiDesktop.getSnapshot();
     setSnapshot(nextSnapshot);
     setRecentWorkspaces(nextSnapshot.recentWorkspaces);
+    setAccount(nextSnapshot.account);
+    setSyncSettings(nextSnapshot.syncSettings);
     if (nextSnapshot.recovery.lastWorkspacePath) {
       setWorkspace({
         path: nextSnapshot.recovery.lastWorkspacePath,
@@ -245,6 +251,29 @@ export function App(): ReactElement {
 
   async function installUpdate(): Promise<void> {
     await window.echoaiDesktop.installUpdate();
+  }
+
+  async function startDeviceLogin(): Promise<void> {
+    const login = await window.echoaiDesktop.startDeviceLogin();
+    pushLocalNotification('device', 'Device code', login.userCode);
+  }
+
+  async function refreshAccount(): Promise<void> {
+    const status = await window.echoaiDesktop.refreshAccount();
+    setAccount(status);
+  }
+
+  async function logout(): Promise<void> {
+    const status = await window.echoaiDesktop.logout();
+    setAccount(status);
+    await refreshSnapshot();
+  }
+
+  async function updateSync(patch: Partial<DesktopSyncSettings>): Promise<void> {
+    const settings = await window.echoaiDesktop.updateSyncSettings(patch);
+    setSyncSettings(settings);
+    const status = await window.echoaiDesktop.getAccountStatus();
+    setAccount(status);
   }
 
   function pushLocalNotification(
@@ -398,6 +427,60 @@ export function App(): ReactElement {
               >
                 Install
               </button>
+            </div>
+          </div>
+
+          <div className="account-panel">
+            <div>
+              <div className="panel-kicker">Account</div>
+              <div className="account-line">
+                {account?.signedIn ? account.email : account?.offlineMode ? 'Offline mode' : 'Not signed in'}
+              </div>
+              <div className="account-meta">
+                {account?.signedIn ? `${account.plan ?? 'plan'} / ${account.credits ?? 0} credits` : 'BYOK/local ready'}
+              </div>
+            </div>
+            <div className="account-actions">
+              {account?.signedIn ? (
+                <>
+                  <button onClick={refreshAccount} type="button">
+                    Refresh
+                  </button>
+                  <button onClick={logout} type="button">
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <button onClick={startDeviceLogin} type="button">
+                  Login
+                </button>
+              )}
+            </div>
+            <div className="sync-toggles">
+              <label>
+                <input
+                  checked={syncSettings?.sessions ?? false}
+                  onChange={(event) => void updateSync({ sessions: event.target.checked })}
+                  type="checkbox"
+                />
+                Sessions
+              </label>
+              <label>
+                <input
+                  checked={syncSettings?.artifacts ?? false}
+                  onChange={(event) => void updateSync({ artifacts: event.target.checked })}
+                  type="checkbox"
+                />
+                Artifacts
+              </label>
+              <label>
+                <input
+                  checked={syncSettings?.memories ?? false}
+                  onChange={(event) => void updateSync({ memories: event.target.checked })}
+                  type="checkbox"
+                />
+                Memories
+              </label>
             </div>
           </div>
 

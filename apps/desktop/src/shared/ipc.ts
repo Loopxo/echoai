@@ -3,6 +3,14 @@ export const IPC_INVOKE_CHANNELS = [
   'app:selectWorkspace',
   'app:openWorkspace',
   'app:setLastRoute',
+  'auth:getStatus',
+  'auth:startDeviceLogin',
+  'auth:refresh',
+  'auth:logout',
+  'sync:getSettings',
+  'sync:updateSettings',
+  'sync:listQueue',
+  'account:listAudit',
   'logs:search',
   'shell:openExternal',
   'updates:check',
@@ -67,6 +75,8 @@ export interface DesktopAppSnapshot {
   recentWorkspaces: DesktopRecentWorkspace[];
   pendingProtocolUrls: string[];
   security: DesktopSecuritySummary;
+  account: DesktopAccountStatus;
+  syncSettings: DesktopSyncSettings;
 }
 
 export interface WorkspaceSelection {
@@ -119,11 +129,58 @@ export interface DesktopWindowState {
   isFullScreen: boolean;
 }
 
+export interface DesktopAccountStatus {
+  signedIn: boolean;
+  email: string | null;
+  plan: string | null;
+  credits: number | null;
+  syncState: 'offline' | 'idle' | 'syncing' | 'error';
+  offlineMode: boolean;
+  updatedAt: string | null;
+}
+
+export interface DesktopDeviceLogin {
+  verificationUrl: string;
+  userCode: string;
+  expiresAt: string;
+}
+
+export interface DesktopSyncSettings {
+  sessions: boolean;
+  artifacts: boolean;
+  memories: boolean;
+  conflictPolicy: 'local-wins' | 'cloud-wins' | 'ask';
+}
+
+export interface DesktopSyncQueueItem {
+  id: string;
+  type: 'session' | 'artifact' | 'memory';
+  action: 'create' | 'update' | 'delete';
+  status: 'queued' | 'syncing' | 'failed';
+  createdAt: string;
+  reason: string;
+}
+
+export interface DesktopAccountAuditEvent {
+  id: string;
+  type: 'login-started' | 'login-completed' | 'refresh' | 'logout' | 'sync-settings' | 'offline-mode';
+  message: string;
+  createdAt: string;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
   openWorkspace: (path: string) => Promise<WorkspaceSelection>;
   setLastRoute: (route: string) => Promise<void>;
+  getAccountStatus: () => Promise<DesktopAccountStatus>;
+  startDeviceLogin: () => Promise<DesktopDeviceLogin>;
+  refreshAccount: () => Promise<DesktopAccountStatus>;
+  logout: () => Promise<DesktopAccountStatus>;
+  getSyncSettings: () => Promise<DesktopSyncSettings>;
+  updateSyncSettings: (settings: Partial<DesktopSyncSettings>) => Promise<DesktopSyncSettings>;
+  listSyncQueue: () => Promise<DesktopSyncQueueItem[]>;
+  listAccountAudit: () => Promise<DesktopAccountAuditEvent[]>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;

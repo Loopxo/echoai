@@ -272,7 +272,8 @@ button {
 }
 
 .activity-panel,
-.updates-panel {
+.updates-panel,
+.account-panel {
   display: grid;
 }
 
@@ -291,6 +292,59 @@ button {
   border: 1px solid #d7d0c4;
   border-radius: 8px;
   background: #fffaf2;
+}
+
+.account-panel {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 18px;
+  border: 1px solid #d7d0c4;
+  border-radius: 8px;
+  background: #fffaf2;
+}
+
+.account-line {
+  margin-top: 4px;
+  color: #263730;
+  font-size: 15px;
+  font-weight: 720;
+}
+
+.account-meta {
+  margin-top: 2px;
+  color: #756b5f;
+  font-size: 12px;
+}
+
+.account-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.account-actions button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #cfc6b7;
+  border-radius: 7px;
+  background: #fffdf8;
+  color: #25211c;
+  font-weight: 700;
+}
+
+.sync-toggles {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 12px;
+  color: #5f554b;
+  font-size: 13px;
+}
+
+.sync-toggles label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .update-state {
@@ -682,6 +736,10 @@ button {
   }
 
   .updates-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .account-panel {
     grid-template-columns: 1fr;
   }
 
