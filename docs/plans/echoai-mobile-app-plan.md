@@ -184,6 +184,7 @@ Local cache encryption for M-096 lives in `apps/mobile/src/settings/cacheEncrypt
 Debug logs for M-097 live in `apps/mobile/src/settings/debugLogs.ts` and `apps/mobile/src/screens/DebugLogsScreen.tsx`, exporting redacted support logs.
 The React Native iOS build pipeline for M-098 lives in `apps/mobile/release/ios-build-pipeline.md` with the `ios:release` package script; TestFlight signing requires external Apple credentials.
 The React Native Android build pipeline for M-099 lives in `apps/mobile/release/android-build-pipeline.md` with the `android:release` package script; release APK/AAB signing requires external keystore secrets.
+The mobile QA checklist for M-100 lives in `apps/mobile/release/mobile-qa-checklist.md` and covers auth, chat, pairing, approval, upload, push, background, release, and logout checks.
 
 ## Device Trust Model
 
