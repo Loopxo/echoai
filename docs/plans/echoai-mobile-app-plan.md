@@ -171,6 +171,7 @@ Android voice wake for M-083 lives in `apps/mobile/src/voice/androidWake.ts` and
 Talk mode for M-084 lives in `apps/mobile/src/voice/talkMode.ts` and `apps/mobile/src/screens/TalkModeScreen.tsx`, enabling spoken assistant responses when the user opts in.
 Camera context command for M-085 lives in `apps/mobile/src/capture/cameraContext.ts` and `apps/mobile/src/screens/CameraContextCommandScreen.tsx`, requiring explicit approval before capture.
 Location context command for M-086 lives in `apps/mobile/src/capture/locationContext.ts` and `apps/mobile/src/screens/LocationContextCommandScreen.tsx`, allowing approximate or precise sharing per request.
+Android screen capture for M-087 lives in `apps/mobile/src/capture/androidScreenCapture.ts` and `apps/mobile/src/screens/AndroidScreenCaptureScreen.tsx`, starting snapshot or stream sessions after user permission.
 
 ## Device Trust Model
 

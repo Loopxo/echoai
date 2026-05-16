@@ -8,6 +8,7 @@ import { ApprovalDetailsScreen } from "./screens/ApprovalDetailsScreen";
 import { ApprovalInboxScreen } from "./screens/ApprovalInboxScreen";
 import { ApprovalPushScreen } from "./screens/ApprovalPushScreen";
 import { ApprovalTimeoutScreen } from "./screens/ApprovalTimeoutScreen";
+import { AndroidScreenCaptureScreen } from "./screens/AndroidScreenCaptureScreen";
 import { AndroidVoiceWakeScreen } from "./screens/AndroidVoiceWakeScreen";
 import { AudioCaptureScreen } from "./screens/AudioCaptureScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
@@ -128,6 +129,7 @@ export default function App() {
         <TalkModeScreen onToggle={() => undefined} />
         <CameraContextCommandScreen onApprove={() => undefined} onDeny={() => undefined} />
         <LocationContextCommandScreen onShare={() => undefined} />
+        <AndroidScreenCaptureScreen onStart={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
