@@ -4,6 +4,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { createEchoAIMobileClient } from "./api";
 import { AccountScreen } from "./screens/AccountScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
+import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
@@ -44,6 +45,7 @@ export default function App() {
         <ChatDetailScreen />
         <NewChatScreen onStart={() => undefined} />
         <ModelPickerScreen models={[]} onSelectModel={() => undefined} />
+        <ChatComposerScreen onSend={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
