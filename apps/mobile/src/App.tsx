@@ -17,6 +17,7 @@ import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
 import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
+import { RetryEditTurnScreen } from "./screens/RetryEditTurnScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { StreamingResponseScreen } from "./screens/StreamingResponseScreen";
 import { StopRunScreen } from "./screens/StopRunScreen";
@@ -50,6 +51,7 @@ export default function App() {
         <ChatComposerScreen onSend={() => undefined} />
         <StreamingResponseScreen />
         <StopRunScreen onStop={() => undefined} />
+        <RetryEditTurnScreen onRetry={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
