@@ -70,6 +70,7 @@ export interface EchoAICaptureNativeModule {
   locationAvailability(): Promise<EchoAINativeAvailability>;
   screenAvailability(): Promise<EchoAINativeAvailability>;
   captureImage(): Promise<EchoAICapturedAsset>;
+  captureVideo(maxDurationSeconds?: number): Promise<EchoAICapturedAsset>;
   recordAudio(maxDurationSeconds?: number): Promise<EchoAICapturedAsset>;
   captureScreenSnapshot(): Promise<EchoAICapturedAsset>;
   getLocation(precision: "approximate" | "precise"): Promise<EchoAILocationSnapshot>;

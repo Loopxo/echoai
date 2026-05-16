@@ -149,6 +149,7 @@ The project list for M-061 lives in `apps/mobile/src/projects/search.ts` and `ap
 The project detail for M-062 lives in `apps/mobile/src/projects/detail.ts` and `apps/mobile/src/screens/ProjectDetailScreen.tsx`, grouping chats, notes, files, memories, automations, and outputs.
 File upload for M-063 lives in `apps/mobile/src/files/upload.ts` and `apps/mobile/src/screens/FileUploadScreen.tsx`, tracking photo, video, document, and file upload progress.
 File preview for M-064 lives in `apps/mobile/src/files/preview.ts` and `apps/mobile/src/screens/FilePreviewScreen.tsx`, selecting image, text, PDF, markdown, code, or metadata preview modes.
+Camera capture for M-065 lives in `apps/mobile/src/files/cameraCapture.ts` and `apps/mobile/src/screens/CameraCaptureScreen.tsx`, exposing image and video capture through the native capture module.
 
 ## Device Trust Model
 
