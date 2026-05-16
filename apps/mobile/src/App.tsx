@@ -11,6 +11,7 @@ import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
+import { RemoteTunnelScreen } from "./screens/RemoteTunnelScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 import { TlsPinningScreen } from "./screens/TlsPinningScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
@@ -34,6 +35,7 @@ export default function App() {
         <TlsPinningScreen onDisconnect={() => undefined} onTrustFingerprint={() => undefined} />
         <PairedDevicesScreen devices={[]} />
         <DeviceRevokeScreen devices={[]} onRevoke={() => undefined} />
+        <RemoteTunnelScreen tunnels={[]} onConnect={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
