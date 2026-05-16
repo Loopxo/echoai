@@ -1,4 +1,5 @@
 export * from "./cacheEncryption";
+export * from "./debugLogs";
 export * from "./home";
 export * from "./modelSettings";
 export * from "./notificationSettings";

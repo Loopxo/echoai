@@ -181,6 +181,7 @@ Notification settings for M-093 live in `apps/mobile/src/settings/notificationSe
 Permission dashboard for M-094 lives in `apps/mobile/src/settings/permissions.ts` and `apps/mobile/src/screens/PermissionDashboardScreen.tsx`, showing OS permission status and usage reason per capability.
 Privacy/export/delete for M-095 lives in `apps/mobile/src/settings/privacy.ts` and `apps/mobile/src/screens/PrivacySettingsScreen.tsx`, covering local cache export/delete and account data requests.
 Local cache encryption for M-096 lives in `apps/mobile/src/settings/cacheEncryption.ts` and `apps/mobile/src/screens/CacheEncryptionScreen.tsx`, marking tokens, sessions, and files for platform-keystore protection.
+Debug logs for M-097 live in `apps/mobile/src/settings/debugLogs.ts` and `apps/mobile/src/screens/DebugLogsScreen.tsx`, exporting redacted support logs.
 
 ## Device Trust Model
 

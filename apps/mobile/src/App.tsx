@@ -20,6 +20,7 @@ import { ChatComposerScreen } from "./screens/ChatComposerScreen";
 import { ChatDetailScreen } from "./screens/ChatDetailScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { DeviceRevokeScreen } from "./screens/DeviceRevokeScreen";
+import { DebugLogsScreen } from "./screens/DebugLogsScreen";
 import { DesktopBrowserTaskScreen } from "./screens/DesktopBrowserTaskScreen";
 import { DesktopChangedFilesScreen } from "./screens/DesktopChangedFilesScreen";
 import { DesktopHomeScreen } from "./screens/DesktopHomeScreen";
@@ -148,6 +149,7 @@ export default function App() {
         <PermissionDashboardScreen permissions={[]} />
         <PrivacySettingsScreen onRequest={() => undefined} />
         <CacheEncryptionScreen />
+        <DebugLogsScreen lines={[]} onExport={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
