@@ -14,6 +14,7 @@ export type {
   MobileFileSummary,
   MobileModelRef,
   MobilePairingChallenge,
+  MobileProjectContext,
   MobileProjectSummary,
   MobileProtocolMethod,
   MobileProtocolRequest,

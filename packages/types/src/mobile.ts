@@ -195,6 +195,13 @@ export interface MobileProjectSummary {
     fileCount: number;
 }
 
+export interface MobileProjectContext {
+    project: MobileProjectSummary;
+    sessions: MobileSessionSummary[];
+    files: MobileFileSummary[];
+    automations: MobileAutomationSummary[];
+}
+
 export interface MobileFileSummary {
     id: MobileEntityId;
     workspaceId: MobileEntityId;
@@ -310,6 +317,7 @@ export const MobileProtocolMethods = {
     CHAT_SEND: "chat.send",
     CHAT_ABORT: "chat.abort",
     PROJECT_LIST: "project.list",
+    PROJECT_GET: "project.get",
     FILE_LIST: "file.list",
     FILE_UPLOAD_CREATE: "file.upload.create",
     FILE_DELETE: "file.delete",
@@ -334,6 +342,7 @@ export interface MobileProtocolRequestMap {
     [MobileProtocolMethods.CHAT_SEND]: MobileChatSendRequest;
     [MobileProtocolMethods.CHAT_ABORT]: { sessionId: MobileEntityId; runId: MobileEntityId; source: MobileSessionSource };
     [MobileProtocolMethods.PROJECT_LIST]: { workspaceId: MobileEntityId };
+    [MobileProtocolMethods.PROJECT_GET]: { projectId: MobileEntityId; workspaceId: MobileEntityId };
     [MobileProtocolMethods.FILE_LIST]: { workspaceId: MobileEntityId; projectId?: MobileEntityId };
     [MobileProtocolMethods.FILE_UPLOAD_CREATE]: { workspaceId: MobileEntityId; projectId?: MobileEntityId; file: MobileFileSummary };
     [MobileProtocolMethods.FILE_DELETE]: { fileId: MobileEntityId; workspaceId: MobileEntityId };
@@ -356,6 +365,7 @@ export interface MobileProtocolResponseMap {
     [MobileProtocolMethods.CHAT_SEND]: MobileChatSendResponse;
     [MobileProtocolMethods.CHAT_ABORT]: { runId: MobileEntityId; status: "cancelled" };
     [MobileProtocolMethods.PROJECT_LIST]: { projects: MobileProjectSummary[] };
+    [MobileProtocolMethods.PROJECT_GET]: MobileProjectContext;
     [MobileProtocolMethods.FILE_LIST]: { files: MobileFileSummary[] };
     [MobileProtocolMethods.FILE_UPLOAD_CREATE]: { file: MobileFileSummary; uploadUrl?: string };
     [MobileProtocolMethods.FILE_DELETE]: { fileId: MobileEntityId; deleted: true };
@@ -490,6 +500,14 @@ export const mobileApiContract = {
             requestType: MobileProtocolMethods.PROJECT_LIST,
             responseType: MobileProtocolMethods.PROJECT_LIST,
         },
+        [MobileProtocolMethods.PROJECT_GET]: {
+            method: MobileProtocolMethods.PROJECT_GET,
+            domain: "projects",
+            transports: ["https"],
+            auth: "cloud-session",
+            requestType: MobileProtocolMethods.PROJECT_GET,
+            responseType: MobileProtocolMethods.PROJECT_GET,
+        },
         [MobileProtocolMethods.FILE_LIST]: {
             method: MobileProtocolMethods.FILE_LIST,
             domain: "files",
@@ -601,8 +619,8 @@ export const mobileProtocolSchema = {
             events: ["message.delta", "message.completed", "tool.started", "tool.completed", "approval.requested", "run.status"],
         },
         projects: {
-            entities: ["MobileProjectSummary"],
-            methods: [MobileProtocolMethods.PROJECT_LIST],
+            entities: ["MobileProjectSummary", "MobileProjectContext"],
+            methods: [MobileProtocolMethods.PROJECT_LIST, MobileProtocolMethods.PROJECT_GET],
         },
         files: {
             entities: ["MobileFileSummary"],

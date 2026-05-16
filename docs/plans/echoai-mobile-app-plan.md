@@ -89,6 +89,8 @@ Protocol versioning for M-015 is defined by `MOBILE_PROTOCOL_VERSION`, `MOBILE_M
 
 Session API helpers for M-016 live in `apps/mobile/src/api/sessionApi.ts` and cover list, get, send, abort, and resume using the shared protocol methods.
 
+Project API helpers for M-017 live in `apps/mobile/src/api/projectApi.ts` and cover project listing plus project context lookup.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
