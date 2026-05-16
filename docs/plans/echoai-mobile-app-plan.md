@@ -166,6 +166,7 @@ Desktop notification controls for M-078 live in `apps/mobile/src/desktop/notific
 Wake desktop flow for M-079 lives in `apps/mobile/src/desktop/wake.ts` and `apps/mobile/src/screens/WakeDesktopScreen.tsx`, creating activation requests for supported desktop gateways.
 Handoff back to web for M-080 lives in `apps/mobile/src/desktop/handoff.ts` and `apps/mobile/src/screens/WebHandoffScreen.tsx`, opening the same session in the web app.
 Push-to-talk for M-081 lives in `apps/mobile/src/voice/pushToTalk.ts` and `apps/mobile/src/screens/PushToTalkScreen.tsx`, recording a prompt draft for chat send.
+iOS voice wake feasibility for M-082 lives in `apps/mobile/src/voice/iosWakeFeasibility.ts` and `apps/mobile/src/screens/IosVoiceWakeFeasibilityScreen.tsx`, documenting supported foreground and unsupported background behaviors.
 
 ## Device Trust Model
 
