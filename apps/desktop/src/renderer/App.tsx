@@ -20,9 +20,18 @@ import type {
   DesktopBrowserAutomationStatus,
   DesktopBrowserProfile,
   DesktopCanvasEntry,
+  DesktopChannelSetting,
+  DesktopGatewayStatus,
   DesktopGuiPermissionStatus,
   DesktopMcpServer,
+  DesktopPairedDevice,
+  DesktopPairingRequest,
+  DesktopPrivacyDashboard,
+  DesktopReleaseChecklistItem,
+  DesktopRemoteControlRequest,
   DesktopSkillEntry,
+  DesktopScheduledTask,
+  DesktopTelemetrySettings,
   DesktopUpdateStatus,
   DesktopWindowState,
   LogSearchEntry,
@@ -125,6 +134,15 @@ export function App(): ReactElement {
   const [guiStatus, setGuiStatus] = useState<DesktopGuiPermissionStatus | null>(null);
   const [canvasEntries, setCanvasEntries] = useState<DesktopCanvasEntry[]>([]);
   const [toolSummary, setToolSummary] = useState<DesktopToolSummary | null>(null);
+  const [gatewayStatus, setGatewayStatus] = useState<DesktopGatewayStatus | null>(null);
+  const [pairingRequests, setPairingRequests] = useState<DesktopPairingRequest[]>([]);
+  const [pairedDevices, setPairedDevices] = useState<DesktopPairedDevice[]>([]);
+  const [remoteControls, setRemoteControls] = useState<DesktopRemoteControlRequest[]>([]);
+  const [channelSettings, setChannelSettings] = useState<DesktopChannelSetting[]>([]);
+  const [scheduledTasks, setScheduledTasks] = useState<DesktopScheduledTask[]>([]);
+  const [privacyDashboard, setPrivacyDashboard] = useState<DesktopPrivacyDashboard | null>(null);
+  const [telemetrySettings, setTelemetrySettings] = useState<DesktopTelemetrySettings | null>(null);
+  const [releaseChecklist, setReleaseChecklist] = useState<DesktopReleaseChecklistItem[]>([]);
   const [windowState, setWindowState] = useState<DesktopWindowState>({
     isMaximized: false,
     isFullScreen: false,
@@ -189,6 +207,7 @@ export function App(): ReactElement {
     void refreshRuntimeStatus();
     void refreshTerminalState();
     void refreshToolingState();
+    void refreshGatewayState();
 
     return () => {
       isMounted = false;
@@ -479,6 +498,115 @@ export function App(): ReactElement {
       window.echoaiDesktop.summarizeToolOutput(terminalLog || 'No output selected').then(setToolSummary),
     ]);
     await refreshToolingState();
+  }
+
+  async function refreshGatewayState(): Promise<void> {
+    const [
+      status,
+      requests,
+      devices,
+      remotes,
+      channels,
+      schedules,
+      privacy,
+      telemetry,
+      checklist,
+    ] = await Promise.all([
+      window.echoaiDesktop.getGatewayStatus(),
+      window.echoaiDesktop.listPairingRequests(),
+      window.echoaiDesktop.listPairedDevices(),
+      window.echoaiDesktop.listRemoteControls(),
+      window.echoaiDesktop.listChannelSettings(),
+      window.echoaiDesktop.listScheduledTasks(),
+      window.echoaiDesktop.getPrivacyDashboard(),
+      window.echoaiDesktop.getTelemetrySettings(),
+      window.echoaiDesktop.getReleaseChecklist(),
+    ]);
+    setGatewayStatus(status);
+    setPairingRequests(requests);
+    setPairedDevices(devices);
+    setRemoteControls(remotes);
+    setChannelSettings(channels);
+    setScheduledTasks(schedules);
+    setPrivacyDashboard(privacy);
+    setTelemetrySettings(telemetry);
+    setReleaseChecklist(checklist);
+  }
+
+  async function toggleGateway(): Promise<void> {
+    const status = gatewayStatus?.running
+      ? await window.echoaiDesktop.stopGateway()
+      : await window.echoaiDesktop.startGateway();
+    setGatewayStatus(status);
+    await refreshGatewayState();
+  }
+
+  async function createLocalPairing(): Promise<void> {
+    const request = await window.echoaiDesktop.createPairingRequest('EchoAI mobile', 'mobile');
+    pushLocalNotification('device', 'Pairing request', request.code);
+    await refreshGatewayState();
+  }
+
+  async function respondToPairing(requestId: string, approved: boolean): Promise<void> {
+    await window.echoaiDesktop.respondPairingRequest(requestId, approved);
+    await refreshGatewayState();
+  }
+
+  async function revokePairedDevice(deviceId: string): Promise<void> {
+    await window.echoaiDesktop.revokePairedDevice(deviceId);
+    await refreshGatewayState();
+  }
+
+  async function submitRemoteHandoff(source: DesktopRemoteControlRequest['source']): Promise<void> {
+    await window.echoaiDesktop.submitRemoteControl(
+      source,
+      source === 'mobile' ? 'Summarize current workspace status' : 'Run local desktop handoff',
+      workspace?.path
+    );
+    await refreshGatewayState();
+  }
+
+  async function approveRemoteHandoff(requestId: string, approved: boolean): Promise<void> {
+    await window.echoaiDesktop.approveRemoteControl(requestId, approved);
+    await refreshGatewayState();
+  }
+
+  async function toggleChannel(channel: DesktopChannelSetting): Promise<void> {
+    await window.echoaiDesktop.updateChannelSetting(channel.id, { enabled: !channel.enabled });
+    await refreshGatewayState();
+  }
+
+  async function createScheduledTask(): Promise<void> {
+    await window.echoaiDesktop.createScheduledTask({
+      title: 'Daily workspace review',
+      prompt: 'Review the selected workspace and summarize important changes.',
+      schedule: 'daily',
+      workspacePath: workspace?.path,
+    });
+    await refreshGatewayState();
+  }
+
+  async function deleteScheduledTask(taskId: string): Promise<void> {
+    await window.echoaiDesktop.deleteScheduledTask(taskId);
+    await refreshGatewayState();
+  }
+
+  async function exportPrivacyData(): Promise<void> {
+    const path = await window.echoaiDesktop.exportPrivacyData();
+    pushLocalNotification('system', 'Privacy export ready', path);
+    await refreshGatewayState();
+  }
+
+  async function deleteLocalPrivacyData(): Promise<void> {
+    await window.echoaiDesktop.deleteLocalPrivacyData();
+    pushLocalNotification('system', 'Local gateway data reset', 'Pairing, remotes, and telemetry reset.');
+    await refreshGatewayState();
+  }
+
+  async function updateTelemetry(enabled: boolean): Promise<void> {
+    const telemetry = await window.echoaiDesktop.updateTelemetrySettings({ enabled });
+    setTelemetrySettings(telemetry);
+    await refreshGatewayState();
   }
 
   async function cancelRuntimeRun(): Promise<void> {
@@ -966,6 +1094,213 @@ export function App(): ReactElement {
                     : browserStatus?.message ?? 'No summary',
                 ]}
               />
+            </div>
+          </div>
+
+          <div className="gateway-panel">
+            <div className="panel-header">
+              <div>
+                <div className="panel-kicker">Remote & Privacy</div>
+                <h2>Gateway, Devices, Channels</h2>
+              </div>
+              <button className="small-action" onClick={toggleGateway} type="button">
+                {gatewayStatus?.running ? 'Stop gateway' : 'Start gateway'}
+              </button>
+            </div>
+            <div className="gateway-grid">
+              <section className="gateway-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Gateway</div>
+                    <strong>{gatewayStatus?.running ? 'Running' : 'Stopped'}</strong>
+                  </div>
+                  <span>{gatewayStatus?.url ?? 'Local only'}</span>
+                </div>
+                <div className="metric-row compact">
+                  <Metric label="Devices" value={`${gatewayStatus?.pairedDeviceCount ?? 0}`} />
+                  <Metric label="Pending" value={`${gatewayStatus?.pendingPairingCount ?? 0}`} />
+                  <Metric label="Hand offs" value={`${gatewayStatus?.remoteHandoffCount ?? 0}`} />
+                </div>
+              </section>
+
+              <section className="gateway-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Pairing</div>
+                    <strong>{pairedDevices.length} trusted</strong>
+                  </div>
+                  <button onClick={createLocalPairing} type="button">
+                    New code
+                  </button>
+                </div>
+                <div className="gateway-list">
+                  {pairingRequests.length === 0 ? (
+                    <div className="empty-row">No pairing requests</div>
+                  ) : (
+                    pairingRequests.slice(0, 4).map((request) => (
+                      <div className="gateway-row" key={request.id}>
+                        <span>{request.deviceName}</span>
+                        <small>{request.code} / {request.status}</small>
+                        {request.status === 'pending' ? (
+                          <div>
+                            <button onClick={() => void respondToPairing(request.id, true)} type="button">
+                              Approve
+                            </button>
+                            <button onClick={() => void respondToPairing(request.id, false)} type="button">
+                              Reject
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                  {pairedDevices.slice(0, 3).map((device) => (
+                    <div className="gateway-row" key={device.id}>
+                      <span>{device.name}</span>
+                      <small>{device.type} / {device.scopes.length} scopes</small>
+                      <button onClick={() => void revokePairedDevice(device.id)} type="button">
+                        Revoke
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="gateway-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Remote</div>
+                    <strong>{remoteControls.length} requests</strong>
+                  </div>
+                  <div>
+                    <button onClick={() => void submitRemoteHandoff('mobile')} type="button">
+                      Mobile
+                    </button>
+                    <button onClick={() => void submitRemoteHandoff('web')} type="button">
+                      Web
+                    </button>
+                  </div>
+                </div>
+                <div className="gateway-list">
+                  {remoteControls.length === 0 ? (
+                    <div className="empty-row">No remote handoffs</div>
+                  ) : (
+                    remoteControls.slice(0, 4).map((remote) => (
+                      <div className="gateway-row" key={remote.id}>
+                        <span>{remote.prompt}</span>
+                        <small>{remote.source} / {remote.status}</small>
+                        {remote.status === 'queued' ? (
+                          <div>
+                            <button onClick={() => void approveRemoteHandoff(remote.id, true)} type="button">
+                              Approve
+                            </button>
+                            <button onClick={() => void approveRemoteHandoff(remote.id, false)} type="button">
+                              Reject
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <section className="gateway-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Channels</div>
+                    <strong>{channelSettings.filter((channel) => channel.enabled).length} enabled</strong>
+                  </div>
+                </div>
+                <div className="channel-grid">
+                  {channelSettings.map((channel) => (
+                    <label key={channel.id}>
+                      <input
+                        checked={channel.enabled}
+                        onChange={() => void toggleChannel(channel)}
+                        type="checkbox"
+                      />
+                      {channel.name}
+                    </label>
+                  ))}
+                </div>
+              </section>
+
+              <section className="gateway-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Scheduled</div>
+                    <strong>{scheduledTasks.length} tasks</strong>
+                  </div>
+                  <button onClick={createScheduledTask} type="button">
+                    Add
+                  </button>
+                </div>
+                <div className="gateway-list">
+                  {scheduledTasks.length === 0 ? (
+                    <div className="empty-row">No scheduled tasks</div>
+                  ) : (
+                    scheduledTasks.slice(0, 3).map((task) => (
+                      <div className="gateway-row" key={task.id}>
+                        <span>{task.title}</span>
+                        <small>{task.schedule} / {task.nextRunAt ? formatDate(task.nextRunAt) : 'manual'}</small>
+                        <button onClick={() => void deleteScheduledTask(task.id)} type="button">
+                          Delete
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <section className="gateway-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Privacy</div>
+                    <strong>{telemetrySettings?.enabled ? 'Telemetry on' : 'Telemetry off'}</strong>
+                  </div>
+                  <label className="telemetry-toggle">
+                    <input
+                      checked={telemetrySettings?.enabled ?? false}
+                      onChange={(event) => void updateTelemetry(event.target.checked)}
+                      type="checkbox"
+                    />
+                    Opt in
+                  </label>
+                </div>
+                <div className="privacy-actions">
+                  <button onClick={exportPrivacyData} type="button">
+                    Export
+                  </button>
+                  <button onClick={deleteLocalPrivacyData} type="button">
+                    Delete local
+                  </button>
+                </div>
+                <SectionList
+                  title="Boundary"
+                  items={[
+                    `${privacyDashboard?.localData.length ?? 0} local stores`,
+                    `${privacyDashboard?.cloudData.filter((item) => item.enabled).length ?? 0} cloud sync points`,
+                  ]}
+                />
+              </section>
+
+              <section className="gateway-section release-section">
+                <div className="section-title">
+                  <div>
+                    <div className="panel-kicker">Release</div>
+                    <strong>{releaseChecklist.filter((item) => item.status === 'pass').length}/{releaseChecklist.length} pass</strong>
+                  </div>
+                </div>
+                <div className="release-list">
+                  {releaseChecklist.map((item) => (
+                    <div className={`release-row ${item.status}`} key={item.id}>
+                      <strong>{item.label}</strong>
+                      <span>{item.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           </div>
 

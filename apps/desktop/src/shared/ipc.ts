@@ -50,6 +50,28 @@ export const IPC_INVOKE_CHANNELS = [
   'canvas:list',
   'canvas:open',
   'tools:summarizeOutput',
+  'gateway:getStatus',
+  'gateway:start',
+  'gateway:stop',
+  'devices:listPairingRequests',
+  'devices:createPairingRequest',
+  'devices:respondPairingRequest',
+  'devices:listPaired',
+  'devices:revoke',
+  'remote:listControls',
+  'remote:submitControl',
+  'remote:approveControl',
+  'channels:list',
+  'channels:update',
+  'scheduled:list',
+  'scheduled:create',
+  'scheduled:delete',
+  'privacy:getDashboard',
+  'privacy:exportData',
+  'privacy:deleteLocalData',
+  'telemetry:getSettings',
+  'telemetry:updateSettings',
+  'release:getChecklist',
   'logs:search',
   'shell:openExternal',
   'updates:check',
@@ -398,6 +420,113 @@ export interface DesktopToolSummary {
   truncated: boolean;
 }
 
+export interface DesktopGatewayStatus {
+  running: boolean;
+  host: string;
+  port: number | null;
+  url: string | null;
+  startedAt: string | null;
+  protocolVersion: string;
+  pairedDeviceCount: number;
+  pendingPairingCount: number;
+  remoteHandoffCount: number;
+  scheduledTaskCount: number;
+  telemetryEnabled: boolean;
+}
+
+export interface DesktopPairingRequest {
+  id: string;
+  deviceName: string;
+  deviceType: 'mobile' | 'web' | 'desktop' | 'unknown';
+  code: string;
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  createdAt: string;
+  expiresAt: string;
+  decidedAt: string | null;
+}
+
+export interface DesktopPairedDevice {
+  id: string;
+  name: string;
+  type: DesktopPairingRequest['deviceType'];
+  trustedAt: string;
+  lastSeenAt: string;
+  scopes: string[];
+}
+
+export interface DesktopRemoteControlRequest {
+  id: string;
+  source: 'mobile' | 'web';
+  prompt: string;
+  workspacePath: string | null;
+  status: 'queued' | 'approved' | 'rejected';
+  createdAt: string;
+  decidedAt: string | null;
+}
+
+export interface DesktopChannelSetting {
+  id: string;
+  name: string;
+  provider: string;
+  enabled: boolean;
+  webhookUrl: string | null;
+  updatedAt: string;
+}
+
+export interface DesktopScheduledTask {
+  id: string;
+  title: string;
+  prompt: string;
+  schedule: string;
+  workspacePath: string | null;
+  enabled: boolean;
+  nextRunAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesktopTelemetrySettings {
+  enabled: boolean;
+  orgAllowed: boolean;
+  promptContentAllowed: boolean;
+  updatedAt: string | null;
+}
+
+export interface DesktopPrivacyLocalDataItem {
+  label: string;
+  path: string;
+  boundary: 'local';
+}
+
+export interface DesktopPrivacyCloudDataItem {
+  label: string;
+  enabled: boolean;
+}
+
+export interface DesktopPrivacyDashboard {
+  localData: DesktopPrivacyLocalDataItem[];
+  cloudData: DesktopPrivacyCloudDataItem[];
+  pairedDevices: number;
+  pendingPairingRequests: number;
+  telemetry: DesktopTelemetrySettings;
+  generatedAt: string;
+}
+
+export interface DesktopPrivacyDeleteResult {
+  deletedAt: string;
+  resetPairingRequests: boolean;
+  resetPairedDevices: boolean;
+  resetRemoteControls: boolean;
+  resetTelemetry: boolean;
+}
+
+export interface DesktopReleaseChecklistItem {
+  id: string;
+  label: string;
+  status: 'pass' | 'warn' | 'blocked';
+  detail: string;
+}
+
 export interface EchoAIDesktopApi {
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
@@ -450,6 +579,51 @@ export interface EchoAIDesktopApi {
   listCanvasEntries: () => Promise<DesktopCanvasEntry[]>;
   openCanvasEntry: (title: string) => Promise<DesktopCanvasEntry>;
   summarizeToolOutput: (output: string) => Promise<DesktopToolSummary>;
+  getGatewayStatus: () => Promise<DesktopGatewayStatus>;
+  startGateway: (preferredPort?: number) => Promise<DesktopGatewayStatus>;
+  stopGateway: () => Promise<DesktopGatewayStatus>;
+  listPairingRequests: () => Promise<DesktopPairingRequest[]>;
+  createPairingRequest: (
+    deviceName: string,
+    deviceType: DesktopPairingRequest['deviceType']
+  ) => Promise<DesktopPairingRequest>;
+  respondPairingRequest: (
+    requestId: string,
+    approved: boolean
+  ) => Promise<DesktopPairingRequest | null>;
+  listPairedDevices: () => Promise<DesktopPairedDevice[]>;
+  revokePairedDevice: (deviceId: string) => Promise<boolean>;
+  listRemoteControls: () => Promise<DesktopRemoteControlRequest[]>;
+  submitRemoteControl: (
+    source: DesktopRemoteControlRequest['source'],
+    prompt: string,
+    workspacePath?: string
+  ) => Promise<DesktopRemoteControlRequest>;
+  approveRemoteControl: (
+    requestId: string,
+    approved: boolean
+  ) => Promise<DesktopRemoteControlRequest | null>;
+  listChannelSettings: () => Promise<DesktopChannelSetting[]>;
+  updateChannelSetting: (
+    channelId: string,
+    patch: Partial<DesktopChannelSetting>
+  ) => Promise<DesktopChannelSetting>;
+  listScheduledTasks: () => Promise<DesktopScheduledTask[]>;
+  createScheduledTask: (input: {
+    title: string;
+    prompt: string;
+    schedule: string;
+    workspacePath?: string;
+  }) => Promise<DesktopScheduledTask>;
+  deleteScheduledTask: (taskId: string) => Promise<boolean>;
+  getPrivacyDashboard: () => Promise<DesktopPrivacyDashboard>;
+  exportPrivacyData: () => Promise<string>;
+  deleteLocalPrivacyData: () => Promise<DesktopPrivacyDeleteResult>;
+  getTelemetrySettings: () => Promise<DesktopTelemetrySettings>;
+  updateTelemetrySettings: (
+    patch: Partial<DesktopTelemetrySettings>
+  ) => Promise<DesktopTelemetrySettings>;
+  getReleaseChecklist: () => Promise<DesktopReleaseChecklistItem[]>;
   searchLogs: (query: string) => Promise<LogSearchEntry[]>;
   openExternal: (url: string) => Promise<boolean>;
   checkForUpdates: () => Promise<DesktopUpdateStatus>;

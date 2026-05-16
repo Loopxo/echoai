@@ -345,11 +345,191 @@ button {
   background: #fffaf2;
 }
 
+.gateway-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: auto auto;
+  overflow: hidden;
+  border: 1px solid #d7d0c4;
+  border-radius: 8px;
+  background: #fffaf2;
+}
+
 .tooling-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding: 14px 18px;
+}
+
+.gateway-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 18px 18px;
+}
+
+.gateway-section {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 170px;
+  padding: 12px;
+  border: 1px solid #ddd5c6;
+  border-radius: 7px;
+  background: #f7f4ee;
+}
+
+.release-section {
+  grid-column: span 2;
+}
+
+.section-title {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.section-title strong {
+  display: block;
+  margin-top: 4px;
+  color: #263730;
+  font-size: 15px;
+}
+
+.section-title span {
+  max-width: 180px;
+  overflow: hidden;
+  color: #756b5f;
+  font-size: 12px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-title button,
+.gateway-row button,
+.privacy-actions button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #cfc6b7;
+  border-radius: 7px;
+  background: #fffdf8;
+  color: #25211c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.section-title div:last-child {
+  display: flex;
+  gap: 6px;
+}
+
+.metric-row.compact {
+  margin-top: 0;
+}
+
+.metric-row.compact .metric {
+  min-height: 58px;
+  padding: 9px;
+}
+
+.gateway-list {
+  display: grid;
+  gap: 7px;
+}
+
+.gateway-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 7px;
+  background: #fffdf8;
+}
+
+.gateway-row span,
+.gateway-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gateway-row small {
+  color: #756b5f;
+  font-size: 12px;
+}
+
+.gateway-row div {
+  display: flex;
+  grid-row: span 2;
+  gap: 6px;
+}
+
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.channel-grid label,
+.telemetry-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  color: #5f554b;
+  font-size: 13px;
+}
+
+.privacy-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.release-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.release-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 34px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #fffdf8;
+  color: #332f29;
+  font-size: 12px;
+}
+
+.release-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.release-row span {
+  color: #7f5a1f;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.release-row.pass span {
+  color: #23634d;
+}
+
+.release-row.warn span {
+  color: #8b5c12;
+}
+
+.release-row.blocked span {
+  color: #a33434;
 }
 
 .small-action {
@@ -1170,5 +1350,14 @@ button {
 
   .tooling-grid {
     grid-template-columns: 1fr;
+  }
+
+  .gateway-grid,
+  .release-list {
+    grid-template-columns: 1fr;
+  }
+
+  .release-section {
+    grid-column: span 1;
   }
 }

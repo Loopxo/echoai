@@ -16,15 +16,25 @@ import {
   type DesktopBrowserAutomationStatus,
   type DesktopBrowserProfile,
   type DesktopCanvasEntry,
+  type DesktopChannelSetting,
   type DesktopCommandClassification,
   type DesktopComputerUseAudit,
   type DesktopFilePreview,
+  type DesktopGatewayStatus,
   type DesktopGuiPermissionStatus,
   type DesktopMcpServer,
   type DesktopMcpToolInfo,
+  type DesktopPairedDevice,
+  type DesktopPairingRequest,
+  type DesktopPrivacyDashboard,
+  type DesktopPrivacyDeleteResult,
+  type DesktopReleaseChecklistItem,
+  type DesktopRemoteControlRequest,
   type DesktopSandboxStatus,
+  type DesktopScheduledTask,
   type DesktopSkillEntry,
   type DesktopTaskRecord,
+  type DesktopTelemetrySettings,
   type DesktopTerminalRunRequest,
   type DesktopToolSummary,
   type DesktopWorkspaceDiagnostic,
@@ -140,6 +150,43 @@ const api: EchoAIDesktopApi = {
   listCanvasEntries: () => invoke<DesktopCanvasEntry[]>('canvas:list'),
   openCanvasEntry: (title: string) => invoke<DesktopCanvasEntry>('canvas:open', title),
   summarizeToolOutput: (output: string) => invoke<DesktopToolSummary>('tools:summarizeOutput', output),
+  getGatewayStatus: () => invoke<DesktopGatewayStatus>('gateway:getStatus'),
+  startGateway: (preferredPort?: number) =>
+    invoke<DesktopGatewayStatus>('gateway:start', preferredPort),
+  stopGateway: () => invoke<DesktopGatewayStatus>('gateway:stop'),
+  listPairingRequests: () => invoke<DesktopPairingRequest[]>('devices:listPairingRequests'),
+  createPairingRequest: (deviceName: string, deviceType: DesktopPairingRequest['deviceType']) =>
+    invoke<DesktopPairingRequest>('devices:createPairingRequest', deviceName, deviceType),
+  respondPairingRequest: (requestId: string, approved: boolean) =>
+    invoke<DesktopPairingRequest | null>('devices:respondPairingRequest', requestId, approved),
+  listPairedDevices: () => invoke<DesktopPairedDevice[]>('devices:listPaired'),
+  revokePairedDevice: (deviceId: string) => invoke<boolean>('devices:revoke', deviceId),
+  listRemoteControls: () => invoke<DesktopRemoteControlRequest[]>('remote:listControls'),
+  submitRemoteControl: (
+    source: DesktopRemoteControlRequest['source'],
+    prompt: string,
+    workspacePath?: string
+  ) => invoke<DesktopRemoteControlRequest>('remote:submitControl', source, prompt, workspacePath),
+  approveRemoteControl: (requestId: string, approved: boolean) =>
+    invoke<DesktopRemoteControlRequest | null>('remote:approveControl', requestId, approved),
+  listChannelSettings: () => invoke<DesktopChannelSetting[]>('channels:list'),
+  updateChannelSetting: (channelId: string, patch: Partial<DesktopChannelSetting>) =>
+    invoke<DesktopChannelSetting>('channels:update', channelId, patch),
+  listScheduledTasks: () => invoke<DesktopScheduledTask[]>('scheduled:list'),
+  createScheduledTask: (input: {
+    title: string;
+    prompt: string;
+    schedule: string;
+    workspacePath?: string;
+  }) => invoke<DesktopScheduledTask>('scheduled:create', input),
+  deleteScheduledTask: (taskId: string) => invoke<boolean>('scheduled:delete', taskId),
+  getPrivacyDashboard: () => invoke<DesktopPrivacyDashboard>('privacy:getDashboard'),
+  exportPrivacyData: () => invoke<string>('privacy:exportData'),
+  deleteLocalPrivacyData: () => invoke<DesktopPrivacyDeleteResult>('privacy:deleteLocalData'),
+  getTelemetrySettings: () => invoke<DesktopTelemetrySettings>('telemetry:getSettings'),
+  updateTelemetrySettings: (patch: Partial<DesktopTelemetrySettings>) =>
+    invoke<DesktopTelemetrySettings>('telemetry:updateSettings', patch),
+  getReleaseChecklist: () => invoke<DesktopReleaseChecklistItem[]>('release:getChecklist'),
   searchLogs: (query: string) => invoke<LogSearchEntry[]>('logs:search', query),
   openExternal: (url: string) => invoke<boolean>('shell:openExternal', url),
   checkForUpdates: () => invoke<DesktopUpdateStatus>('updates:check'),

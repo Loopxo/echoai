@@ -13,6 +13,7 @@ import { AuthStore } from './auth-store';
 import { AutoUpdateService } from './auto-update-service';
 import { DesktopRuntimeService } from './desktop-runtime-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
+import { DesktopGatewayService } from './gateway-service';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
 import { TerminalTaskService, classifyCommand, getSandboxStatus } from './terminal-task-service';
@@ -51,6 +52,7 @@ let workspaceFileService: WorkspaceFileService | null = null;
 let terminalTaskService: TerminalTaskService | null = null;
 let toolingService: DesktopToolingService | null = null;
 let runtimeService: DesktopRuntimeService | null = null;
+let gatewayService: DesktopGatewayService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
 
@@ -110,9 +112,15 @@ app.on('activate', () => {
 
 app.on('window-all-closed', () => {
   terminalTaskService?.cleanup();
+  void gatewayService?.stopGateway();
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  terminalTaskService?.cleanup();
+  void gatewayService?.stopGateway();
 });
 
 async function bootstrap(): Promise<void> {
@@ -138,6 +146,7 @@ async function bootstrap(): Promise<void> {
       mainWindow.webContents.send('runtime:event', event);
     }
   });
+  gatewayService = new DesktopGatewayService(appPaths, logger);
   updateService = new AutoUpdateService(logger, app.isPackaged);
 }
 
@@ -564,6 +573,143 @@ function registerIpcHandlers(): void {
     return requireServices().toolingService.summarizeToolOutput(typeof output === 'string' ? output : '');
   });
 
+  ipcMain.handle('gateway:getStatus', () => {
+    return requireServices().gatewayService.getStatus();
+  });
+
+  ipcMain.handle('gateway:start', (_event, preferredPort: unknown) => {
+    const port = typeof preferredPort === 'number' && Number.isInteger(preferredPort)
+      ? preferredPort
+      : undefined;
+    return requireServices().gatewayService.startGateway(port);
+  });
+
+  ipcMain.handle('gateway:stop', () => {
+    return requireServices().gatewayService.stopGateway();
+  });
+
+  ipcMain.handle('devices:listPairingRequests', () => {
+    return requireServices().gatewayService.listPairingRequests();
+  });
+
+  ipcMain.handle('devices:createPairingRequest', (_event, deviceName: unknown, deviceType: unknown) => {
+    if (typeof deviceName !== 'string') {
+      throw new Error('Invalid pairing device name');
+    }
+
+    const normalizedType =
+      deviceType === 'mobile' || deviceType === 'web' || deviceType === 'desktop'
+        ? deviceType
+        : 'unknown';
+    return requireServices().gatewayService.createPairingRequest(deviceName, normalizedType);
+  });
+
+  ipcMain.handle('devices:respondPairingRequest', (_event, requestId: unknown, approved: unknown) => {
+    if (typeof requestId !== 'string') {
+      throw new Error('Invalid pairing request id');
+    }
+
+    return requireServices().gatewayService.respondToPairing(requestId, approved === true);
+  });
+
+  ipcMain.handle('devices:listPaired', () => {
+    return requireServices().gatewayService.listPairedDevices();
+  });
+
+  ipcMain.handle('devices:revoke', (_event, deviceId: unknown) => {
+    return typeof deviceId === 'string' ? requireServices().gatewayService.revokeDevice(deviceId) : false;
+  });
+
+  ipcMain.handle('remote:listControls', () => {
+    return requireServices().gatewayService.listRemoteControls();
+  });
+
+  ipcMain.handle('remote:submitControl', (_event, source: unknown, prompt: unknown, workspacePath: unknown) => {
+    if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+      throw new Error('Invalid remote prompt');
+    }
+
+    return requireServices().gatewayService.submitRemoteControl({
+      source: source === 'mobile' ? 'mobile' : 'web',
+      prompt,
+      workspacePath: typeof workspacePath === 'string' ? workspacePath : undefined,
+    });
+  });
+
+  ipcMain.handle('remote:approveControl', (_event, requestId: unknown, approved: unknown) => {
+    if (typeof requestId !== 'string') {
+      throw new Error('Invalid remote request id');
+    }
+
+    return requireServices().gatewayService.approveRemoteControl(requestId, approved === true);
+  });
+
+  ipcMain.handle('channels:list', () => {
+    return requireServices().gatewayService.listChannelSettings();
+  });
+
+  ipcMain.handle('channels:update', (_event, channelId: unknown, patch: unknown) => {
+    if (typeof channelId !== 'string' || !isRecord(patch)) {
+      throw new Error('Invalid channel settings');
+    }
+
+    return requireServices().gatewayService.updateChannelSetting(channelId, patch);
+  });
+
+  ipcMain.handle('scheduled:list', () => {
+    return requireServices().gatewayService.listScheduledTasks();
+  });
+
+  ipcMain.handle('scheduled:create', (_event, input: unknown) => {
+    if (
+      !isRecord(input) ||
+      typeof input.title !== 'string' ||
+      typeof input.prompt !== 'string' ||
+      typeof input.schedule !== 'string'
+    ) {
+      throw new Error('Invalid scheduled task');
+    }
+
+    return requireServices().gatewayService.createScheduledTask({
+      title: input.title,
+      prompt: input.prompt,
+      schedule: input.schedule,
+      workspacePath: typeof input.workspacePath === 'string' ? input.workspacePath : undefined,
+    });
+  });
+
+  ipcMain.handle('scheduled:delete', (_event, taskId: unknown) => {
+    return typeof taskId === 'string' ? requireServices().gatewayService.deleteScheduledTask(taskId) : false;
+  });
+
+  ipcMain.handle('privacy:getDashboard', () => {
+    return requireServices().gatewayService.getPrivacyDashboard();
+  });
+
+  ipcMain.handle('privacy:exportData', () => {
+    return requireServices().gatewayService.exportPrivacyData();
+  });
+
+  ipcMain.handle('privacy:deleteLocalData', () => {
+    return requireServices().gatewayService.deleteLocalPrivacyData();
+  });
+
+  ipcMain.handle('telemetry:getSettings', () => {
+    return requireServices().gatewayService.getTelemetrySettings();
+  });
+
+  ipcMain.handle('telemetry:updateSettings', (_event, patch: unknown) => {
+    if (!isRecord(patch)) {
+      throw new Error('Invalid telemetry settings');
+    }
+
+    return requireServices().gatewayService.updateTelemetrySettings(patch);
+  });
+
+  ipcMain.handle('release:getChecklist', () => {
+    return requireServices().gatewayService.getReleaseChecklist();
+  });
+
   ipcMain.handle('logs:search', async (_event, query: unknown) => {
     const services = requireServices();
     return services.logger.search(typeof query === 'string' ? query : '');
@@ -793,6 +939,7 @@ function requireServices(): {
   terminalTaskService: TerminalTaskService;
   toolingService: DesktopToolingService;
   runtimeService: DesktopRuntimeService;
+  gatewayService: DesktopGatewayService;
   updateService: AutoUpdateService;
 } {
   if (
@@ -805,6 +952,7 @@ function requireServices(): {
     !terminalTaskService ||
     !toolingService ||
     !runtimeService ||
+    !gatewayService ||
     !updateService
   ) {
     throw new Error('EchoAI desktop services are not ready');
@@ -820,6 +968,7 @@ function requireServices(): {
     terminalTaskService,
     toolingService,
     runtimeService,
+    gatewayService,
     updateService,
   };
 }
