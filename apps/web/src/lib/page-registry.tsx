@@ -1,5 +1,6 @@
 import { ChatPanel } from "@/components/chat-panel";
 import { DataTable, FeaturePage, PageHeader, StatGrid } from "@/components/feature-page";
+import type { EchoAIWorkspaceState } from "@echoai/contracts";
 import { importedProviderDefinitions, providerHealthChecks } from "@/lib/models";
 import { browserAutomationTool, codeSandboxTool, mcpToolBrowser, skillLibrary, toolPolicyMatrix } from "@/lib/tools";
 import { buildWorkspaceContext, compactSession, getArtifactStore, getBackgroundTasks, getCloudAuditStore, getRuntimeEventStream } from "@/lib/runtime";
@@ -7,7 +8,9 @@ import { billingEntitlements, outputGallery, runAutomation } from "@/lib/operati
 import { deletionPlan, lexicalSearch, semanticSearch } from "@/lib/knowledge";
 import { noteContext, proposeMemory, retrieveMemories } from "@/lib/notes-memory";
 import { ticketCoverage, ticketSummary } from "@/lib/tickets";
-import { workspaceState } from "./data";
+import { workspaceState as seedWorkspaceState } from "./data";
+
+let workspaceState = seedWorkspaceState;
 
 function dashboard() {
   return (
@@ -339,7 +342,8 @@ function ticketsPage() {
   );
 }
 
-export function renderAppPage(segments: string[] = []) {
+export function renderAppPage(segments: string[] = [], state: EchoAIWorkspaceState = seedWorkspaceState) {
+  workspaceState = state;
   const [first, second, third] = segments;
   if (!first) return dashboard();
   if (first === "account") return accountPage();

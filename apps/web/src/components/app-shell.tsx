@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { workspaceState } from "@/lib/data";
+import type { EchoAIWorkspaceState } from "@echoai/contracts";
 import { CommandPalette, GlobalSearch, NotificationCenter, ThemeToggle } from "./interactive-controls";
 
 const navItems = [
@@ -16,7 +16,7 @@ const navItems = [
   ["Settings", "/app/settings"],
 ];
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, state }: { children: ReactNode; state: EchoAIWorkspaceState }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -37,13 +37,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <div className="main-frame">
         <header className="topbar">
-          <GlobalSearch state={workspaceState} />
+          <GlobalSearch state={state} />
           <div className="topbar-actions">
             <CommandPalette />
-            <NotificationCenter state={workspaceState} />
+            <NotificationCenter state={state} />
             <ThemeToggle />
             <a className="account-chip" href="/app/account">
-              {workspaceState.session.email}
+              {state.session.email}
             </a>
           </div>
         </header>

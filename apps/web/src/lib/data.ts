@@ -374,6 +374,47 @@ export const workspaceState: EchoAIWorkspaceState = {
   automations,
   outputs,
   billing,
+  usageEvents: [
+    {
+      id: "usage_seed_model",
+      workspaceId: "workspace_echoai",
+      source: "model",
+      label: "EchoAI Code seed run",
+      units: 1,
+      costUsd: 0.42,
+      runId: "run_web_launch",
+      createdAt: "2026-05-16T08:22:00.000Z",
+    },
+  ],
+  providerKeys: [
+    {
+      id: "provider_key_seed",
+      workspaceId: "workspace_echoai",
+      provider: "openai",
+      label: "OpenAI BYOK",
+      status: "needs_rotation",
+      encryptedRef: "vault://workspace_echoai/provider/openai",
+      createdAt: "2026-05-16T08:12:00.000Z",
+    },
+  ],
+  externalAdapters: [
+    {
+      id: "adapter_local_store",
+      name: "Local file workspace store",
+      category: "realtime",
+      status: "ready",
+      requiredEnv: [],
+      capability: "Durable local development state and mutation testing.",
+    },
+    {
+      id: "adapter_desktop_gateway",
+      name: "EchoAI desktop gateway",
+      category: "sandbox",
+      status: "ready",
+      requiredEnv: [],
+      capability: "Local terminal, files, browser, and approvals through paired desktop.",
+    },
+  ],
   devices,
   backgroundRuns,
 };

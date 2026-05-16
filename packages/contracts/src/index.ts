@@ -13,6 +13,7 @@ export type EchoAIStreamEventType =
   | "approval.request"
   | "artifact.created"
   | "run.status";
+export type EchoAIAdapterStatus = "ready" | "needs_configuration" | "disabled" | "error";
 
 export interface EchoAIOrgMember {
   id: EchoAIId;
@@ -55,7 +56,11 @@ export interface EchoAIAuditEvent {
     | "provider_key.changed"
     | "tool.approved"
     | "tool.denied"
-    | "runtime.event";
+    | "runtime.event"
+    | "storage.object_created"
+    | "automation.queued"
+    | "device.handoff"
+    | "usage.recorded";
   actorId: EchoAIId;
   workspaceId: EchoAIId;
   runId?: EchoAIId;
@@ -78,7 +83,7 @@ export interface EchoAIModelRoute {
 
 export interface EchoAIToolCall {
   id: EchoAIId;
-  kind: "file" | "shell" | "mcp" | "browser" | "code";
+  kind: "file" | "shell" | "mcp" | "browser" | "code" | "media" | "device";
   title: string;
   status: "queued" | "running" | "complete" | "blocked";
   policy: EchoAIPolicy;
@@ -232,6 +237,37 @@ export interface EchoAIBillingAccount {
   invoices: Array<{ id: EchoAIId; amount: number; status: "paid" | "open"; issuedAt: string }>;
 }
 
+export interface EchoAIUsageEvent {
+  id: EchoAIId;
+  workspaceId: EchoAIId;
+  source: "model" | "browser" | "sandbox" | "media" | "automation" | "storage";
+  label: string;
+  units: number;
+  costUsd: number;
+  runId?: EchoAIId;
+  createdAt: string;
+}
+
+export interface EchoAIProviderKeyRecord {
+  id: EchoAIId;
+  workspaceId: EchoAIId;
+  provider: string;
+  label: string;
+  status: "active" | "needs_rotation" | "revoked";
+  encryptedRef: string;
+  createdAt: string;
+  rotatedAt?: string;
+}
+
+export interface EchoAIExternalAdapter {
+  id: EchoAIId;
+  name: string;
+  category: "auth" | "billing" | "storage" | "model" | "oauth" | "sandbox" | "realtime";
+  status: EchoAIAdapterStatus;
+  requiredEnv: string[];
+  capability: string;
+}
+
 export interface EchoAIDevice {
   id: EchoAIId;
   name: string;
@@ -275,6 +311,9 @@ export interface EchoAIWorkspaceState {
   automations: EchoAIAutomation[];
   outputs: EchoAIOutputArtifact[];
   billing: EchoAIBillingAccount;
+  usageEvents: EchoAIUsageEvent[];
+  providerKeys: EchoAIProviderKeyRecord[];
+  externalAdapters: EchoAIExternalAdapter[];
   devices: EchoAIDevice[];
   backgroundRuns: EchoAIBackgroundRun[];
 }
