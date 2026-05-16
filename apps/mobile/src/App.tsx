@@ -8,6 +8,7 @@ import { ApprovalDetailsScreen } from "./screens/ApprovalDetailsScreen";
 import { ApprovalInboxScreen } from "./screens/ApprovalInboxScreen";
 import { ApprovalPushScreen } from "./screens/ApprovalPushScreen";
 import { ApprovalTimeoutScreen } from "./screens/ApprovalTimeoutScreen";
+import { AndroidVoiceWakeScreen } from "./screens/AndroidVoiceWakeScreen";
 import { AudioCaptureScreen } from "./screens/AudioCaptureScreen";
 import { AttachmentPickerScreen } from "./screens/AttachmentPickerScreen";
 import { AuthAuditScreen } from "./screens/AuthAuditScreen";
@@ -120,6 +121,7 @@ export default function App() {
         <WebHandoffScreen onOpen={() => undefined} />
         <PushToTalkScreen onStart={() => undefined} onStop={() => undefined} />
         <IosVoiceWakeFeasibilityScreen />
+        <AndroidVoiceWakeScreen onEnable={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
