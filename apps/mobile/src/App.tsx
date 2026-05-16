@@ -3,6 +3,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 
 import { createEchoAIMobileClient } from "./api";
 import { HomeScreen } from "./screens/HomeScreen";
+import { SignInScreen } from "./screens/SignInScreen";
 
 const clientFactoryReady = typeof createEchoAIMobileClient === "function";
 
@@ -12,6 +13,7 @@ export default function App() {
       <StatusBar barStyle="light-content" />
       <View style={styles.app}>
         <Text style={styles.brand}>EchoAI</Text>
+        <SignInScreen redirectUri="echoai://auth/mobile-complete" />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>

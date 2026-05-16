@@ -24,6 +24,9 @@ declare module "react-native" {
   export const Text: ComponentType<{ children?: ReactNode; style?: Style }>;
   export const View: ComponentType<{ children?: ReactNode; style?: Style }>;
   export const Pressable: ComponentType<{ children?: ReactNode; style?: Style; onPress?: () => void }>;
+  export const Linking: {
+    openURL(url: string): Promise<void>;
+  };
 
   export const StyleSheet: {
     create<T extends Record<string, Style>>(styles: T): T;

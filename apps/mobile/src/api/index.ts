@@ -1,4 +1,5 @@
 export * from "./approvalApi";
+export * from "./authApi";
 export * from "./deviceApi";
 export * from "./fileApi";
 export * from "./mobileClient";

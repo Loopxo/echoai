@@ -97,6 +97,8 @@ Device API helpers for M-019 live in `apps/mobile/src/api/deviceApi.ts` and cove
 
 Approval API helpers for M-020 live in `apps/mobile/src/api/approvalApi.ts` and cover fetching, approving, denying, and returning auditable approval state.
 
+React Native sign-in for M-021 lives in `apps/mobile/src/screens/SignInScreen.tsx` with `EchoAIAuthApi.startSignIn`, secure browser opening through `Linking.openURL`, and callback completion through the shared auth-complete protocol method.
+
 ## Device Trust Model
 
 Mobile devices can exist in five trust states:
