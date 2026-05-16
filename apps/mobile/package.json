@@ -6,6 +6,7 @@
   "main": "index.js",
   "scripts": {
     "android": "react-native run-android",
+    "android:release": "react-native run-android --mode release",
     "ios:release": "react-native run-ios --mode Release",
     "ios": "react-native run-ios",
     "start": "react-native start",
