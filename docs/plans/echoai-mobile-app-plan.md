@@ -134,6 +134,7 @@ Streaming display for M-046 lives in `apps/mobile/src/chat/streaming.ts` and `ap
 The stop button for M-047 lives in `apps/mobile/src/screens/StopRunScreen.tsx` and carries session, run, and source into the typed abort request.
 Retry/edit for M-048 lives in `apps/mobile/src/chat/retry.ts` and `apps/mobile/src/screens/RetryEditTurnScreen.tsx`, preserving failed prompt drafts for edited resend.
 The attachment picker for M-049 lives in `apps/mobile/src/chat/attachments.ts` and `apps/mobile/src/screens/AttachmentPickerScreen.tsx`, covering image, document, audio, and file attachments.
+Share target intake for M-050 lives in `apps/mobile/src/chat/shareIntake.ts` and `apps/mobile/src/screens/ShareIntakeScreen.tsx`, converting shared text, URLs, and files into chat drafts.
 
 ## Device Trust Model
 
