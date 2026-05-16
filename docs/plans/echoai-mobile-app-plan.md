@@ -151,6 +151,7 @@ File upload for M-063 lives in `apps/mobile/src/files/upload.ts` and `apps/mobil
 File preview for M-064 lives in `apps/mobile/src/files/preview.ts` and `apps/mobile/src/screens/FilePreviewScreen.tsx`, selecting image, text, PDF, markdown, code, or metadata preview modes.
 Camera capture for M-065 lives in `apps/mobile/src/files/cameraCapture.ts` and `apps/mobile/src/screens/CameraCaptureScreen.tsx`, exposing image and video capture through the native capture module.
 Audio capture for M-066 lives in `apps/mobile/src/files/audioCapture.ts` and `apps/mobile/src/screens/AudioCaptureScreen.tsx`, recording audio for send or transcription workflows.
+The note list for M-067 lives in `apps/mobile/src/notes/types.ts` and `apps/mobile/src/screens/NoteListScreen.tsx`, exposing searchable synced notes.
 
 ## Device Trust Model
 

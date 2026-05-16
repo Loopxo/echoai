@@ -24,6 +24,7 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { ManualGatewayConnectScreen } from "./screens/ManualGatewayConnectScreen";
 import { ModelPickerScreen } from "./screens/ModelPickerScreen";
 import { NewChatScreen } from "./screens/NewChatScreen";
+import { NoteListScreen } from "./screens/NoteListScreen";
 import { PairedDevicesScreen } from "./screens/PairedDevicesScreen";
 import { PairApprovalScreen } from "./screens/PairApprovalScreen";
 import { QrPairingScreen } from "./screens/QrPairingScreen";
@@ -88,6 +89,7 @@ export default function App() {
         <FilePreviewScreen />
         <CameraCaptureScreen onCapture={() => undefined} />
         <AudioCaptureScreen onRecord={() => undefined} onTranscribe={() => undefined} />
+        <NoteListScreen notes={[]} onOpenNote={() => undefined} />
         <HomeScreen apiReady={clientFactoryReady} />
       </View>
     </SafeAreaView>
