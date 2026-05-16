@@ -133,6 +133,15 @@
     "type": "git",
     "url": "git+https://github.com/Loopxo/echoai.git"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "esbuild",
+      "protobufjs",
+      "sharp"
+    ]
+  },
   "bugs": {
     "url": "https://github.com/Loopxo/echoai/issues"
   },

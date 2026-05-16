@@ -1,16 +1,26 @@
 appId: ai.echoai.desktop
 productName: EchoAI
 asar: true
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 directories:
   output: release
 files:
   - dist/**/*
   - dist-electron/**/*
   - package.json
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/better-sqlite3/**/*"
+  - "node_modules/@parcel/watcher/**/*"
 extraResources:
-  - from: ../../assets/echo-logo.png
+  - from: resources/icon.png
     to: echo-logo.png
+  - from: resources/runtime-manifest.json
+    to: runtime-manifest.json
+extraMetadata:
+  main: dist-electron/main/index.js
 mac:
+  icon: resources/icon.png
   category: public.app-category.developer-tools
   hardenedRuntime: true
   entitlements: resources/entitlements.mac.plist
@@ -19,6 +29,7 @@ mac:
     - dmg
     - zip
 win:
+  icon: resources/icon.png
   target:
     - nsis
 nsis:
@@ -29,3 +40,6 @@ protocols:
   - name: EchoAI
     schemes:
       - echoai
+publish:
+  - provider: generic
+    url: https://updates.echoai.ai/desktop

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
-import type { DesktopAppSnapshot, LogSearchEntry, WorkspaceSelection } from '@shared/ipc';
+import type {
+  DesktopAppSnapshot,
+  DesktopUpdateStatus,
+  LogSearchEntry,
+  WorkspaceSelection,
+} from '@shared/ipc';
 
 const pages = [
   'Home',
@@ -52,6 +57,7 @@ export function App(): ReactElement {
   const [snapshot, setSnapshot] = useState<DesktopAppSnapshot | null>(null);
   const [workspace, setWorkspace] = useState<WorkspaceSelection | null>(null);
   const [protocolUrl, setProtocolUrl] = useState<string | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(null);
   const [logQuery, setLogQuery] = useState('');
   const [logs, setLogs] = useState<LogSearchEntry[]>([]);
   const [isSelectingWorkspace, setIsSelectingWorkspace] = useState(false);
@@ -76,9 +82,13 @@ export function App(): ReactElement {
     });
 
     const unsubscribe = window.echoaiDesktop.onProtocolUrl((url) => setProtocolUrl(url));
+    const unsubscribeUpdates = window.echoaiDesktop.onUpdateStatus((status) =>
+      setUpdateStatus(status)
+    );
     return () => {
       isMounted = false;
       unsubscribe();
+      unsubscribeUpdates();
     };
   }, []);
 
@@ -110,6 +120,20 @@ export function App(): ReactElement {
   async function searchLogs(): Promise<void> {
     const results = await window.echoaiDesktop.searchLogs(logQuery);
     setLogs(results.slice(0, 8));
+  }
+
+  async function checkForUpdates(): Promise<void> {
+    const status = await window.echoaiDesktop.checkForUpdates();
+    setUpdateStatus(status);
+  }
+
+  async function downloadUpdate(): Promise<void> {
+    const status = await window.echoaiDesktop.downloadUpdate();
+    setUpdateStatus(status);
+  }
+
+  async function installUpdate(): Promise<void> {
+    await window.echoaiDesktop.installUpdate();
   }
 
   return (
@@ -170,6 +194,32 @@ export function App(): ReactElement {
             </ul>
           </div>
 
+          <div className="updates-panel">
+            <div>
+              <div className="panel-kicker">Updates</div>
+              <div className="update-state">{formatUpdateState(updateStatus)}</div>
+            </div>
+            <div className="update-actions">
+              <button onClick={checkForUpdates} type="button">
+                Check
+              </button>
+              <button
+                disabled={updateStatus?.state !== 'available'}
+                onClick={downloadUpdate}
+                type="button"
+              >
+                Download
+              </button>
+              <button
+                disabled={updateStatus?.state !== 'downloaded'}
+                onClick={installUpdate}
+                type="button"
+              >
+                Install
+              </button>
+            </div>
+          </div>
+
           <div className="activity-panel">
             <div className="panel-header">
               <div>
@@ -221,4 +271,20 @@ function Metric({ label, value }: { label: string; value: string }): ReactElemen
       <strong>{value}</strong>
     </div>
   );
+}
+
+function formatUpdateState(status: DesktopUpdateStatus | null): string {
+  if (!status) {
+    return 'Idle';
+  }
+
+  if (status.state === 'downloading' && status.downloadProgress !== null) {
+    return `Downloading ${status.downloadProgress}%`;
+  }
+
+  if (status.version) {
+    return `${status.state} ${status.version}`;
+  }
+
+  return status.reason ?? status.state;
 }

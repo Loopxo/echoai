@@ -9,6 +9,7 @@ import {
 import type { OpenDialogOptions } from 'electron';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AutoUpdateService } from './auto-update-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
@@ -36,6 +37,7 @@ let mainWindow: BrowserWindow | null = null;
 let appPaths: DesktopAppPaths | null = null;
 let logger: DesktopLogger | null = null;
 let recoveryStore: RecoveryStore | null = null;
+let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
 
 app.setName('EchoAI');
@@ -107,6 +109,7 @@ async function bootstrap(): Promise<void> {
   logger.info('desktop bootstrap complete', { version: app.getVersion(), platform: process.platform });
 
   recoveryStore = new RecoveryStore(appPaths.dataDir);
+  updateService = new AutoUpdateService(logger, app.isPackaged);
 }
 
 async function createMainWindow(): Promise<BrowserWindow> {
@@ -160,6 +163,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     await window.loadFile(join(mainDir, '../../dist/index.html'));
   }
 
+  updateService?.attachWindow(window);
   return window;
 }
 
@@ -221,6 +225,18 @@ function registerIpcHandlers(): void {
     }
 
     return openExternalSafely(url);
+  });
+
+  ipcMain.handle('updates:check', async () => {
+    return requireServices().updateService.checkForUpdates();
+  });
+
+  ipcMain.handle('updates:download', async () => {
+    return requireServices().updateService.downloadUpdate();
+  });
+
+  ipcMain.handle('updates:install', () => {
+    return requireServices().updateService.installDownloadedUpdate();
   });
 }
 
@@ -307,10 +323,11 @@ function requireServices(): {
   appPaths: DesktopAppPaths;
   logger: DesktopLogger;
   recoveryStore: RecoveryStore;
+  updateService: AutoUpdateService;
 } {
-  if (!appPaths || !logger || !recoveryStore) {
+  if (!appPaths || !logger || !recoveryStore || !updateService) {
     throw new Error('EchoAI desktop services are not ready');
   }
 
-  return { appPaths, logger, recoveryStore };
+  return { appPaths, logger, recoveryStore, updateService };
 }

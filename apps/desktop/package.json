@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "description": "EchoAI private Windows and macOS desktop app",
+  "author": {
+    "name": "Vijeet Shah",
+    "email": "vijeet@vijeetshah.com",
+    "url": "https://vijeetshah.com"
+  },
+  "license": "UNLICENSED",
   "type": "module",
   "main": "dist-electron/main/index.js",
   "scripts": {
@@ -10,18 +16,24 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "release:check": "node scripts/check-release-readiness.mjs",
+    "smoke:installer": "node scripts/smoke-installed-app.mjs",
     "package": "pnpm run build && electron-builder --config electron-builder.yml --dir",
+    "package:mac": "pnpm run build && electron-builder --config electron-builder.yml --mac",
+    "package:win": "pnpm run build && electron-builder --config electron-builder.yml --win",
     "dist": "pnpm run build && electron-builder --config electron-builder.yml"
   },
   "dependencies": {
     "@echoai/runtime": "workspace:*",
     "react": "^19.2.4",
+    "electron-updater": "^6.6.8",
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/semver": "^7.7.1",
     "@vitejs/plugin-react": "^4.7.0",
     "electron": "^35.7.5",
     "electron-builder": "^26.8.1",

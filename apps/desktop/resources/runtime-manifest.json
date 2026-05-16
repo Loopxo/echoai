@@ -1,0 +1,15 @@
+{
+  "name": "echoai-desktop-runtime",
+  "bundledRuntime": "electron-main-hosted",
+  "includes": [
+    "dist",
+    "dist-electron",
+    "echo-logo.png",
+    "icon.png"
+  ],
+  "nativeUnpackPolicy": [
+    "**/*.node",
+    "node_modules/better-sqlite3/**/*",
+    "node_modules/@parcel/watcher/**/*"
+  ]
+}

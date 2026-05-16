@@ -4,6 +4,7 @@ import {
   type DesktopAppSnapshot,
   type DesktopIpcEventChannel,
   type DesktopIpcInvokeChannel,
+  type DesktopUpdateStatus,
   type EchoAIDesktopApi,
   type LogSearchEntry,
   type WorkspaceSelection,
@@ -19,13 +20,17 @@ function invoke<T>(channel: DesktopIpcInvokeChannel, ...args: unknown[]): Promis
   return ipcRenderer.invoke(channel, ...args) as Promise<T>;
 }
 
-function subscribe(channel: DesktopIpcEventChannel, callback: (value: string) => void): () => void {
+function subscribe<T>(
+  channel: DesktopIpcEventChannel,
+  callback: (value: T) => void,
+  guard: (value: unknown) => value is T
+): () => void {
   if (!isIpcEventChannel(channel)) {
     throw new Error(`Blocked IPC event channel: ${channel}`);
   }
 
   const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
-    if (typeof value === 'string') {
+    if (guard(value)) {
       callback(value);
     }
   };
@@ -40,7 +45,13 @@ const api: EchoAIDesktopApi = {
   setLastRoute: (route: string) => invoke<void>('app:setLastRoute', route),
   searchLogs: (query: string) => invoke<LogSearchEntry[]>('logs:search', query),
   openExternal: (url: string) => invoke<boolean>('shell:openExternal', url),
-  onProtocolUrl: (callback: (url: string) => void) => subscribe('protocol:url', callback),
+  checkForUpdates: () => invoke<DesktopUpdateStatus>('updates:check'),
+  downloadUpdate: () => invoke<DesktopUpdateStatus>('updates:download'),
+  installUpdate: () => invoke<boolean>('updates:install'),
+  onProtocolUrl: (callback: (url: string) => void) =>
+    subscribe('protocol:url', callback, isString),
+  onUpdateStatus: (callback: (status: DesktopUpdateStatus) => void) =>
+    subscribe('updates:status', callback, isDesktopUpdateStatus),
 };
 
 for (const channel of IPC_EVENT_CHANNELS) {
@@ -50,3 +61,16 @@ for (const channel of IPC_EVENT_CHANNELS) {
 }
 
 contextBridge.exposeInMainWorld('echoaiDesktop', api);
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isDesktopUpdateStatus(value: unknown): value is DesktopUpdateStatus {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'state' in value &&
+    typeof (value as { state: unknown }).state === 'string'
+  );
+}
