@@ -13,7 +13,7 @@ providerCommand
     const providerManager = new ProviderManager(configManager);
     
     const configuredProviders = await configManager.listProviders();
-    const availableProviders = ['echoai', 'deepseek', 'kimi', 'nim', 'claude', 'openai', 'groq', 'meta'];
+    const availableProviders = ['echoai', 'deepseek', 'kimi', 'zhipu', 'qwen', 'minimax', 'ollama', 'nim', 'claude', 'openai', 'groq', 'meta'];
     
     console.log('🔧 Available Providers:');
     for (const provider of availableProviders) {

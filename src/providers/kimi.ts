@@ -9,6 +9,8 @@ export class KimiProvider extends OpenAIProvider {
     });
     this.name = 'kimi';
     this.models = [
+      'kimi-k2-0711-preview', // K2 agentic/coding flagship
+      'moonshot-v1-auto',
       'moonshot-v1-8k',
       'moonshot-v1-32k',
       'moonshot-v1-128k'
@@ -16,7 +18,7 @@ export class KimiProvider extends OpenAIProvider {
   }
 
   protected getDefaultModel(): string {
-    return this.config.model || 'moonshot-v1-32k';
+    return this.config.model || 'kimi-k2-0711-preview';
   }
 
   async authenticate(apiKey: string): Promise<boolean> {

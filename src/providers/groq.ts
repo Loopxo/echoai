@@ -1,144 +1,68 @@
-import Groq from 'groq-sdk';
-import { 
-  AIProvider, 
-  Message, 
-  ChatOptions, 
-  CompletionOptions, 
-  ProviderConfig, 
-  ConfigValidation 
-} from '../types/index.js';
+import { ProviderConfig, ConfigValidation } from '../types/index.js';
+import { OpenAIProvider } from './openai.js';
 
-export class GroqProvider implements AIProvider {
-  name = 'groq';
-  models = [
-    'llama3-8b-8192',
-    'llama3-70b-8192',
-    'mixtral-8x7b-32768',
-    'gemma-7b-it',
-    'gemma2-9b-it',
-  ];
-
-  private client: Groq;
-  private config: ProviderConfig;
-
+/**
+ * Groq provider.
+ *
+ * Groq exposes an OpenAI-compatible endpoint that supports function/tool
+ * calling, so we extend OpenAIProvider to inherit completeWithTools and
+ * streamWithTools (agentic tool use) instead of the previous chat-only shim.
+ */
+export class GroqProvider extends OpenAIProvider {
   constructor(config: ProviderConfig) {
-    this.config = config;
-    this.client = new Groq({
-      apiKey: config.apiKey,
+    super({
+      ...config,
+      baseUrl: config.baseUrl || 'https://api.groq.com/openai/v1',
     });
+    this.name = 'groq';
+    this.models = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'moonshotai/kimi-k2-instruct',
+      'qwen/qwen3-32b',
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+    ];
+  }
+
+  protected getDefaultModel(): string {
+    return this.config.model || 'llama-3.3-70b-versatile';
   }
 
   async authenticate(apiKey: string): Promise<boolean> {
     try {
-      const testClient = new Groq({ apiKey });
-      
-      // Test with a minimal request
-      await testClient.chat.completions.create({
-        model: 'llama3-8b-8192',
-        messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 10,
+      const OpenAI = (await import('openai')).default;
+      const client = new OpenAI({
+        apiKey,
+        baseURL: this.config.baseUrl || 'https://api.groq.com/openai/v1',
       });
-      
+
+      await client.chat.completions.create({
+        model: this.getDefaultModel(),
+        messages: [{ role: 'user', content: 'test' }],
+        max_tokens: 8,
+      });
+
       return true;
     } catch (error) {
-      console.error('Groq authentication failed:', error);
+      console.error('Groq authentication failed:', error instanceof Error ? error.message : error);
       return false;
-    }
-  }
-
-  async *chat(messages: Message[], options: ChatOptions = {}): AsyncGenerator<string> {
-    const model = options.model || this.config.model || this.models[1]!; // Default to llama3-70b-8192
-    const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
-    const temperature = options.temperature ?? this.config.temperature ?? 0.7;
-
-    const groqMessages = messages.map(msg => ({
-      role: msg.role as 'system' | 'user' | 'assistant',
-      content: msg.content,
-    }));
-
-    try {
-      if (options.stream !== false) {
-        const stream = await this.client.chat.completions.create({
-          model,
-          messages: groqMessages,
-          max_tokens: maxTokens,
-          temperature,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
-          if (content) {
-            yield content;
-          }
-        }
-      } else {
-        const response = await this.client.chat.completions.create({
-          model,
-          messages: groqMessages,
-          max_tokens: maxTokens,
-          temperature,
-        });
-
-        const content = response.choices[0]?.message?.content;
-        if (content) {
-          yield content;
-        }
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Groq API Error: ${error.message}`);
-      }
-      throw error;
-    }
-  }
-
-  async complete(prompt: string, options: CompletionOptions = {}): Promise<string> {
-    const model = options.model || this.config.model || this.models[1]!; // Default to llama3-70b-8192
-    const maxTokens = options.maxTokens || this.config.maxTokens || 4096;
-    const temperature = options.temperature ?? this.config.temperature ?? 0.7;
-
-    try {
-      const response = await this.client.chat.completions.create({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: maxTokens,
-        temperature,
-      });
-
-      return response.choices[0]?.message?.content || '';
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Groq API Error: ${error.message}`);
-      }
-      throw error;
     }
   }
 
   validateConfig(config: ProviderConfig): ConfigValidation {
     const errors: string[] = [];
-
     if (!config.apiKey) {
       errors.push('API key is required');
     } else if (!config.apiKey.startsWith('gsk_')) {
       errors.push('Invalid Groq API key format (should start with gsk_)');
     }
-
-    if (config.model && !this.models.includes(config.model)) {
-      errors.push(`Unsupported model: ${config.model}. Supported models: ${this.models.join(', ')}`);
-    }
-
     if (config.temperature !== undefined && (config.temperature < 0 || config.temperature > 2)) {
       errors.push('Temperature must be between 0 and 2');
     }
-
     if (config.maxTokens !== undefined && config.maxTokens <= 0) {
       errors.push('Max tokens must be greater than 0');
     }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 }

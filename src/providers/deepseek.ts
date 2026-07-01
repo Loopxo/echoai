@@ -9,8 +9,8 @@ export class DeepSeekProvider extends OpenAIProvider {
     });
     this.name = 'deepseek';
     this.models = [
-      'deepseek-chat',
-      'deepseek-reasoner' // Pro
+      'deepseek-chat', // points to the latest DeepSeek V3 line
+      'deepseek-reasoner' // points to the latest DeepSeek R1 reasoning line
     ];
   }
 

@@ -44,12 +44,20 @@ export class ProviderManager {
 
   private async loadProvider(name: string): Promise<void> {
     const config = await this.configManager.getProvider(name);
-    if (!config && name !== 'echoai') {
+    const envApiKey = ProviderManager.resolveEnvApiKey(name);
+    if (!config && !envApiKey && name !== 'echoai' && name !== 'ollama') {
       throw new Error(`No configuration found for provider '${name}'. Run: echoai config setup`);
     }
 
     let provider: AIProvider;
-    const providerConfig = config ?? { apiKey: '', baseUrl: process.env.ECHOAI_API_URL };
+    const providerConfig = config ?? {
+      apiKey: envApiKey ?? '',
+      baseUrl: name === 'echoai' ? process.env.ECHOAI_API_URL : undefined,
+    };
+    // Backfill key from environment if the stored config lacks one.
+    if (!providerConfig.apiKey && envApiKey) {
+      providerConfig.apiKey = envApiKey;
+    }
 
     switch (name) {
       case 'echoai':
@@ -75,6 +83,28 @@ export class ProviderManager {
       case 'kimi':
         const { KimiProvider } = await import('../providers/kimi.js');
         provider = new KimiProvider(providerConfig);
+        break;
+
+      case 'zhipu':
+      case 'glm':
+        const { ZhipuProvider } = await import('../providers/zhipu.js');
+        provider = new ZhipuProvider(providerConfig);
+        break;
+
+      case 'qwen':
+      case 'dashscope':
+        const { QwenProvider } = await import('../providers/qwen.js');
+        provider = new QwenProvider(providerConfig);
+        break;
+
+      case 'minimax':
+        const { MiniMaxProvider } = await import('../providers/minimax.js');
+        provider = new MiniMaxProvider(providerConfig);
+        break;
+
+      case 'ollama':
+        const { OllamaProvider } = await import('../providers/ollama.js');
+        provider = new OllamaProvider(providerConfig);
         break;
         
       case 'nim':
@@ -106,6 +136,33 @@ export class ProviderManager {
 
   getAvailableProviders(): string[] {
     return Array.from(this.providers.keys());
+  }
+
+  /** Map a provider name to the environment variables that can supply its API key. */
+  private static readonly ENV_KEYS: Record<string, string[]> = {
+    echoai: ['ECHOAI_API_KEY'],
+    deepseek: ['DEEPSEEK_API_KEY'],
+    kimi: ['KIMI_API_KEY', 'MOONSHOT_API_KEY'],
+    zhipu: ['ZHIPU_API_KEY', 'GLM_API_KEY'],
+    glm: ['ZHIPU_API_KEY', 'GLM_API_KEY'],
+    qwen: ['QWEN_API_KEY', 'DASHSCOPE_API_KEY'],
+    dashscope: ['QWEN_API_KEY', 'DASHSCOPE_API_KEY'],
+    minimax: ['MINIMAX_API_KEY'],
+    openai: ['OPENAI_API_KEY'],
+    claude: ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY'],
+    groq: ['GROQ_API_KEY'],
+    meta: ['META_API_KEY', 'TOGETHER_API_KEY'],
+  };
+
+  private static resolveEnvApiKey(name: string): string | undefined {
+    const candidates = ProviderManager.ENV_KEYS[name.toLowerCase()] ?? [];
+    for (const envVar of candidates) {
+      const value = process.env[envVar];
+      if (value && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+    return undefined;
   }
 
   async testProvider(name: string): Promise<boolean> {

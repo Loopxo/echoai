@@ -407,7 +407,7 @@ export class OpenAIProvider extends BaseProvider {
         if (!reader) throw new Error("No response body");
 
         let fullContent = "";
-        const toolCalls: ToolCall[] = [];
+        const toolCallAccumulator = new Map<number, ToolCall>();
         const decoder = new TextDecoder();
 
         while (true) {
@@ -432,11 +432,37 @@ export class OpenAIProvider extends BaseProvider {
                             fullContent += text;
                             callback({ type: "text_delta", text });
                         }
+                        // Accumulate streamed tool-call deltas (OpenAI sends them
+                        // incrementally keyed by index).
+                        const deltaToolCalls = delta?.tool_calls as Array<Record<string, unknown>> | undefined;
+                        if (deltaToolCalls) {
+                            for (const tc of deltaToolCalls) {
+                                const index = typeof tc.index === "number" ? tc.index : 0;
+                                const fn = (tc.function as Record<string, unknown> | undefined) ?? {};
+                                const existing = toolCallAccumulator.get(index) ?? {
+                                    id: "",
+                                    type: "function" as const,
+                                    function: { name: "", arguments: "" },
+                                };
+                                if (typeof tc.id === "string") existing.id = tc.id;
+                                if (typeof fn.name === "string") existing.function.name += fn.name;
+                                if (typeof fn.arguments === "string") existing.function.arguments += fn.arguments;
+                                toolCallAccumulator.set(index, existing);
+                            }
+                        }
                     }
                 } catch {
                     // Skip malformed events
                 }
             }
+        }
+
+        const toolCalls = [...toolCallAccumulator.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([, tc]) => tc)
+            .filter((tc) => tc.id && tc.function.name);
+        for (const tc of toolCalls) {
+            callback({ type: "tool_use", toolCall: tc });
         }
 
         callback({ type: "message_end" });

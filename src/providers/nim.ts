@@ -5,7 +5,11 @@ export class NIMProvider extends OpenAIProvider {
   constructor(config: ProviderConfig) {
     super({
       ...config,
-      baseUrl: config.baseUrl || 'http://localhost:8082',
+      baseUrl:
+        config.baseUrl ||
+        process.env.NIM_BASE_URL ||
+        process.env.LOCAL_AI_BASE_URL ||
+        'http://localhost:8082',
     });
     this.name = 'nim';
     this.models = [
