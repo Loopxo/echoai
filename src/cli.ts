@@ -23,7 +23,7 @@ program
 
 program
   .argument('[prompt]', 'Direct prompt to send to AI')
-  .option('-p, --provider <provider>', 'AI provider to use (echoai, deepseek, kimi, nim, claude, openai, groq, meta)')
+  .option('-p, --provider <provider>', 'AI provider to use (echoai, deepseek, kimi, zhipu, qwen, minimax, ollama, nim, claude, openai, groq, meta)')
   .option('-m, --model <model>', 'Specific model to use')
   .option('-t, --temperature <number>', 'Temperature for generation (0-1)', parseFloat)
   .option('--max-tokens <number>', 'Maximum tokens to generate', parseInt)
@@ -67,6 +67,7 @@ const [
   { diagnoseCommand },
   { evalCommand },
   { acpCommand },
+  { orchestrateCommand },
 ] = await Promise.all([
   import('./cli/chat.js'),
   import('./cli/config.js'),
@@ -94,6 +95,7 @@ const [
   import('./cli/diagnose.js'),
   import('./cli/eval.js'),
   import('./cli/acp.js'),
+  import('./cli/orchestrate.js'),
 ]);
 
 program.addCommand(chatCommand);
@@ -129,6 +131,7 @@ program.addCommand(gatewayCommand);
 program.addCommand(memoryCommand);
 program.addCommand(channelsCommand);
 program.addCommand(skillsCommand);
+program.addCommand(orchestrateCommand);
 
 await program.parseAsync();
 
