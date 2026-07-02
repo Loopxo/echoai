@@ -10,7 +10,7 @@
  * - Media attachments
  */
 
-import { BaseChannel, CHANNEL_META, type ChannelConfig, type ChannelContext, type OutgoingMessage, type ChannelMeta } from "@echoai/core";
+import { BaseChannel, CHANNEL_META, type ChannelConfig, type ChannelContext, type OutgoingMessage, type ChannelMeta, type IncomingMessage } from "@echoai/core";
 
 // =============================================================================
 // Types
@@ -46,6 +46,19 @@ type SignalTarget =
     | { type: "group"; groupId: string }
     | { type: "username"; username: string };
 
+interface SignalReceiveItem {
+    envelope?: {
+        source?: string;
+        sourceNumber?: string;
+        sourceName?: string;
+        timestamp?: number;
+        dataMessage?: {
+            message?: string;
+            groupInfo?: { groupId?: string };
+        };
+    };
+}
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -61,6 +74,8 @@ export class SignalChannel extends BaseChannel {
     readonly meta: ChannelMeta = CHANNEL_META.signal;
 
     private signalConfig: SignalChannelConfig | null = null;
+    private pollTimer: ReturnType<typeof setTimeout> | null = null;
+    private polling = false;
 
     async start(config: ChannelConfig): Promise<void> {
         this.config = config;
@@ -81,6 +96,9 @@ export class SignalChannel extends BaseChannel {
             }
             console.log(`[signal] Connected to ${this.signalConfig.baseUrl} as ${this.signalConfig.account}`);
             this.status = { connected: true, authenticated: true, lastActivity: Date.now() };
+            // Begin polling for inbound messages.
+            this.polling = true;
+            this.scheduleReceive(0);
         } catch (error) {
             console.error("[signal] Connection failed:", error);
             throw error;
@@ -88,9 +106,67 @@ export class SignalChannel extends BaseChannel {
     }
 
     async stop(): Promise<void> {
+        this.polling = false;
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+            this.pollTimer = null;
+        }
         this.signalConfig = null;
         this.status = { connected: false, authenticated: false };
         console.log("[signal] Disconnected");
+    }
+
+    // =============================================================================
+    // Inbound receive loop (signal-cli REST GET /v1/receive/{account})
+    // =============================================================================
+
+    private scheduleReceive(delayMs: number): void {
+        if (!this.polling) return;
+        this.pollTimer = setTimeout(() => {
+            void this.receiveOnce().finally(() => {
+                const interval = (this.signalConfig as SignalChannelConfig & { pollIntervalMs?: number })?.pollIntervalMs ?? 2000;
+                this.scheduleReceive(interval);
+            });
+        }, delayMs);
+    }
+
+    private async receiveOnce(): Promise<void> {
+        if (!this.signalConfig || !this.polling) return;
+        const { baseUrl, account } = this.signalConfig;
+        try {
+            const response = await fetch(`${baseUrl}/v1/receive/${encodeURIComponent(account)}`, {
+                method: "GET",
+                signal: AbortSignal.timeout(30000),
+            });
+            if (!response.ok) return;
+            const items = (await response.json()) as SignalReceiveItem[];
+            if (!Array.isArray(items)) return;
+            for (const item of items) {
+                const message = this.toIncomingMessage(item);
+                if (message) await this.handleIncomingMessage(message);
+            }
+        } catch {
+            // Network blip / timeout — next tick will retry.
+        }
+    }
+
+    private toIncomingMessage(item: SignalReceiveItem): IncomingMessage | null {
+        const envelope = item?.envelope;
+        const dataMessage = envelope?.dataMessage;
+        const text = dataMessage?.message;
+        if (!envelope || !text) return null;
+        const groupId = dataMessage?.groupInfo?.groupId;
+        return {
+            id: `signal_${envelope.timestamp ?? Date.now()}`,
+            channelId: "signal",
+            senderId: envelope.sourceNumber || envelope.source || "unknown",
+            senderName: envelope.sourceName,
+            text,
+            timestamp: envelope.timestamp ?? Date.now(),
+            isGroup: Boolean(groupId),
+            groupId: groupId ?? undefined,
+            raw: item,
+        };
     }
 
     async send(target: string, message: OutgoingMessage, context?: ChannelContext): Promise<void> {

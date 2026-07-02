@@ -7,7 +7,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 
-export interface WebChannelConfig { port?: number; apiPath?: string; staticDir?: string; }
+export interface WebChannelConfig { port?: number; apiPath?: string; staticDir?: string; persistDir?: string; }
 export interface WebMessage { id: string; sessionId: string; content: string; role: "user" | "assistant"; timestamp: number; }
 export interface WebSession { id: string; messages: WebMessage[]; createdAt: number; updatedAt: number; }
 
@@ -15,19 +15,49 @@ export class WebChannel extends EventEmitter {
     private config: WebChannelConfig;
     private server?: ReturnType<typeof createServer>;
     private sessions: Map<string, WebSession> = new Map();
+    private persistFile?: string;
 
     constructor(config: WebChannelConfig = {}) {
         super();
         this.config = { port: config.port || 3000, apiPath: config.apiPath || "/api/chat", ...config };
+        if (this.config.persistDir) {
+            this.persistFile = path.join(this.config.persistDir, "web-channel-sessions.json");
+        }
     }
 
     async start(): Promise<void> {
+        this.loadSessions();
         this.server = createServer((req, res) => this.handleRequest(req, res));
         this.server.listen(this.config.port);
         this.emit("ready", this.config.port);
     }
 
-    async stop(): Promise<void> { this.server?.close(); }
+    async stop(): Promise<void> {
+        this.persistSessions();
+        this.server?.close();
+    }
+
+    private loadSessions(): void {
+        if (!this.persistFile) return;
+        try {
+            if (fs.existsSync(this.persistFile)) {
+                const data = JSON.parse(fs.readFileSync(this.persistFile, "utf8")) as WebSession[];
+                for (const session of data) this.sessions.set(session.id, session);
+            }
+        } catch {
+            // Corrupt or unreadable persistence file; start fresh.
+        }
+    }
+
+    private persistSessions(): void {
+        if (!this.persistFile) return;
+        try {
+            fs.mkdirSync(path.dirname(this.persistFile), { recursive: true });
+            fs.writeFileSync(this.persistFile, JSON.stringify([...this.sessions.values()], null, 2));
+        } catch {
+            // Best-effort persistence; ignore write errors.
+        }
+    }
 
     private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
         res.setHeader("Access-Control-Allow-Origin", "*");
@@ -76,13 +106,19 @@ export class WebChannel extends EventEmitter {
 
         const assistantMsg: WebMessage = { id: randomUUID(), sessionId, content: response, role: "assistant", timestamp: Date.now() };
         session.messages.push(assistantMsg);
+        session.updatedAt = Date.now();
+        this.persistSessions();
 
         res.setHeader("Content-Type", "application/json");
         res.end(JSON.stringify({ sessionId, message: assistantMsg }));
     }
 
     getSession(sessionId: string): WebSession | undefined { return this.sessions.get(sessionId); }
-    clearSession(sessionId: string): boolean { return this.sessions.delete(sessionId); }
+    clearSession(sessionId: string): boolean {
+        const deleted = this.sessions.delete(sessionId);
+        if (deleted) this.persistSessions();
+        return deleted;
+    }
 
     private getDefaultHtml(): string {
         return `<!DOCTYPE html><html><head><title>EchoAI Chat</title><style>
