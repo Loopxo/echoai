@@ -17,6 +17,7 @@
     },
     "dependencies": {
         "@echoai/core": "^1.0.0",
+        "@echoai/pairing": "^1.0.0",
         "@hono/node-server": "^1.13.0",
         "hono": "^4.0.0",
         "ws": "^8.18.0"

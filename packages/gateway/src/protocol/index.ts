@@ -57,6 +57,13 @@ export const ErrorCodes = {
 // =============================================================================
 
 export const GatewayMethods = {
+    // Auth & pairing methods
+    AUTH_AUTHENTICATE: "auth.authenticate",
+    AUTH_PAIR_START: "auth.pair.start",
+    AUTH_PAIR_COMPLETE: "auth.pair.complete",
+    DEVICE_LIST: "device.list",
+    DEVICE_UNPAIR: "device.unpair",
+
     // Chat methods
     CHAT_SEND: "chat.send",
     CHAT_ABORT: "chat.abort",
