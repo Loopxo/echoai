@@ -1,0 +1,59 @@
+name: Coding Evals
+
+on:
+  schedule:
+    # Nightly at 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'Provider to benchmark (deepseek, kimi, zhipu, qwen, minimax)'
+        required: false
+        default: 'deepseek'
+
+jobs:
+  eval-smoke:
+    name: Eval harness smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      # Always-on smoke: verifies the harness loads tasks without needing keys.
+      - name: Eval list (smoke)
+        run: node dist/cli.js eval list
+
+      # Full run only when a provider key secret is available.
+      - name: Full eval run (DeepSeek)
+        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          node dist/cli.js eval run --all --agent echoai-deepseek \
+            --command "node dist/cli.js chat \"$ECHOAI_EVAL_PROMPT\" --provider deepseek" || true
+          node dist/cli.js eval report || true
+
+      - name: Upload eval runs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-runs
+          path: evals/runs/
+          if-no-files-found: ignore
