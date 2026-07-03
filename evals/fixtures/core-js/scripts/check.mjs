@@ -131,6 +131,39 @@ switch (task) {
     assert.equal(math.median([1, 9, 3]), 3);
     break;
   }
+  case 'eval-feature-math-clamp':
+    assert.equal(math.clamp(5, 0, 10), 5);
+    assert.equal(math.clamp(-1, 0, 10), 0);
+    assert.equal(math.clamp(99, 0, 10), 10);
+    break;
+  case 'eval-feature-format-truncate':
+    assert.equal(format.truncate('hello world', 5), 'hell\u2026');
+    assert.equal(format.truncate('hi', 5), 'hi');
+    break;
+  case 'eval-feature-todo-toggle': {
+    const input = [{ id: '1', completed: false }, { id: '2', completed: true }];
+    const output = todos.toggleTodo(input, '1');
+    assert.notEqual(output, input);
+    assert.equal(input[0].completed, false);
+    assert.equal(output[0].completed, true);
+    assert.equal(output[1].completed, true);
+    break;
+  }
+  case 'eval-feature-cache-keys': {
+    const cache = createCache();
+    cache.set('a', 1);
+    cache.set('b', 2, -1);
+    const keys = cache.keys();
+    assert.ok(keys.includes('a'));
+    assert.ok(!keys.includes('b'));
+    break;
+  }
+  case 'eval-refactor-config-merge': {
+    const merged = config.mergeConfig({ provider: 'deepseek', budgetUsd: 5 }, { budgetUsd: 12 });
+    assert.deepEqual(merged, { provider: 'deepseek', budgetUsd: 12 });
+    assert.throws(() => config.mergeConfig({ provider: 'deepseek', budgetUsd: 5 }, { budgetUsd: 0 }), /budget/i);
+    break;
+  }
   default:
     throw new Error(`Unknown ECHOAI_EVAL_TASK_ID: ${task}`);
 }

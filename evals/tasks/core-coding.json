@@ -238,5 +238,65 @@
     "maxTurns": 9,
     "expected": { "files": ["src/math.js"], "requiredDiffHints": ["median"] },
     "scoring": ["tests pass", "does not mutate input", "handles even length"]
+  },
+  {
+    "id": "eval-feature-math-clamp",
+    "title": "Add clamp helper",
+    "category": "feature",
+    "fixture": "evals/fixtures/core-js",
+    "prompt": "Add clamp(value, min, max) to src/math.js. It should return value bounded to the [min, max] range.",
+    "testCommand": "node scripts/check.mjs",
+    "maxCostUsd": 0.05,
+    "maxTurns": 8,
+    "expected": { "files": ["src/math.js"], "requiredDiffHints": ["clamp"] },
+    "scoring": ["tests pass", "bounds correctly", "minimal diff"]
+  },
+  {
+    "id": "eval-feature-format-truncate",
+    "title": "Add truncate helper",
+    "category": "feature",
+    "fixture": "evals/fixtures/core-js",
+    "prompt": "Add truncate(text, max) to src/format.js. If text is longer than max, return the first max-1 characters followed by an ellipsis character; otherwise return text unchanged.",
+    "testCommand": "node scripts/check.mjs",
+    "maxCostUsd": 0.06,
+    "maxTurns": 8,
+    "expected": { "files": ["src/format.js"], "requiredDiffHints": ["truncate"] },
+    "scoring": ["tests pass", "handles short strings", "adds ellipsis"]
+  },
+  {
+    "id": "eval-feature-todo-toggle",
+    "title": "Add immutable todo toggle",
+    "category": "feature",
+    "fixture": "evals/fixtures/core-js",
+    "prompt": "Add toggleTodo(todos, id) to src/todo-store.js. It should return a new array with the matching todo's completed flag flipped, without mutating the input.",
+    "testCommand": "node scripts/check.mjs",
+    "maxCostUsd": 0.06,
+    "maxTurns": 8,
+    "expected": { "files": ["src/todo-store.js"], "requiredDiffHints": ["toggleTodo"] },
+    "scoring": ["tests pass", "no mutation", "flips completed"]
+  },
+  {
+    "id": "eval-feature-cache-keys",
+    "title": "Add cache keys listing",
+    "category": "feature",
+    "fixture": "evals/fixtures/core-js",
+    "prompt": "Add a keys() method to createCache in src/cache.js. It should return an array of keys for entries that have not expired.",
+    "testCommand": "node scripts/check.mjs",
+    "maxCostUsd": 0.06,
+    "maxTurns": 8,
+    "expected": { "files": ["src/cache.js"], "requiredDiffHints": ["keys"] },
+    "scoring": ["tests pass", "excludes expired", "keeps set/get behavior"]
+  },
+  {
+    "id": "eval-refactor-config-merge",
+    "title": "Add config merge",
+    "category": "refactor",
+    "fixture": "evals/fixtures/core-js",
+    "prompt": "Add mergeConfig(base, override) to src/config.js. It should merge override onto base and return a validated config via validateConfig.",
+    "testCommand": "node scripts/check.mjs",
+    "maxCostUsd": 0.07,
+    "maxTurns": 9,
+    "expected": { "files": ["src/config.js"], "requiredDiffHints": ["mergeConfig"] },
+    "scoring": ["tests pass", "override wins", "validates result"]
   }
 ]
