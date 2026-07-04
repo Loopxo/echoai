@@ -26,6 +26,24 @@ EchoAI combines a terminal-first developer workflow with an AI-native runtime:
 - LSP-backed diagnostics, definitions, references, and workspace symbols with ripgrep fallbacks
 - VS Code extension for editor-triggered EchoAI workflows
 
+
+## Workspace
+- Package manager: `pnpm`
+- Install dependencies with: `pnpm install`
+
+## Verification
+- Type check: `pnpm type-check`
+- Lint: `pnpm lint`
+- Test: `pnpm test`
+- Build: `pnpm build`
+
+## Agent Rules
+- Inspect existing patterns before editing.
+- Keep changes scoped to the user request.
+- Ask before running commands that install dependencies, publish packages, push git history, or access the network.
+- Show a concise summary of changed files and verification results before finishing.
+
+
 ## Architecture Highlights
 
 ### Runtime Kernel
@@ -81,6 +99,35 @@ echoai config setup
 echoai chat --provider deepseek
 echoai chat --provider kimi
 ```
+
+## Quickstart for Students (cheap / free models)
+
+EchoAI is built to run capable coding agents on inexpensive Chinese models so it
+stays affordable. You can use it 100% locally with your own key — no hosted
+account or credit card required.
+
+Supported low-cost providers: `deepseek`, `kimi`, `zhipu` (GLM), `qwen`, `minimax`.
+
+```bash
+# 1. Install
+npm install -g echoai
+
+# 2. Set a provider key (any one of these env vars works)
+export DEEPSEEK_API_KEY=...     # or ZHIPU_API_KEY / QWEN_API_KEY / MINIMAX_API_KEY / KIMI_API_KEY
+
+# 3. Code
+echoai "Add input validation to src/server.ts" --provider deepseek
+
+# 4. Run multiple agents in parallel on a bigger task
+echoai orchestrate "Add pagination to the users API and write tests" --verify "pnpm test"
+```
+
+GLM ships a free/low-cost `glm-4-flash` tier and DeepSeek/Qwen have very cheap
+tiers — ideal when you can't afford frontier API pricing.
+
+For how the open-source CLI relates to the optional hosted service, see
+[docs/OPEN-SOURCE-VS-HOSTED.md](docs/OPEN-SOURCE-VS-HOSTED.md). For a system
+overview, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Local development install:
 
