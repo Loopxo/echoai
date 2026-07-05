@@ -1,0 +1,156 @@
+/**
+ * EchoAI Design Tokens — the single source of brand truth across all surfaces.
+ *
+ * Consume by importing "@echoai/design/tokens.css" once at the app root, then
+ * reference the semantic tokens (var(--ec-...)) in component styles.
+ *
+ * Themes: default is dark; set data-theme="light" on :root (or any ancestor)
+ * to switch. prefers-color-scheme is respected when no explicit theme is set.
+ */
+
+:root {
+  /* ---- Brand scale (teal) ---- */
+  --ec-brand-50: #ecfdf7;
+  --ec-brand-100: #d1faec;
+  --ec-brand-200: #a7f3d8;
+  --ec-brand-300: #6ee7bf;
+  --ec-brand-400: #34d399;
+  --ec-brand-500: #10b981;
+  --ec-brand-600: #059669;
+  --ec-brand-700: #047857;
+  --ec-brand-800: #065f46;
+  --ec-brand-900: #064e3b;
+
+  /* ---- Neutral scale ---- */
+  --ec-neutral-0: #ffffff;
+  --ec-neutral-50: #f6f8f8;
+  --ec-neutral-100: #eceff0;
+  --ec-neutral-200: #d6dddd;
+  --ec-neutral-300: #b4c0c0;
+  --ec-neutral-400: #8a9a9a;
+  --ec-neutral-500: #647575;
+  --ec-neutral-600: #495858;
+  --ec-neutral-700: #313e3e;
+  --ec-neutral-800: #1d2727;
+  --ec-neutral-900: #121a1a;
+  --ec-neutral-950: #0b1111;
+
+  /* ---- Accent (amber) + status ---- */
+  --ec-amber-400: #f5c451;
+  --ec-amber-500: #e6a82e;
+  --ec-success: #22c55e;
+  --ec-warning: #f59e0b;
+  --ec-danger: #ef4444;
+  --ec-info: #38bdf8;
+
+  /* ---- Typography ---- */
+  --ec-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ec-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --ec-text-xs: 11px;
+  --ec-text-sm: 12px;
+  --ec-text-base: 14px;
+  --ec-text-md: 16px;
+  --ec-text-lg: 20px;
+  --ec-text-xl: 26px;
+  --ec-text-2xl: 34px;
+  --ec-leading: 1.5;
+  --ec-weight-regular: 450;
+  --ec-weight-medium: 560;
+  --ec-weight-bold: 720;
+
+  /* ---- Spacing (4px base) ---- */
+  --ec-space-1: 4px;
+  --ec-space-2: 8px;
+  --ec-space-3: 12px;
+  --ec-space-4: 16px;
+  --ec-space-5: 24px;
+  --ec-space-6: 32px;
+  --ec-space-7: 48px;
+
+  /* ---- Radius ---- */
+  --ec-radius-sm: 6px;
+  --ec-radius-md: 10px;
+  --ec-radius-lg: 14px;
+  --ec-radius-full: 999px;
+
+  /* ---- Motion ---- */
+  --ec-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ec-dur-fast: 120ms;
+  --ec-dur-base: 200ms;
+  --ec-dur-slow: 320ms;
+
+  /* ---- Shadows ---- */
+  --ec-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --ec-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.28);
+  --ec-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.40);
+}
+
+/* ---- Dark theme (default) ---- */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ec-bg: var(--ec-neutral-950);
+  --ec-surface: #101a1a;
+  --ec-surface-2: #16201f;
+  --ec-surface-3: #1d2a29;
+  --ec-line: #26363a;
+  --ec-text: #eef6f4;
+  --ec-text-muted: #9db2b0;
+  --ec-text-subtle: #6c807e;
+  --ec-accent: var(--ec-brand-400);
+  --ec-accent-contrast: #04201a;
+  --ec-accent-hover: var(--ec-brand-300);
+  --ec-focus: var(--ec-brand-400);
+  --ec-code-bg: #0c1413;
+}
+
+/* ---- Light theme ---- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ec-bg: var(--ec-neutral-50);
+  --ec-surface: #ffffff;
+  --ec-surface-2: #eef3f2;
+  --ec-surface-3: #e3eae8;
+  --ec-line: #d5dfdc;
+  --ec-text: #14201e;
+  --ec-text-muted: #566a67;
+  --ec-text-subtle: #7c908d;
+  --ec-accent: var(--ec-brand-600);
+  --ec-accent-contrast: #ffffff;
+  --ec-accent-hover: var(--ec-brand-700);
+  --ec-focus: var(--ec-brand-600);
+  --ec-code-bg: #f1f5f4;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+    color-scheme: light;
+    --ec-bg: var(--ec-neutral-50);
+    --ec-surface: #ffffff;
+    --ec-surface-2: #eef3f2;
+    --ec-surface-3: #e3eae8;
+    --ec-line: #d5dfdc;
+    --ec-text: #14201e;
+    --ec-text-muted: #566a67;
+    --ec-text-subtle: #7c908d;
+    --ec-accent: var(--ec-brand-600);
+    --ec-accent-contrast: #ffffff;
+    --ec-accent-hover: var(--ec-brand-700);
+    --ec-focus: var(--ec-brand-600);
+    --ec-code-bg: #f1f5f4;
+  }
+}
+
+/* ---- Shared accessible focus ring ---- */
+.ec-focusable:focus-visible,
+[data-ec-focus]:focus-visible {
+  outline: 2px solid var(--ec-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
