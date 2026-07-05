@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { Markdown, DiffView, Icon, DesignKeyframes } from '@echoai/design';
 import { MarketWorkbench } from './MarketWorkbench';
 import type {
   DesktopAppSnapshot,
@@ -107,10 +108,52 @@ const pageDescriptions: Record<Page, string> = {
   Settings: 'Controls',
 };
 
+/** Panels rendered on each page. Home is the multi-panel command center. */
+type PanelKey =
+  | 'workspace'
+  | 'recent'
+  | 'updates'
+  | 'account'
+  | 'workbench'
+  | 'webapp'
+  | 'runtime'
+  | 'files'
+  | 'terminal'
+  | 'tooling'
+  | 'gateway'
+  | 'activity';
+
+const PAGE_PANELS: Record<Page, PanelKey[]> = {
+  Home: ['workspace', 'recent', 'updates', 'account', 'workbench'],
+  Web: ['webapp'],
+  Chat: ['runtime'],
+  Workspace: ['workspace', 'files'],
+  Files: ['files'],
+  Tasks: ['terminal'],
+  Trace: ['activity'],
+  Terminal: ['terminal'],
+  Browser: ['tooling'],
+  Canvas: ['tooling'],
+  Sessions: ['runtime'],
+  Artifacts: ['files'],
+  Memory: ['webapp'],
+  Skills: ['tooling'],
+  MCP: ['tooling'],
+  Automations: ['gateway'],
+  Devices: ['gateway'],
+  Channels: ['gateway'],
+  Settings: ['account', 'updates', 'gateway'],
+};
+
+function panelsForPage(page: Page): Set<PanelKey> {
+  return new Set(PAGE_PANELS[page]);
+}
+
 const routeByPage = new Map<Page, string>(pages.map((page) => [page, `/${page.toLowerCase()}`]));
 
 export function App(): ReactElement {
   const [activePage, setActivePage] = useState<Page>('Home');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [snapshot, setSnapshot] = useState<DesktopAppSnapshot | null>(null);
   const [workbench, setWorkbench] = useState<DesktopWorkbenchSnapshot | null>(null);
   const [workspace, setWorkspace] = useState<WorkspaceSelection | null>(null);
@@ -833,6 +876,14 @@ export function App(): ReactElement {
     setPaletteQuery('');
   }
 
+  // Map each page to the panels it shows. Home is a multi-panel command
+  // center; every other page is a focused single-purpose view.
+  const visiblePanels = panelsForPage(activePage);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
   return (
     <div className="desktop-shell">
       <aside className="sidebar" aria-label="EchoAI navigation">
@@ -894,18 +945,29 @@ export function App(): ReactElement {
             <h1>{activePage}</h1>
             <p>{pageDescriptions[activePage]}</p>
           </div>
-          <button
-            className="primary-button"
-            disabled={isSelectingWorkspace}
-            onClick={selectWorkspace}
-            type="button"
-          >
-            {isSelectingWorkspace ? 'Opening...' : workspace ? 'Change workspace' : 'Select workspace'}
-          </button>
+          <div className="top-bar-actions">
+            <button
+              className="theme-toggle ec-focusable"
+              aria-label="Toggle theme"
+              title="Toggle light / dark"
+              onClick={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
+              type="button"
+            >
+              <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
+            </button>
+            <button
+              className="primary-button"
+              disabled={isSelectingWorkspace}
+              onClick={selectWorkspace}
+              type="button"
+            >
+              {isSelectingWorkspace ? 'Opening...' : workspace ? 'Change workspace' : 'Select workspace'}
+            </button>
+          </div>
         </header>
 
-        <section className="content-grid">
-          <div className="workspace-panel">
+        <section className="content-grid" data-active={activePage.toLowerCase()}>
+          <div className="workspace-panel" hidden={!visiblePanels.has('workspace')}>
             <div className="panel-kicker">Workspace</div>
             <div className="workspace-path">{workspace?.path ?? 'None selected'}</div>
             <div className="metric-row">
@@ -915,7 +977,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="secondary-panel">
+          <div className="secondary-panel" hidden={!visiblePanels.has('recent')}>
             <div className="panel-kicker">Recent</div>
             <div className="recent-list">
               {recentWorkspaces.length === 0 ? (
@@ -936,7 +998,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="updates-panel">
+          <div className="updates-panel" hidden={!visiblePanels.has('updates')}>
             <div>
               <div className="panel-kicker">Updates</div>
               <div className="update-state">{formatUpdateState(updateStatus)}</div>
@@ -962,7 +1024,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="account-panel">
+          <div className="account-panel" hidden={!visiblePanels.has('account')}>
             <div>
               <div className="panel-kicker">Account</div>
               <div className="account-line">
@@ -1016,6 +1078,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
+          <div className="workbench-host" hidden={!visiblePanels.has('workbench')}>
           <MarketWorkbench
             snapshot={workbench}
             onAddMemory={addWorkbenchMemory}
@@ -1029,8 +1092,9 @@ export function App(): ReactElement {
             onSearchMemory={searchWorkbenchMemory}
             onStartWorkflow={startWorkbenchWorkflow}
           />
+          </div>
 
-          <div className="webapp-panel">
+          <div className="webapp-panel" hidden={!visiblePanels.has('webapp')}>
             <div className="panel-header">
               <div>
                 <div className="panel-kicker">Web In Electron</div>
@@ -1205,7 +1269,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="runtime-panel">
+          <div className="runtime-panel" hidden={!visiblePanels.has('runtime')}>
             <div className="panel-header">
               <div>
                 <div className="panel-kicker">Chat</div>
@@ -1272,7 +1336,11 @@ export function App(): ReactElement {
                         ) : null}
                       </div>
                     </header>
-                    <p>{message.content}</p>
+                    {message.role === 'user' ? (
+                      <p>{message.content}</p>
+                    ) : (
+                      <Markdown content={message.content} />
+                    )}
                   </article>
                 ))
               )}
@@ -1308,7 +1376,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="files-panel">
+          <div className="files-panel" hidden={!visiblePanels.has('files')}>
             <div className="panel-header">
               <div>
                 <div className="panel-kicker">Workspace Files</div>
@@ -1381,7 +1449,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="terminal-panel">
+          <div className="terminal-panel" hidden={!visiblePanels.has('terminal')}>
             <div className="panel-header">
               <div>
                 <div className="panel-kicker">Terminal</div>
@@ -1422,11 +1490,17 @@ export function App(): ReactElement {
                   ))
                 )}
               </div>
-              <pre className="terminal-log">{terminalLog || 'Select a task log'}</pre>
+              {/git diff|^diff --git|\n@@ |^@@ /.test(terminalLog) ? (
+                <div className="terminal-diff">
+                  <DiffView unified={terminalLog} fileName="git diff" />
+                </div>
+              ) : (
+                <pre className="terminal-log">{terminalLog || 'Select a task log'}</pre>
+              )}
             </div>
           </div>
 
-          <div className="tooling-panel">
+          <div className="tooling-panel" hidden={!visiblePanels.has('tooling')}>
             <div className="panel-header">
               <div>
                 <div className="panel-kicker">Tools</div>
@@ -1459,7 +1533,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="gateway-panel">
+          <div className="gateway-panel" hidden={!visiblePanels.has('gateway')}>
             <div className="panel-header">
               <div>
                 <div className="panel-kicker">Remote & Privacy</div>
@@ -1666,7 +1740,7 @@ export function App(): ReactElement {
             </div>
           </div>
 
-          <div className="activity-panel">
+          <div className="activity-panel" hidden={!visiblePanels.has('activity')}>
             <div className="panel-header">
               <div>
                 <div className="panel-kicker">Logs</div>
@@ -1707,6 +1781,7 @@ export function App(): ReactElement {
         </footer>
       </main>
 
+      <DesignKeyframes />
       <NotificationStack notifications={notifications} />
 
       {isPaletteOpen ? (

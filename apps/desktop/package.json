@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@echoai/runtime": "workspace:*",
+    "@echoai/design": "workspace:*",
     "react": "^19.2.4",
     "electron-updater": "^6.6.8",
     "react-dom": "^19.2.4"

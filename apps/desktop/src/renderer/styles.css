@@ -1963,3 +1963,265 @@ button {
     grid-column: span 1;
   }
 }
+
+/* =============================================================================
+   Enterprise polish layer
+   - page routing (hidden attribute is authoritative)
+   - focused single-purpose pages vs. the Home command center
+   - motion, focus rings, refined scrollbars, selection
+   ============================================================================= */
+
+[hidden] {
+  display: none !important;
+}
+
+/* Focused pages render a single, centered column; Home keeps the dense grid. */
+.content-grid:not([data-active="home"]) {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1040px;
+}
+
+/* Smooth, intentional motion on page/panel entrance. */
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-grid > *:not([hidden]) {
+  animation: panel-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Interactive elements get a consistent, calm transition. */
+.nav-item,
+.recent-item,
+.palette-button,
+.message-card,
+.update-actions button,
+.account-actions button,
+.webapp-actions button,
+.small-action {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.nav-item:hover {
+  transform: translateX(2px);
+}
+
+.nav-item.active {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Accessible focus ring across the app. */
+:focus-visible {
+  outline: 2px solid #e7b366;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Refined, unobtrusive scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 110, 95, 0.4) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(120, 110, 95, 0.35);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 110, 95, 0.55);
+  background-clip: padding-box;
+}
+
+::selection {
+  background: rgba(231, 179, 102, 0.35);
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  .content-grid > *:not([hidden]),
+  .nav-item,
+  .recent-item,
+  .palette-button,
+  .message-card,
+  button {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Top-bar actions + theme toggle */
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd6ca;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #5a5347;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: #241a0f;
+}
+
+.terminal-diff {
+  max-height: 420px;
+  overflow: auto;
+}
+
+/* =============================================================================
+   Desktop dark theme — activated via [data-theme="dark"].
+   Re-maps the warm-light surfaces to a calm dark palette aligned with the
+   shared @echoai/design brand.
+   ============================================================================= */
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root {
+  color: #eef6f4;
+}
+
+:root[data-theme="dark"] .desktop-shell {
+  background: #0b1111;
+}
+
+:root[data-theme="dark"] .sidebar {
+  background: #0f1817;
+  border-right-color: #1f2d2c;
+  color: #dfeae8;
+}
+
+:root[data-theme="dark"] .brand-mark {
+  background: #10231d;
+  border-color: #1f4a3e;
+  color: #6ee7bf;
+}
+
+:root[data-theme="dark"] .brand-subtitle,
+:root[data-theme="dark"] .nav-item {
+  color: #b6c5c2;
+}
+
+:root[data-theme="dark"] .nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .nav-item.active {
+  background: #34d399;
+  color: #04201a;
+}
+
+:root[data-theme="dark"] .main-surface,
+:root[data-theme="dark"] .top-bar,
+:root[data-theme="dark"] .title-bar {
+  background: #0b1111;
+  color: #eef6f4;
+}
+
+:root[data-theme="dark"] .top-bar h1,
+:root[data-theme="dark"] .workspace-path,
+:root[data-theme="dark"] .metric strong,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] strong {
+  color: #eef6f4;
+}
+
+:root[data-theme="dark"] .top-bar p,
+:root[data-theme="dark"] .panel-kicker,
+:root[data-theme="dark"] .metric span,
+:root[data-theme="dark"] small,
+:root[data-theme="dark"] .empty-row {
+  color: #9db2b0;
+}
+
+:root[data-theme="dark"] .workspace-panel,
+:root[data-theme="dark"] .secondary-panel,
+:root[data-theme="dark"] .updates-panel,
+:root[data-theme="dark"] .account-panel,
+:root[data-theme="dark"] .webapp-panel,
+:root[data-theme="dark"] .runtime-panel,
+:root[data-theme="dark"] .files-panel,
+:root[data-theme="dark"] .terminal-panel,
+:root[data-theme="dark"] .tooling-panel,
+:root[data-theme="dark"] .gateway-panel,
+:root[data-theme="dark"] .activity-panel,
+:root[data-theme="dark"] .webapp-section,
+:root[data-theme="dark"] .gateway-section,
+:root[data-theme="dark"] .section-list,
+:root[data-theme="dark"] .message-card,
+:root[data-theme="dark"] .workbench-host {
+  background: #101a1a;
+  border-color: #233333;
+  color: #eef6f4;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .terminal-log,
+:root[data-theme="dark"] pre {
+  background: #0c1413;
+  border-color: #233333;
+  color: #eef6f4;
+}
+
+:root[data-theme="dark"] button:not(.nav-item):not(.primary-button):not(.theme-toggle) {
+  background: #16201f;
+  border-color: #233333;
+  color: #dfeae8;
+}
+
+:root[data-theme="dark"] .primary-button {
+  background: #34d399;
+  color: #04201a;
+}
+
+:root[data-theme="dark"] .theme-toggle {
+  background: #16201f;
+  border-color: #233333;
+  color: #dfeae8;
+}
+
+:root[data-theme="dark"] .status-bar {
+  background: #0f1817;
+  border-top-color: #1f2d2c;
+  color: #9db2b0;
+}
+
+:root[data-theme="dark"] .command-palette,
+:root[data-theme="dark"] .onboarding-panel,
+:root[data-theme="dark"] .toast {
+  background: #101a1a;
+  border-color: #233333;
+  color: #eef6f4;
+}
