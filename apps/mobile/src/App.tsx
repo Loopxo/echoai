@@ -1,7 +1,7 @@
 import React from "react";
-import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 
-import { createEchoAIMobileClient } from "./api";
+import { AppProvider, useAppState, type RouteKey } from "./state/AppState";
 import { AccountScreen } from "./screens/AccountScreen";
 import { ApprovalDecisionScreen } from "./screens/ApprovalDecisionScreen";
 import { ApprovalDetailsScreen } from "./screens/ApprovalDetailsScreen";
@@ -73,86 +73,147 @@ import { WakeDesktopScreen } from "./screens/WakeDesktopScreen";
 import { WebHandoffScreen } from "./screens/WebHandoffScreen";
 import { WorkspaceSwitcher } from "./screens/WorkspaceSwitcher";
 
-const clientFactoryReady = typeof createEchoAIMobileClient === "function";
+const TABS: Array<{ key: RouteKey; label: string }> = [
+  { key: "home", label: "Home" },
+  { key: "chats", label: "Chats" },
+  { key: "new", label: "New" },
+  { key: "settings", label: "Settings" },
+  { key: "more", label: "More" },
+];
 
-export default function App() {
+function TabBar() {
+  const { route, navigate } = useAppState();
+  return (
+    <View style={styles.tabBar}>
+      {TABS.map((tab) => (
+        <Pressable key={tab.key} style={route === tab.key ? styles.tabActive : styles.tab} onPress={() => navigate(tab.key)}>
+          <Text style={route === tab.key ? styles.tabTextActive : styles.tabText}>{tab.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function CurrentScreen() {
+  const { route, navigate, goBack, clientReady, sessions, openSession } = useAppState();
+
+  switch (route) {
+    case "home":
+      return <HomeScreen apiReady={clientReady} />;
+    case "chats":
+      return <ChatListScreen sessions={sessions} onOpenSession={openSession} />;
+    case "new":
+      return <NewChatScreen onStart={() => navigate("chats")} />;
+    case "settings":
+      return <SettingsHomeScreen onOpenSection={() => navigate("more")} />;
+    case "chatDetail":
+      return (
+        <View style={styles.stack}>
+          <Pressable style={styles.back} onPress={goBack}>
+            <Text style={styles.backText}>{"< Back"}</Text>
+          </Pressable>
+          <ChatDetailScreen />
+        </View>
+      );
+    case "more":
+    default:
+      return <Gallery />;
+  }
+}
+
+/** Full screen gallery — every implemented surface, reachable from the More tab. */
+function Gallery() {
+  return (
+    <View style={styles.gallery}>
+      <SignInScreen redirectUri="echoai://auth/mobile-complete" />
+      <AccountScreen />
+      <WorkspaceSwitcher workspaces={[]} onSelect={() => undefined} />
+      <AuthAuditScreen events={[]} />
+      <GatewayDiscoveryScreen />
+      <ManualGatewayConnectScreen onConnect={() => undefined} />
+      <QrPairingScreen onPair={() => undefined} />
+      <PairApprovalScreen onCancel={() => undefined} />
+      <TlsPinningScreen onDisconnect={() => undefined} onTrustFingerprint={() => undefined} />
+      <PairedDevicesScreen devices={[]} />
+      <DeviceRevokeScreen devices={[]} onRevoke={() => undefined} />
+      <RemoteTunnelScreen tunnels={[]} onConnect={() => undefined} />
+      <ModelPickerScreen models={[]} onSelectModel={() => undefined} />
+      <ChatComposerScreen onSend={() => undefined} />
+      <StreamingResponseScreen />
+      <StopRunScreen onStop={() => undefined} />
+      <RetryEditTurnScreen onRetry={() => undefined} />
+      <AttachmentPickerScreen attachments={[]} onPick={() => undefined} onRemove={() => undefined} />
+      <ShareIntakeScreen onStartChat={() => undefined} />
+      <RunStatusScreen runs={[]} />
+      <ToolCallCardsScreen toolCalls={[]} />
+      <ApprovalInboxScreen approvals={[]} onOpenApproval={() => undefined} />
+      <ApprovalDetailsScreen />
+      <ApprovalDecisionScreen onDecide={() => undefined} />
+      <ApprovalTimeoutScreen approvals={[]} />
+      <ApprovalPushScreen onRegister={() => undefined} />
+      <SafetyWarningScreen />
+      <RemoteLogsScreen lines={[]} />
+      <DesktopSnapshotScreen />
+      <ProjectListScreen projects={[]} onOpenProject={() => undefined} />
+      <ProjectDetailScreen />
+      <FileUploadScreen uploads={[]} onPick={() => undefined} />
+      <FilePreviewScreen />
+      <CameraCaptureScreen onCapture={() => undefined} />
+      <AudioCaptureScreen onRecord={() => undefined} onTranscribe={() => undefined} />
+      <NoteListScreen notes={[]} onOpenNote={() => undefined} />
+      <NoteEditorScreen onSave={() => undefined} />
+      <MemoriesScreen memories={[]} onAdd={() => undefined} onDelete={() => undefined} onEdit={() => undefined} />
+      <MemorySuggestionsScreen suggestions={[]} onApprove={() => undefined} onDismiss={() => undefined} />
+      <DesktopHomeScreen state={{ quickActions: [] }} onAction={() => undefined} />
+      <SendToDesktopScreen onSend={() => undefined} />
+      <DesktopWorkspaceSelectorScreen workspaces={[]} onSelect={() => undefined} />
+      <DesktopTerminalRunScreen />
+      <DesktopChangedFilesScreen files={[]} />
+      <RemoteDiffApprovalScreen onDecide={() => undefined} />
+      <DesktopBrowserTaskScreen />
+      <DesktopNotificationControlsScreen onToggle={() => undefined} />
+      <WakeDesktopScreen onWake={() => undefined} />
+      <WebHandoffScreen onOpen={() => undefined} />
+      <PushToTalkScreen onStart={() => undefined} onStop={() => undefined} />
+      <IosVoiceWakeFeasibilityScreen />
+      <AndroidVoiceWakeScreen onEnable={() => undefined} />
+      <TalkModeScreen onToggle={() => undefined} />
+      <CameraContextCommandScreen onApprove={() => undefined} onDeny={() => undefined} />
+      <LocationContextCommandScreen onShare={() => undefined} />
+      <AndroidScreenCaptureScreen onStart={() => undefined} />
+      <IosScreenFlowScreen />
+      <SmsCapabilityDecisionScreen />
+      <OfflineCaptureQueueScreen items={[]} onSync={() => undefined} />
+      <ModelSettingsScreen onSelectPreference={() => undefined} />
+      <NotificationSettingsScreen onToggle={() => undefined} />
+      <PermissionDashboardScreen permissions={[]} />
+      <PrivacySettingsScreen onRequest={() => undefined} />
+      <CacheEncryptionScreen />
+      <DebugLogsScreen lines={[]} onExport={() => undefined} />
+    </View>
+  );
+}
+
+function Shell() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
       <View style={styles.app}>
         <Text style={styles.brand}>EchoAI</Text>
-        <SignInScreen redirectUri="echoai://auth/mobile-complete" />
-        <AccountScreen />
-        <WorkspaceSwitcher workspaces={[]} onSelect={() => undefined} />
-        <AuthAuditScreen events={[]} />
-        <GatewayDiscoveryScreen />
-        <ManualGatewayConnectScreen onConnect={() => undefined} />
-        <QrPairingScreen onPair={() => undefined} />
-        <PairApprovalScreen onCancel={() => undefined} />
-        <TlsPinningScreen onDisconnect={() => undefined} onTrustFingerprint={() => undefined} />
-        <PairedDevicesScreen devices={[]} />
-        <DeviceRevokeScreen devices={[]} onRevoke={() => undefined} />
-        <RemoteTunnelScreen tunnels={[]} onConnect={() => undefined} />
-        <ChatListScreen sessions={[]} onOpenSession={() => undefined} />
-        <ChatDetailScreen />
-        <NewChatScreen onStart={() => undefined} />
-        <ModelPickerScreen models={[]} onSelectModel={() => undefined} />
-        <ChatComposerScreen onSend={() => undefined} />
-        <StreamingResponseScreen />
-        <StopRunScreen onStop={() => undefined} />
-        <RetryEditTurnScreen onRetry={() => undefined} />
-        <AttachmentPickerScreen attachments={[]} onPick={() => undefined} onRemove={() => undefined} />
-        <ShareIntakeScreen onStartChat={() => undefined} />
-        <RunStatusScreen runs={[]} />
-        <ToolCallCardsScreen toolCalls={[]} />
-        <ApprovalInboxScreen approvals={[]} onOpenApproval={() => undefined} />
-        <ApprovalDetailsScreen />
-        <ApprovalDecisionScreen onDecide={() => undefined} />
-        <ApprovalTimeoutScreen approvals={[]} />
-        <ApprovalPushScreen onRegister={() => undefined} />
-        <SafetyWarningScreen />
-        <RemoteLogsScreen lines={[]} />
-        <DesktopSnapshotScreen />
-        <ProjectListScreen projects={[]} onOpenProject={() => undefined} />
-        <ProjectDetailScreen />
-        <FileUploadScreen uploads={[]} onPick={() => undefined} />
-        <FilePreviewScreen />
-        <CameraCaptureScreen onCapture={() => undefined} />
-        <AudioCaptureScreen onRecord={() => undefined} onTranscribe={() => undefined} />
-        <NoteListScreen notes={[]} onOpenNote={() => undefined} />
-        <NoteEditorScreen onSave={() => undefined} />
-        <MemoriesScreen memories={[]} onAdd={() => undefined} onDelete={() => undefined} onEdit={() => undefined} />
-        <MemorySuggestionsScreen suggestions={[]} onApprove={() => undefined} onDismiss={() => undefined} />
-        <DesktopHomeScreen state={{ quickActions: [] }} onAction={() => undefined} />
-        <SendToDesktopScreen onSend={() => undefined} />
-        <DesktopWorkspaceSelectorScreen workspaces={[]} onSelect={() => undefined} />
-        <DesktopTerminalRunScreen />
-        <DesktopChangedFilesScreen files={[]} />
-        <RemoteDiffApprovalScreen onDecide={() => undefined} />
-        <DesktopBrowserTaskScreen />
-        <DesktopNotificationControlsScreen onToggle={() => undefined} />
-        <WakeDesktopScreen onWake={() => undefined} />
-        <WebHandoffScreen onOpen={() => undefined} />
-        <PushToTalkScreen onStart={() => undefined} onStop={() => undefined} />
-        <IosVoiceWakeFeasibilityScreen />
-        <AndroidVoiceWakeScreen onEnable={() => undefined} />
-        <TalkModeScreen onToggle={() => undefined} />
-        <CameraContextCommandScreen onApprove={() => undefined} onDeny={() => undefined} />
-        <LocationContextCommandScreen onShare={() => undefined} />
-        <AndroidScreenCaptureScreen onStart={() => undefined} />
-        <IosScreenFlowScreen />
-        <SmsCapabilityDecisionScreen />
-        <OfflineCaptureQueueScreen items={[]} onSync={() => undefined} />
-        <SettingsHomeScreen onOpenSection={() => undefined} />
-        <ModelSettingsScreen onSelectPreference={() => undefined} />
-        <NotificationSettingsScreen onToggle={() => undefined} />
-        <PermissionDashboardScreen permissions={[]} />
-        <PrivacySettingsScreen onRequest={() => undefined} />
-        <CacheEncryptionScreen />
-        <DebugLogsScreen lines={[]} onExport={() => undefined} />
-        <HomeScreen apiReady={clientFactoryReady} />
+        <TabBar />
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <CurrentScreen />
+        </ScrollView>
       </View>
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <Shell />
+    </AppProvider>
   );
 }
 
@@ -170,6 +231,57 @@ const styles = StyleSheet.create({
     color: "#F7FAFC",
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  tabBar: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 12,
+  },
+  tab: {
+    borderColor: "#26313A",
+    borderRadius: 10,
+    borderWidth: 1,
+    flex: 1,
+    paddingVertical: 8,
+  },
+  tabActive: {
+    backgroundColor: "#7DD3FC",
+    borderRadius: 10,
+    flex: 1,
+    paddingVertical: 8,
+  },
+  tabText: {
+    color: "#B8C4CC",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  tabTextActive: {
+    color: "#0A1117",
+    fontSize: 12,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    gap: 14,
+    paddingBottom: 32,
+  },
+  stack: {
+    gap: 10,
+  },
+  back: {
+    alignSelf: "flex-start",
+  },
+  backText: {
+    color: "#7DD3FC",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  gallery: {
+    gap: 14,
   },
 });

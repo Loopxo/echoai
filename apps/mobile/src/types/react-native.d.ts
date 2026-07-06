@@ -35,6 +35,7 @@ declare module "react-native" {
     value?: string;
   }>;
   export const View: ComponentType<{ children?: ReactNode; style?: Style }>;
+  export const ScrollView: ComponentType<{ children?: ReactNode; style?: Style; contentContainerStyle?: Style }>;
   export const Pressable: ComponentType<{ children?: ReactNode; style?: Style; onPress?: () => void }>;
   export const Linking: {
     openURL(url: string): Promise<void>;
