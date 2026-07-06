@@ -9,6 +9,7 @@ import { clearSessionCookie, createNativeBearerToken, createSignedSession, makeS
 import { productionCredentialChecklist, requireAdapter, resolveExternalAdapters } from "@/lib/server/adapters";
 import { addIndexedFile, hardDeleteFile, searchWorkspaceKnowledge } from "@/lib/server/knowledge-service";
 import { completeWithGateway } from "@/lib/server/model-gateway-service";
+import { cloudComplete, isCloudConfigured } from "@/lib/server/echoai-cloud-client";
 import { localObjectMetadata, putLocalObject, readLocalObject } from "@/lib/server/object-storage-service";
 import { abortRun, appendUserMessage, createChatSession, forkChat, runAssistantTurn } from "@/lib/server/runtime-service";
 import { handoffToDeviceById, pairDeviceById, queueAutomation, recordUsage, updateToolPolicy } from "@/lib/server/operations-service";
@@ -236,8 +237,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
   if (path === "gateway/complete") {
     let completion: ReturnType<typeof completeWithGateway> | null = null;
     let sessionId = "";
+
+    // Resolve the prompt + model up front so we can attempt a real hosted-cloud
+    // completion (async) before the synchronous store mutation.
+    const livePrompt = String(body.prompt ?? "Complete EchoAI request");
+    let liveText: string | null = null;
+    let liveProvider = "";
+    if (isCloudConfigured()) {
+      try {
+        const live = await cloudComplete({
+          model: String(body.model ?? body.modelId ?? "code"),
+          messages: [{ role: "user", content: livePrompt }],
+          sessionId: typeof body.sessionId === "string" ? body.sessionId : undefined,
+        });
+        liveText = live.content;
+        liveProvider = live.provider;
+      } catch (error) {
+        // Fail closed to the deterministic path; surface nothing to the client.
+        liveText = null;
+      }
+    }
+
     const state = await getWorkspaceStore().mutate((draft) => {
-      const prompt = String(body.prompt ?? "Complete EchoAI request");
+      const prompt = livePrompt;
       const requestedSessionId = typeof body.sessionId === "string" ? body.sessionId : undefined;
       let session = requestedSessionId ? findChat(draft, requestedSessionId) : undefined;
       if (!session) {
@@ -251,15 +273,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
       const run = createBackgroundRun(session.id);
       draft.backgroundRuns.unshift(run);
       completion = completeWithGateway(draft, { session, prompt, runId: run.id });
+      // Prefer the real hosted-cloud completion when available.
+      const assistantText = liveText ?? completion.text;
+      const assistantProvider = liveText ? liveProvider : completion.provider;
       const timestamp = new Date().toISOString();
       session.messages.push({
         id: makeId("msg"),
         role: "assistant",
-        content: completion.text,
+        content: assistantText,
         createdAt: timestamp,
         modelId: session.modelId,
         runId: run.id,
-        reasoningSummary: `Completed by ${completion.provider}.`,
+        reasoningSummary: `Completed by ${assistantProvider}.`,
         toolCalls: [
           {
             id: makeId("tool"),
@@ -267,7 +292,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
             title: "Model gateway",
             status: "complete",
             policy: "allow",
-            summary: completion.provider,
+            summary: assistantProvider,
           },
         ],
       });

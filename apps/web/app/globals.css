@@ -471,3 +471,56 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+/* Icon-aware search + fuzzy command palette */
+.search {
+  position: relative;
+}
+
+.search .search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--muted, #9db2b0);
+  pointer-events: none;
+}
+
+.search input {
+  padding-left: 30px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.icon-button.wide {
+  padding-inline: 10px;
+  font-weight: 700;
+}
+
+.command-popover {
+  min-width: 260px;
+  padding: 8px;
+}
+
+.command-input {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #26363e);
+  background: var(--panel-2, #152229);
+  color: var(--text, #edf7f5);
+}
+
+.command-results {
+  display: grid;
+  gap: 2px;
+  max-height: 320px;
+  overflow: auto;
+}

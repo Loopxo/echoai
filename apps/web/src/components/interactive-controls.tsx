@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { EchoAIWorkspaceState } from "@echoai/contracts";
+import { Icon } from "@echoai/design";
 
 type InteractiveControlsProps = {
   state: EchoAIWorkspaceState;
@@ -21,7 +22,7 @@ export function ThemeToggle() {
         setDark(!dark);
       }}
     >
-      {dark ? "☾" : "☼"}
+      <Icon name={dark ? "sun" : "moon"} size={16} />
     </button>
   );
 }
@@ -42,6 +43,9 @@ export function GlobalSearch({ state }: InteractiveControlsProps) {
 
   return (
     <div className="search">
+      <span className="search-icon" aria-hidden>
+        <Icon name="search" size={15} />
+      </span>
       <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search workspace" />
       {query ? (
         <div className="popover">
@@ -63,26 +67,59 @@ export function GlobalSearch({ state }: InteractiveControlsProps) {
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
-  const commands = [
-    { label: "New chat", href: "/app/chat?new=1" },
-    { label: "New project", href: "/app/projects?new=1" },
-    { label: "New note", href: "/app/notes?new=1" },
-    { label: "New automation", href: "/app/automations?new=1" },
-  ];
+  const [query, setQuery] = useState("");
+  const commands = useMemo(
+    () => [
+      { label: "New chat", group: "Create", href: "/app/chat?new=1" },
+      { label: "New project", group: "Create", href: "/app/projects?new=1" },
+      { label: "New note", group: "Create", href: "/app/notes?new=1" },
+      { label: "New automation", group: "Create", href: "/app/automations?new=1" },
+      { label: "Go to Chat", group: "Navigate", href: "/app/chat" },
+      { label: "Go to Projects", group: "Navigate", href: "/app/projects" },
+      { label: "Go to Files", group: "Navigate", href: "/app/files" },
+      { label: "Go to Memories", group: "Navigate", href: "/app/memories" },
+      { label: "Go to Automations", group: "Navigate", href: "/app/automations" },
+      { label: "Go to Models", group: "Navigate", href: "/app/models" },
+      { label: "Go to Devices", group: "Navigate", href: "/app/devices" },
+      { label: "Go to Billing", group: "Navigate", href: "/app/billing" },
+      { label: "Go to Settings", group: "Navigate", href: "/app/settings" },
+    ],
+    [],
+  );
+
+  const filtered = useMemo(() => {
+    const normalized = query.toLowerCase().trim();
+    if (!normalized) return commands;
+    return commands.filter((command) => command.label.toLowerCase().includes(normalized));
+  }, [commands, query]);
 
   return (
     <div className="command">
       <button className="icon-button wide" type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
-        ⌘K
+        <Icon name="command" size={15} />
+        <span>K</span>
       </button>
       {open ? (
-        <div className="popover right">
-          {commands.map((command) => (
-            <a href={command.href} key={command.label}>
-              <span>Command</span>
-              {command.label}
-            </a>
-          ))}
+        <div className="popover right command-popover">
+          <input
+            autoFocus
+            className="command-input"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Type a command…"
+          />
+          <div className="command-results">
+            {filtered.length ? (
+              filtered.map((command) => (
+                <a href={command.href} key={command.label}>
+                  <span>{command.group}</span>
+                  {command.label}
+                </a>
+              ))
+            ) : (
+              <p>No matching command.</p>
+            )}
+          </div>
         </div>
       ) : null}
     </div>
@@ -101,7 +138,7 @@ export function NotificationCenter({ state }: InteractiveControlsProps) {
   return (
     <div className="command">
       <button className="icon-button" type="button" onClick={() => setOpen(!open)} aria-label="Notifications" title="Notifications">
-        ◇
+        <Icon name="bell" size={16} />
       </button>
       {open ? (
         <div className="popover right">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { EchoAIChatSession, EchoAIModelRoute } from "@echoai/contracts";
+import { Markdown } from "@echoai/design";
 
 export function ChatPanel({ session, models }: { session: EchoAIChatSession; models: EchoAIModelRoute[] }) {
   const [running, setRunning] = useState(false);
@@ -19,7 +20,7 @@ export function ChatPanel({ session, models }: { session: EchoAIChatSession; mod
               <strong>{message.role}</strong>
               <span>{message.createdAt}</span>
             </div>
-            <p>{message.content}</p>
+            {message.role === "user" ? <p>{message.content}</p> : <Markdown content={message.content} />}
             {message.reasoningSummary ? (
               <details>
                 <summary>Reasoning policy summary</summary>
