@@ -9,8 +9,6 @@ export class ExploreAgent {
   public description = 'Fast agent specialized for exploring codebases. Returns concise file paths.';
   
   public async run(instruction: string, workspacePath: string): Promise<string> {
-    console.log('[Explore Agent] running query: "' + instruction + '" in ' + workspacePath);
-
     const configManager = new ConfigManager();
     const providerManager = new ProviderManager(configManager);
     

@@ -15,7 +15,6 @@ export class EchoAgentManager implements AgentManager {
       this.agentsByCapability.get(capability.category)!.push(agent);
     }
     
-    console.log(`✅ Registered agent: ${agent.name} (${agent.capabilities.length} capabilities)`);
   }
 
   findBestAgent(context: AgentContext): Agent | null {
@@ -52,7 +51,6 @@ export class EchoAgentManager implements AgentManager {
     }
 
     const result = await agent.optimize(context);
-    console.log(`🤖 Agent ${agent.name} optimized prompt (confidence: ${result.confidence})`);
     
     return result;
   }

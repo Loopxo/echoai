@@ -40,6 +40,15 @@ export interface ContextualPrompt {
     };
 }
 
+/**
+ * @deprecated Naming kept for backward compatibility. This class performs
+ * intent-based PERSONA SELECTION and prompt enhancement for a single agent.
+ * It does NOT run agents in parallel. For genuine multi-agent fan-out
+ * (planner -> parallel workers -> merge) use `MultiAgentOrchestrator` in
+ * `src/agents/orchestration/multi-agent-orchestrator.ts`.
+ *
+ * Prefer importing this as `PersonaRouter` (exported alias below).
+ */
 export class AdvancedAgentOrchestrator {
     private intentAnalyzer: AdvancedNLPIntentAnalyzer;
     private providerManager: ProviderManager;
@@ -171,8 +180,6 @@ export class AdvancedAgentOrchestrator {
         defaultAgents.forEach(agent => {
             this.agents.set(agent.name, agent);
         });
-
-        console.log(`✅ Initialized ${defaultAgents.length} default Echo agents`);
     }
 
     private initializeStudioAgents(): void {
@@ -181,10 +188,6 @@ export class AdvancedAgentOrchestrator {
         studioAgents.forEach(agent => {
             this.studioAgents.set(agent.name, agent);
         });
-
-        const stats = StudioAgentRegistry.getAgentStats();
-        console.log(`🎭 Initialized ${stats.totalAgents} studio agents across ${Object.keys(stats.departmentCounts).length} departments`);
-        console.log(`📊 Department breakdown: ${JSON.stringify(stats.departmentCounts, null, 2)}`);
     }
 
     async processRequest(input: string, context?: Partial<IntentContext>): Promise<AgentExecution> {
@@ -628,7 +631,6 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
 
     toggleStudioAgents(enabled: boolean): void {
         this.useStudioAgents = enabled;
-        console.log(`🎭 Studio agents ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     getExecutionHistory(limit = 100): AgentExecution[] {
@@ -706,3 +708,9 @@ ${intent.context.framework ? `6. Incorporates ${intent.context.framework} framew
         }
     }
 }
+
+/**
+ * Clearer alias: this layer routes a request to the best-fit persona/agent.
+ * It is not a parallel multi-agent orchestrator.
+ */
+export { AdvancedAgentOrchestrator as PersonaRouter };

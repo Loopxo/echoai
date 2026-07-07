@@ -98,6 +98,9 @@ async function createDiagnoseReport(workspace: string): Promise<DiagnoseReport> 
     DEEPSEEK_API_KEY: Boolean(process.env.DEEPSEEK_API_KEY),
     MOONSHOT_API_KEY: Boolean(process.env.MOONSHOT_API_KEY),
     KIMI_API_KEY: Boolean(process.env.KIMI_API_KEY),
+    ZHIPU_API_KEY: Boolean(process.env.ZHIPU_API_KEY),
+    QWEN_API_KEY: Boolean(process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY),
+    MINIMAX_API_KEY: Boolean(process.env.MINIMAX_API_KEY),
   };
 
   const echoaiMd = await exists(path.join(workspace, 'ECHOAI.md'));
@@ -113,8 +116,8 @@ async function createDiagnoseReport(workspace: string): Promise<DiagnoseReport> 
   }
   if (!acp.registryReady) issues.push('ACP registry metadata docs are missing.');
   if (evalTasks < 20) issues.push('Eval task count is below the planned 20-task market gate.');
-  if (!providerEnv.ECHOAI_API_KEY && !providerEnv.DEEPSEEK_API_KEY && !providerEnv.MOONSHOT_API_KEY && !providerEnv.KIMI_API_KEY) {
-    issues.push('No EchoAI, DeepSeek, or Kimi provider key is configured in the environment.');
+  if (!providerEnv.ECHOAI_API_KEY && !providerEnv.DEEPSEEK_API_KEY && !providerEnv.MOONSHOT_API_KEY && !providerEnv.KIMI_API_KEY && !providerEnv.ZHIPU_API_KEY && !providerEnv.QWEN_API_KEY && !providerEnv.MINIMAX_API_KEY) {
+    issues.push('No EchoAI, DeepSeek, Kimi, Zhipu/GLM, Qwen, or MiniMax provider key is configured in the environment.');
   }
   if (!scripts.includes('test')) issues.push('No package.json test script detected.');
 
