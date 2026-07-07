@@ -1,5 +1,5 @@
 ---
-title: Echo AI
+title: EchoAI
 description: The AI coding agent built for the terminal
 template: splash
 head: []
@@ -19,21 +19,21 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## What is Echo AI?
+## What is EchoAI?
 
-Echo AI is a powerful terminal-based AI coding agent that helps developers write, debug, and improve code directly from the command line. With support for 651+ AI models from 43+ providers, Echo AI adapts to your workflow and preferences.
+EchoAI is a terminal-first coding agent that helps developers inspect repositories, edit files, run checks, and resume work across local and hosted sessions. The first market release focuses on hosted EchoAI routing, DeepSeek/Kimi presets, strict permissions, and usage visibility.
 
 <CardGrid stagger>
-  <Card title="🚀 Universal Model Support" icon="rocket">
-    Access 651+ AI models from 43+ providers including OpenAI, Anthropic, Google, Meta, and more. Switch between models seamlessly.
+  <Card title="Hosted Model Routing" icon="rocket">
+    Use fast, code, and reason presets through EchoAI with transparent cost and usage tracking.
   </Card>
-  <Card title="🛠️ Terminal Native" icon="setting">
+  <Card title="Terminal Native" icon="setting">
     Built for developers who live in the terminal. No context switching, no browser tabs - just pure command-line efficiency.
   </Card>
-  <Card title="🔒 Enterprise Ready" icon="approve-check">
+  <Card title="Permission First" icon="approve-check">
     Advanced security features, permission management, audit logging, and enterprise-grade controls for team deployments.
   </Card>
-  <Card title="📊 Analytics & Insights" icon="information">
+  <Card title="Usage Insights" icon="information">
     Track usage patterns, costs, and performance metrics. Make data-driven decisions about which models work best.
   </Card>
 </CardGrid>
@@ -41,17 +41,17 @@ Echo AI is a powerful terminal-based AI coding agent that helps developers write
 ## Quick Start
 
 ```bash
-# Install Echo AI
-npm install -g echo-ai
+# Install EchoAI
+npm install -g echoai
 
 # Start your first chat
-echo chat "Help me write a Python function to parse JSON"
+echoai chat
 
-# Use with specific models
-echo chat --model gpt-4 "Review this code for security issues"
+# Initialize project instructions
+echoai init
 
-# Interactive mode
-echo tui
+# Use a hosted preset
+echoai "Review this code for security issues" --provider echoai --model code
 ```
 
 ## Core Features

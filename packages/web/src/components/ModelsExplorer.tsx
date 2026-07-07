@@ -88,7 +88,7 @@ export default function ModelsExplorer() {
     <div class={style.container}>
       <div class={style.sidebar}>
         <div class={style.sidebarHeader}>
-          <h2>Echo AI</h2>
+          <h2>EchoAI</h2>
           <nav class={style.nav}>
             <a href="/dashboard" class={style.navItem}>Dashboard</a>
             <a href="/models" class={`${style.navItem} ${style.active}`}>Models</a>
@@ -103,7 +103,7 @@ export default function ModelsExplorer() {
       <div class={style.main}>
         <div class={style.header}>
           <h1>Model Explorer</h1>
-          <p>Discover and test 651+ AI models from 43+ providers</p>
+          <p>Inspect configured models, costs, and capabilities</p>
         </div>
 
         <div class={style.filters}>

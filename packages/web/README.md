@@ -1,11 +1,11 @@
-# Echo AI Web Interface
+# EchoAI Web Interface
 
-A comprehensive web dashboard for managing Echo AI sessions, models, analytics, and settings.
+A comprehensive web dashboard for managing EchoAI sessions, models, analytics, and settings.
 
 ## Features
 
 - **Dashboard**: Overview of models, sessions, and recent activity
-- **Model Explorer**: Discover and test 651+ AI models from 43+ providers
+- **Model Explorer**: Inspect configured models, pricing, and capabilities
 - **Session Manager**: View, manage, export, and share AI conversation sessions
 - **Analytics**: Track usage patterns, costs, and performance metrics
 - **Security Center**: Manage permissions and security policies
@@ -16,14 +16,14 @@ A comprehensive web dashboard for managing Echo AI sessions, models, analytics, 
 - **Frontend**: Astro + SolidJS for reactive components
 - **Backend**: Express.js API server for data management
 - **Styling**: CSS Modules with dark theme design
-- **Data**: SQLite integration with Echo AI CLI
+- **Data**: SQLite integration with EchoAI CLI
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+ 
-- Echo AI CLI installed and configured
+- EchoAI CLI installed and configured
 
 ### Installation
 
@@ -108,9 +108,9 @@ A comprehensive web dashboard for managing Echo AI sessions, models, analytics, 
 - `/security` - Security settings and audit logs
 - `/settings` - Configuration and preferences
 
-## Integration with Echo AI CLI
+## Integration with EchoAI CLI
 
-The web interface integrates with your Echo AI CLI installation:
+The web interface integrates with your EchoAI CLI installation:
 
 1. **Models**: Fetches from your configured Models.dev registry
 2. **Sessions**: Reads from your SQLite session store
@@ -160,4 +160,4 @@ All API keys and sensitive data are handled securely:
 
 ## License
 
-Same license as Echo AI CLI.
+Same license as EchoAI CLI.

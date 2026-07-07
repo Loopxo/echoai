@@ -121,7 +121,7 @@ export default function Security() {
     <div class={style.container}>
       <div class={style.sidebar}>
         <div class={style.sidebarHeader}>
-          <h2>Echo AI</h2>
+          <h2>EchoAI</h2>
           <nav class={style.nav}>
             <a href="/dashboard" class={style.navItem}>Dashboard</a>
             <a href="/models" class={style.navItem}>Models</a>

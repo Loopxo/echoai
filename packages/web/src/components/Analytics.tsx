@@ -84,8 +84,8 @@ export default function Analytics() {
         avg_response_time: 3.1
       },
       {
-        model: "gemini-pro",
-        provider: "google",
+        model: "moonshot-v1-32k",
+        provider: "kimi",
         sessions: 67,
         messages: 1234,
         cost: 15.67,
@@ -135,7 +135,7 @@ export default function Analytics() {
     <div class={style.container}>
       <div class={style.sidebar}>
         <div class={style.sidebarHeader}>
-          <h2>Echo AI</h2>
+          <h2>EchoAI</h2>
           <nav class={style.nav}>
             <a href="/dashboard" class={style.navItem}>Dashboard</a>
             <a href="/models" class={style.navItem}>Models</a>

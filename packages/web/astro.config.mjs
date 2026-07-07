@@ -11,7 +11,7 @@ export default defineConfig({
   }),
   integrations: [
     starlight({
-      title: "Echo AI",
+      title: "EchoAI",
       description: "The AI coding agent built for the terminal",
       social: [
         {

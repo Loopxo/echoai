@@ -19,7 +19,7 @@ import {
   IconMagnifyingGlass,
   IconDocumentMagnifyingGlass,
 } from "../icons"
-import { IconMeta, IconRobot, IconOpenAI, IconGemini, IconAnthropic, IconBrain } from "../icons/custom"
+import { IconMeta, IconRobot, IconOpenAI, IconAnthropic, IconBrain } from "../icons/custom"
 import { ContentCode } from "./content-code"
 import { ContentDiff } from "./content-diff"
 import { ContentText } from "./content-text"
@@ -754,7 +754,6 @@ function getProvider(model: string) {
 
   if (/claude|anthropic/.test(lowerModel)) return "anthropic"
   if (/gpt|o[1-4]|codex|openai/.test(lowerModel)) return "openai"
-  if (/gemini|palm|bard|google/.test(lowerModel)) return "gemini"
   if (/llama|meta/.test(lowerModel)) return "meta"
 
   return "any"
@@ -770,9 +769,6 @@ export function ProviderIcon(props: { model: string; size?: number }) {
       </Match>
       <Match when={provider === "anthropic"}>
         <IconAnthropic width={size} height={size} />
-      </Match>
-      <Match when={provider === "gemini"}>
-        <IconGemini width={size} height={size} />
       </Match>
       <Match when={provider === "meta"}>
         <IconMeta width={size} height={size} />

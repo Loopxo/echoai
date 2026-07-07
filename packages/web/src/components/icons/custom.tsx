@@ -1,6 +1,6 @@
 import { type JSX } from "solid-js"
 
-// Echo AI Icon
+// EchoAI Icon
 export function IconOpenAI(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -19,18 +19,6 @@ export function IconAnthropic(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
       <path
         fill="currentColor"
         d="M16.765 5h-3.308l5.923 15h3.23zM7.226 5L1.38 20h3.308l1.307-3.154h6.154l1.23 3.077h3.309L10.688 5zm-.308 9.077l2-5.308l2.077 5.308z"
-      />
-    </svg>
-  )
-}
-
-// https://icones.js.org/collection/ri?s=gemini&icon=ri:gemini-fill
-export function IconGemini(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-      <path
-        fill="currentColor"
-        d="M24 12.024c-6.437.388-11.59 5.539-11.977 11.976h-.047C11.588 17.563 6.436 12.412 0 12.024v-.047C6.437 11.588 11.588 6.437 11.976 0h.047c.388 6.437 5.54 11.588 11.977 11.977z"
       />
     </svg>
   )

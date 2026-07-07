@@ -72,7 +72,7 @@ export default function Settings() {
     <div class={style.container}>
       <div class={style.sidebar}>
         <div class={style.sidebarHeader}>
-          <h2>Echo AI</h2>
+          <h2>EchoAI</h2>
           <nav class={style.nav}>
             <a href="/dashboard" class={style.navItem}>Dashboard</a>
             <a href="/models" class={style.navItem}>Models</a>
@@ -87,7 +87,7 @@ export default function Settings() {
       <div class={style.main}>
         <div class={style.header}>
           <h1>Settings</h1>
-          <p>Configure your Echo AI experience</p>
+          <p>Configure your EchoAI experience</p>
         </div>
 
         <div class={style.content}>
@@ -162,7 +162,7 @@ export default function Settings() {
                     Share anonymous usage analytics
                   </label>
                   <p class={style.settingDescription}>
-                    Help improve Echo AI by sharing anonymous usage data
+                    Help improve EchoAI by sharing anonymous usage data
                   </p>
                 </div>
               </div>
