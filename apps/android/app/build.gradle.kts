@@ -19,8 +19,41 @@ android {
     versionName = "2026.2.8"
   }
 
+  signingConfigs {
+    // Release signing is driven entirely by environment variables / Gradle
+    // properties so no keystore or secret is committed to the repo. CI should
+    // populate these from secure secrets before a release build.
+    create("release") {
+      val storePathValue = System.getenv("ANDROID_KEYSTORE_PATH")
+        ?: (project.findProperty("ANDROID_KEYSTORE_PATH") as String?)
+      if (storePathValue != null && file(storePathValue).exists()) {
+        storeFile = file(storePathValue)
+        storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+          ?: (project.findProperty("ANDROID_KEYSTORE_PASSWORD") as String?)
+        keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+          ?: (project.findProperty("ANDROID_KEY_ALIAS") as String?)
+        keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+          ?: (project.findProperty("ANDROID_KEY_PASSWORD") as String?)
+      }
+    }
+  }
+
   buildTypes {
     release {
+      isMinifyEnabled = true
+      isShrinkResources = true
+      proguardFiles(
+        getDefaultProguardFile("proguard-android-optimize.txt"),
+        "proguard-rules.pro"
+      )
+      // Only attach the release signing config when a keystore is actually
+      // configured; otherwise Gradle would fail an unsigned release build.
+      val releaseSigning = signingConfigs.getByName("release")
+      if (releaseSigning.storeFile != null) {
+        signingConfig = releaseSigning
+      }
+    }
+    debug {
       isMinifyEnabled = false
     }
   }
