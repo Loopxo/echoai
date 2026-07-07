@@ -409,8 +409,15 @@ export class ExportManager {
   }
 
   private parseFromXML(content: string): CompleteExport {
-    // Simple XML parser - in production, use a proper XML parsing library
-    throw new Error('XML import not implemented - use JSON or YAML format');
+    // Strip the XML declaration and parse the document body. This mirrors the
+    // structure produced by convertToXML (nested elements, arrays encoded as
+    // repeated <item> children).
+    const body = content.replace(/^\s*<\?xml[^>]*\?>/i, '').trim();
+    const parsed = parseXmlNode(body);
+    if (!parsed || typeof parsed.value !== 'object' || parsed.value === null) {
+      throw new Error('Invalid XML export: expected a root element with object content');
+    }
+    return parsed.value as unknown as CompleteExport;
   }
 
   private async createBackup(): Promise<string> {
@@ -455,3 +462,94 @@ export class ExportManager {
 
 // Install js-yaml package if not already installed
 // npm install js-yaml @types/js-yaml
+
+// =============================================================================
+// Minimal XML parser (round-trips the structure produced by convertToXML)
+// =============================================================================
+
+interface XmlElement {
+  name: string;
+  value: unknown;
+  rest: string;
+}
+
+function parseXmlNode(input: string): { name: string; value: unknown } | null {
+  const element = readXmlElement(input.trim());
+  if (!element) return null;
+  return { name: element.name, value: element.value };
+}
+
+function readXmlElement(input: string): XmlElement | null {
+  const open = /^\s*<([\w.\-:]+)>/.exec(input);
+  if (!open) return null;
+  const name = open[1]!;
+  const closeTag = `</${name}>`;
+  let rest = input.slice(open[0].length);
+
+  const children: Array<{ name: string; value: unknown }> = [];
+  let textBuffer = '';
+
+  while (rest.length > 0) {
+    if (rest.startsWith(closeTag)) {
+      rest = rest.slice(closeTag.length);
+      break;
+    }
+    if (/^\s*<[\w.\-:]+>/.test(rest)) {
+      const child = readXmlElement(rest);
+      if (!child) break; // malformed; bail defensively
+      children.push({ name: child.name, value: child.value });
+      rest = child.rest;
+    } else {
+      const lt = rest.indexOf('<');
+      if (lt === -1) {
+        textBuffer += rest;
+        rest = '';
+      } else {
+        textBuffer += rest.slice(0, lt);
+        rest = rest.slice(lt);
+      }
+    }
+  }
+
+  const value = children.length > 0 ? buildXmlValue(children) : coerceXmlPrimitive(decodeXmlEntities(textBuffer.trim()));
+  return { name, value, rest };
+}
+
+function buildXmlValue(children: Array<{ name: string; value: unknown }>): unknown {
+  // Arrays are encoded as repeated <item> children.
+  if (children.every((c) => c.name === 'item')) {
+    return children.map((c) => c.value);
+  }
+  const result: Record<string, unknown> = {};
+  for (const child of children) {
+    if (child.name in result) {
+      const existing = result[child.name];
+      if (Array.isArray(existing)) existing.push(child.value);
+      else result[child.name] = [existing, child.value];
+    } else {
+      result[child.name] = child.value;
+    }
+  }
+  return result;
+}
+
+function coerceXmlPrimitive(text: string): unknown {
+  if (text === '') return '';
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  if (text === 'null') return null;
+  if (/^-?\d+(\.\d+)?$/.test(text)) {
+    const num = Number(text);
+    if (Number.isFinite(num)) return num;
+  }
+  return text;
+}
+
+function decodeXmlEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
