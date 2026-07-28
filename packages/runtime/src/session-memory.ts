@@ -15,12 +15,15 @@ export class SessionMemoryStore {
   constructor(options: SessionRegistryOptions = {}) {
     const root = options.stateDir ?? process.env.ECHOAI_STATE_DIR?.trim() ?? path.join(os.homedir(), ".echoai");
     const namespace = options.namespace ?? "runtime";
-    this.memoryDir = path.join(root, namespace, "session-memory");
+    const stateRoot = path.resolve(root);
+    this.memoryDir = path.join(stateRoot, namespace, "session-memory");
   }
 
   async read(sessionId: string): Promise<SessionMemoryRecord | null> {
     try {
-      const raw = await fs.readFile(this.getPath(sessionId), "utf8");
+      const filePath = this.getPath(sessionId);
+      await fs.chmod(filePath, 0o600);
+      const raw = await fs.readFile(filePath, "utf8");
       return JSON.parse(raw) as SessionMemoryRecord;
     } catch {
       return null;
@@ -34,8 +37,14 @@ export class SessionMemoryStore {
       content: buildSessionMemory(session),
     };
 
-    await fs.mkdir(this.memoryDir, { recursive: true });
-    await fs.writeFile(this.getPath(session.id), JSON.stringify(record, null, 2), "utf8");
+    await fs.mkdir(this.memoryDir, { recursive: true, mode: 0o700 });
+    await fs.chmod(this.memoryDir, 0o700);
+    const filePath = this.getPath(session.id);
+    await fs.writeFile(filePath, JSON.stringify(record, null, 2), {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    await fs.chmod(filePath, 0o600);
     return record;
   }
 

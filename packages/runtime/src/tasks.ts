@@ -33,12 +33,25 @@ export function createTaskRuntime(options?: SessionRegistryOptions) {
       sessionId: string,
       taskId: string,
       command: string,
-      taskOptions: { cwd?: string } = {}
+      taskOptions: { cwd?: string; abortSignal?: AbortSignal } = {}
     ): Promise<RuntimeTaskHandle> {
+      const throwIfStartAborted = () => {
+        if (!taskOptions.abortSignal?.aborted) return;
+        if (taskOptions.abortSignal.reason instanceof Error) {
+          throw taskOptions.abortSignal.reason;
+        }
+        const error = new Error("Background task startup was cancelled");
+        error.name = "AbortError";
+        throw error;
+      };
+
+      throwIfStartAborted();
       const { taskDir, logPath, statusPath, runnerPath } = buildTaskPaths(tasksRoot, sessionId, taskId);
       const cwd = path.resolve(taskOptions.cwd ?? process.cwd());
 
-      await fs.mkdir(taskDir, { recursive: true });
+      await fs.mkdir(taskDir, { recursive: true, mode: 0o700 });
+      await fs.chmod(taskDir, 0o700);
+      throwIfStartAborted();
       await fs.writeFile(
         runnerPath,
         createRunnerScript({
@@ -47,19 +60,24 @@ export function createTaskRuntime(options?: SessionRegistryOptions) {
           logPath,
           statusPath,
         }),
-        "utf8"
+        { encoding: "utf8", mode: 0o700 }
       );
-      await fs.chmod(runnerPath, 0o755);
+      await fs.chmod(runnerPath, 0o700);
+      throwIfStartAborted();
 
       const child = spawn("/bin/sh", [runnerPath], {
         detached: true,
         stdio: "ignore",
       });
-      child.unref();
 
       if (!child.pid) {
         throw new Error("Failed to start background task");
       }
+      if (taskOptions.abortSignal?.aborted) {
+        stopTaskProcess(child.pid);
+        throwIfStartAborted();
+      }
+      child.unref();
 
       return {
         pid: child.pid,
@@ -130,6 +148,15 @@ export async function readTaskLog(logPath: string, maxBytes = 64_000): Promise<s
 }
 
 export function stopTaskProcess(pid: number, signal: NodeJS.Signals = "SIGTERM"): boolean {
+  if (process.platform !== "win32") {
+    try {
+      process.kill(-pid, signal);
+      return true;
+    } catch {
+      // Fall back to the immediate process when it is not a group leader.
+    }
+  }
+
   try {
     process.kill(pid, signal);
     return true;
@@ -168,6 +195,7 @@ function createRunnerScript(input: {
 
   return [
     "#!/bin/sh",
+    "umask 077",
     `cd ${cwd} || exit 1`,
     `exec > ${logPath} 2>&1`,
     "/bin/sh <<'__ECHOAI_TASK__'",

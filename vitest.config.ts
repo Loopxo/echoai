@@ -12,6 +12,8 @@ export default defineConfig({
       'claude-src/**',
       // Vendored third-party reference projects — not part of EchoAI's suite.
       'samples/**',
+      'sample-code-main/**',
+      'third-party-main/**',
       // Hosted SaaS has its own workspace/test setup.
       'hosted/**',
       // Apps have their own vitest configs and path aliases; run via test:packages.

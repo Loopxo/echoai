@@ -107,8 +107,16 @@ function createSnapshotInput(): Parameters<DesktopWorkbenchService['getSnapshot'
     runtimeStatus: {
       activeRuns: 0,
       sessionCount: 1,
-      provider: 'desktop',
-      model: 'echoai-local',
+      provider: 'ollama',
+      model: 'llama3.2',
+      providers: [
+        {
+          id: 'ollama',
+          label: 'Ollama (local)',
+          defaultModel: 'llama3.2',
+          source: 'local',
+        },
+      ],
     },
     gatewayStatus: {
       running: false,

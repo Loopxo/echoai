@@ -1,6 +1,6 @@
 import { MCPClient } from './client.js';
 import { MCPServer, MCPConfig, MCPTool } from '../types/mcp.js';
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { resolveStateDir } from '@echoai/core';
 
@@ -14,9 +14,9 @@ export class MCPManager {
     this.configPath = join(resolveStateDir(), 'mcp.json');
   }
 
-  async initialize(): Promise<void> {
+  async initialize(additionalServers: MCPServer[] = [], signal?: AbortSignal): Promise<void> {
     await this.loadConfig();
-    await this.startConfiguredServers();
+    await this.startConfiguredServers(additionalServers, signal);
   }
 
   async addServer(server: Omit<MCPServer, 'tools' | 'connected' | 'lastError'>): Promise<void> {
@@ -48,8 +48,8 @@ export class MCPManager {
     return this.client.getAvailableTools();
   }
 
-  async callTool(name: string, args: Record<string, any>): Promise<any> {
-    return await this.client.callTool(name, args);
+  async callTool(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<any> {
+    return await this.client.callTool(name, args, signal);
   }
 
   listServers(): { id: string; name: string; transport: string; connected: boolean }[] {
@@ -63,6 +63,7 @@ export class MCPManager {
 
   private async loadConfig(): Promise<void> {
     try {
+      await chmod(this.configPath, 0o600);
       const configData = await readFile(this.configPath, 'utf8');
       this.config = JSON.parse(configData);
     } catch (error) {
@@ -74,29 +75,41 @@ export class MCPManager {
 
   private async saveConfig(): Promise<void> {
     try {
-      await mkdir(join(resolveStateDir()), { recursive: true });
-      await writeFile(this.configPath, JSON.stringify(this.config, null, 2));
+      const stateDir = resolveStateDir();
+      await mkdir(stateDir, { recursive: true, mode: 0o700 });
+      await chmod(stateDir, 0o700);
+      await writeFile(this.configPath, JSON.stringify(this.config, null, 2), {
+        encoding: 'utf8',
+        mode: 0o600,
+      });
+      await chmod(this.configPath, 0o600);
     } catch (error) {
       console.error('Failed to save MCP config:', error);
     }
   }
 
-  private async startConfiguredServers(): Promise<void> {
-    const serverEntries = Object.entries(this.config.servers);
-    if (serverEntries.length === 0) {
-      return;
-    }
-
-    for (const [id, server] of serverEntries) {
+  private async startConfiguredServers(
+    additionalServers: MCPServer[] = [],
+    signal?: AbortSignal
+  ): Promise<void> {
+    const servers: MCPServer[] = [
+      ...Object.entries(this.config.servers).map(([id, server]) => ({
+        ...server,
+        id,
+        tools: [],
+        connected: false,
+      })),
+      ...additionalServers,
+    ];
+    for (const server of servers) {
+      if (signal?.aborted) {
+        throw signal.reason instanceof Error ? signal.reason : new Error('MCP initialization cancelled');
+      }
       try {
-        const fullServer: MCPServer = {
-          ...server,
-          tools: [],
-          connected: false,
-        };
-        await this.client.addServer(fullServer);
+        await this.client.addServer(server, signal);
       } catch (error) {
-        console.error(`Failed to start MCP server ${id}:`, error);
+        if (signal?.aborted) throw error;
+        console.error(`Failed to start MCP server ${server.id}:`, error);
       }
     }
   }

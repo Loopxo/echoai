@@ -469,6 +469,14 @@ export interface DesktopRuntimeStatus {
   sessionCount: number;
   provider: string;
   model: string;
+  providers: DesktopRuntimeProvider[];
+}
+
+export interface DesktopRuntimeProvider {
+  id: string;
+  label: string;
+  defaultModel: string;
+  source: 'configured' | 'local';
 }
 
 export interface DesktopRuntimeSessionSummary {

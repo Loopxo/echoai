@@ -74,7 +74,7 @@ export class MetaAIProvider implements AIProvider {
           max_tokens: maxTokens,
           temperature,
           stream: true,
-        });
+        }, { signal: options.signal });
 
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content;
@@ -88,7 +88,7 @@ export class MetaAIProvider implements AIProvider {
           messages: metaMessages,
           max_tokens: maxTokens,
           temperature,
-        });
+        }, { signal: options.signal });
 
         const content = response.choices[0]?.message?.content;
         if (content) {
@@ -114,7 +114,7 @@ export class MetaAIProvider implements AIProvider {
         messages: [{ role: 'user', content: prompt }],
         max_tokens: maxTokens,
         temperature,
-      });
+      }, { signal: options.signal });
 
       return response.choices[0]?.message?.content || '';
     } catch (error) {

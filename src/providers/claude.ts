@@ -75,7 +75,7 @@ export class ClaudeProvider implements AIProvider {
           system: systemMessage,
           messages: anthropicMessages,
           stream: true,
-        });
+        }, { signal: options.signal });
 
         for await (const chunk of stream) {
           if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
@@ -89,7 +89,7 @@ export class ClaudeProvider implements AIProvider {
           temperature,
           system: systemMessage,
           messages: anthropicMessages,
-        });
+        }, { signal: options.signal });
 
         if (response.content[0]?.type === 'text') {
           yield response.content[0].text;
@@ -114,7 +114,7 @@ export class ClaudeProvider implements AIProvider {
         max_tokens: maxTokens,
         temperature,
         messages: [{ role: 'user', content: prompt }],
-      });
+      }, { signal: options.signal });
 
       if (response.content[0]?.type === 'text') {
         return response.content[0].text;
@@ -145,7 +145,7 @@ export class ClaudeProvider implements AIProvider {
       system: payload.system,
       messages: payload.messages,
       tools: this.mapTools(options.tools),
-    } as any);
+    } as any, { signal: options.signal });
 
     return this.parseStructuredResponse(response.content as any[]);
   }
@@ -167,7 +167,7 @@ export class ClaudeProvider implements AIProvider {
       messages: payload.messages,
       tools: this.mapTools(options.tools),
       stream: true,
-    } as any);
+    } as any, { signal: options.signal });
 
     let content = '';
     const toolStates = new Map<number, { id: string; name: string; inputJson: string; input?: Record<string, unknown> }>();

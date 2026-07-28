@@ -1307,6 +1307,7 @@ button {
 }
 
 .chat-toolbar select,
+.chat-toolbar input,
 .attachment-button {
   min-height: 34px;
   padding: 0 10px;

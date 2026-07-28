@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 
 describe("EchoAcpAgent", () => {
-  it("implements initialize, session lifecycle, prompt streaming, and mode changes", async () => {
+  it("implements initialize, persisted session lifecycle, pagination, and mode changes", async () => {
     const workspaceRoot = await createWorkspace();
     process.env.ECHOAI_STATE_DIR = workspaceRoot;
     const updates: unknown[] = [];
@@ -39,16 +39,12 @@ describe("EchoAcpAgent", () => {
     expect(created.modes?.availableModes.map((mode) => mode.id)).toContain("plan");
 
     await agent.setSessionMode({ sessionId: created.sessionId, modeId: "plan" });
-    const response = await agent.prompt({
-      sessionId: created.sessionId,
-      prompt: [{ type: "text", text: "Show available tools" }],
-    });
-    expect(response.stopReason).toBe("end_turn");
-    expect(response.userMessageId).toBeTruthy();
-    expect(JSON.stringify(updates)).toContain("agent_message_chunk");
-    expect(JSON.stringify(updates)).toContain("plan");
+    const listed = await agent.listSessions({ cwd: workspaceRoot });
+    expect(listed.sessions.map((session) => session.sessionId)).toContain(created.sessionId);
+    expect(listed.nextCursor).toBeNull();
 
     const loaded = await agent.loadSession({ sessionId: created.sessionId, cwd: workspaceRoot, mcpServers: [] });
     expect(loaded.modes?.currentModeId).toBe("plan");
+    expect(JSON.stringify(updates)).toContain("session_info_update");
   });
 });

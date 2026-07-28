@@ -9,7 +9,15 @@ import {
   type KernelSessionMode,
 } from "@echoai/runtime";
 import type { AIProvider, Message, ProviderToolDefinition, StructuredMessage, StructuredToolCall } from "../types/index.js";
-import { permissionManager } from "../utils/permission-prompt.js";
+import type { MCPServer } from "../types/mcp.js";
+import { MCPManager } from "../mcp/manager.js";
+import { permissionManager as interactivePermissionManager } from "../utils/permission-prompt.js";
+import { permissionManager as securityPermissionManager } from "../security/permission-manager.js";
+import {
+  loadRuntimeSecurityPolicy,
+  mergeRuntimeProfiles,
+  toLegacyPermissionType,
+} from "../security/runtime-policy.js";
 
 interface CliSystemPromptConfig {
   basePrompt?: string;
@@ -114,6 +122,7 @@ export function createCompletionProvider(
           maxTokens: options.maxTokens,
           stream: false,
           tools: toProviderTools(request.tools),
+          signal: request.abortSignal,
         });
       }
 
@@ -123,6 +132,7 @@ export function createCompletionProvider(
           model: options.model,
           temperature: options.temperature,
           maxTokens: options.maxTokens,
+          signal: request.abortSignal,
         }
       );
 
@@ -140,8 +150,10 @@ export function createCompletionProvider(
             maxTokens: options.maxTokens,
             stream: options.stream !== false,
             tools: toProviderTools(request.tools),
+            signal: request.abortSignal,
           },
           (chunk) => {
+            if (request.abortSignal?.aborted) return;
             if (chunk.type === "text") {
               options.onTextChunk?.(chunk.text);
               onChunk({ type: "text", text: chunk.text });
@@ -168,7 +180,9 @@ export function createCompletionProvider(
         temperature: options.temperature,
         maxTokens: options.maxTokens,
         stream: options.stream !== false,
+        signal: request.abortSignal,
       })) {
+        if (request.abortSignal?.aborted) break;
         content += chunk;
         options.onTextChunk?.(chunk);
         onChunk({ type: "text", text: chunk });
@@ -189,21 +203,49 @@ export function createCliKernel(
     onTextChunk?: (chunk: string) => void;
     registerBuiltInTools?: boolean;
     runtimeMode?: KernelSessionMode;
+    permissionPolicyPath?: string;
   } = {}
 ): AgentKernel {
   const namespace = options.stateNamespace ?? "runtime";
   const defaultSystemPrompt = createDefaultSystemPrompt(options.runtimeMode);
+  const storedSecurityPolicy = loadRuntimeSecurityPolicy(options.permissionPolicyPath);
+  const modeProfile = options.runtimeMode === "plan"
+    ? { read: "allow", write: "deny", process: "ask", network: "ask" } as const
+    : undefined;
   const kernel = new AgentKernel({
     sessionRegistry: new SessionRegistry({ namespace }),
     auditLogStore: new AuditLogStore({ namespace }),
     registerBuiltInTools: options.registerBuiltInTools,
     permissionManager: new RuntimePermissionManager({
-      profile: options.runtimeMode === "plan"
-        ? { read: "allow", write: "deny", process: "ask", network: "ask" }
-        : undefined,
+      profile: mergeRuntimeProfiles(storedSecurityPolicy.options.profile, modeProfile),
+      layeredRules: storedSecurityPolicy.options.layeredRules,
     }),
     approvalResolver: async ({ permissionRequest }) => {
-      const response = await permissionManager.requestPermission({
+      if (storedSecurityPolicy.configured) {
+        await securityPermissionManager.initialize();
+        const approved = await securityPermissionManager.checkPermission({
+          id: permissionRequest.id,
+          type: toLegacyPermissionType(permissionRequest.scope, permissionRequest.toolName),
+          action: `${permissionRequest.scope}:${permissionRequest.toolName}`,
+          details: {
+            command: permissionRequest.scope === "process" ? permissionRequest.resource : undefined,
+            filePath:
+              permissionRequest.scope === "read" || permissionRequest.scope === "write"
+                ? permissionRequest.resource
+                : undefined,
+            url: permissionRequest.scope === "network" ? permissionRequest.resource : undefined,
+          },
+          riskLevel: permissionRequest.risk,
+          requestedAt: new Date(),
+          context: permissionRequest.reason,
+        });
+        return {
+          decision: approved ? "approved" : "denied",
+          reason: approved ? "security_profile_approved" : "security_profile_denied",
+        };
+      }
+
+      const response = await interactivePermissionManager.requestPermission({
         action: `${permissionRequest.scope}:${permissionRequest.toolName}`,
         description: permissionRequest.reason,
         files: permissionRequest.resource ? [permissionRequest.resource] : undefined,
@@ -242,10 +284,17 @@ export function createCliRuntimeKernel(
   return createCliKernel(options);
 }
 
-export async function registerConfiguredMcpTools(kernel: AgentKernel): Promise<void> {
-  const { MCPManager } = await import("../mcp/manager.js");
+export async function registerConfiguredMcpTools(
+  kernel: AgentKernel,
+  options: { servers?: MCPServer[]; abortSignal?: AbortSignal } = {}
+): Promise<MCPManager> {
   const manager = new MCPManager();
-  await manager.initialize();
+  try {
+    await manager.initialize(options.servers ?? [], options.abortSignal);
+  } catch (error) {
+    await manager.shutdown();
+    throw error;
+  }
 
   for (const tool of manager.getAvailableTools()) {
     const runtimeName = sanitizeRuntimeToolName(`mcp__${tool.name}`);
@@ -257,9 +306,9 @@ export async function registerConfiguredMcpTools(kernel: AgentKernel): Promise<v
         process: "ask",
         network: "ask",
       },
-      execute: async (input) => {
+      execute: async (input, context) => {
         try {
-          const result = await manager.callTool(tool.name, input);
+          const result = await manager.callTool(tool.name, input, context.abortSignal);
           return {
             success: true,
             output: typeof result === "string" ? result : JSON.stringify(result, null, 2),
@@ -275,6 +324,8 @@ export async function registerConfiguredMcpTools(kernel: AgentKernel): Promise<v
     };
     kernel.tools.register(runtimeTool);
   }
+
+  return manager;
 }
 
 function flattenMessages(messages: Message[]): string {

@@ -7,7 +7,7 @@ import {
   PermissionAuditEntry,
   PermissionLevel,
 } from '../types/permissions.js';
-import { readFile, writeFile, mkdir } from 'fs/promises';
+import { chmod, readFile, writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -412,8 +412,9 @@ export class PermissionManager {
   private async ensureDirectories(): Promise<void> {
     const echoDir = join(homedir(), '.echoai');
     if (!existsSync(echoDir)) {
-      await mkdir(echoDir, { recursive: true });
+      await mkdir(echoDir, { recursive: true, mode: 0o700 });
     }
+    await chmod(echoDir, 0o700).catch(() => undefined);
   }
 
   private async loadProfile(): Promise<void> {
@@ -439,7 +440,8 @@ export class PermissionManager {
   private async saveProfile(): Promise<void> {
     if (!this.storageAvailable) return;
 
-    await writeFile(this.configPath, JSON.stringify(this.currentProfile, null, 2));
+    await writeFile(this.configPath, JSON.stringify(this.currentProfile, null, 2), { mode: 0o600 });
+    await chmod(this.configPath, 0o600).catch(() => undefined);
   }
 
   private async loadAuditLog(): Promise<void> {
@@ -462,7 +464,8 @@ export class PermissionManager {
   private async saveAuditLog(): Promise<void> {
     if (!this.storageAvailable) return;
 
-    await writeFile(this.auditPath, JSON.stringify(this.auditLog, null, 2));
+    await writeFile(this.auditPath, JSON.stringify(this.auditLog, null, 2), { mode: 0o600 });
+    await chmod(this.auditPath, 0o600).catch(() => undefined);
   }
 }
 

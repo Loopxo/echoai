@@ -72,7 +72,7 @@ export class OpenAIProvider implements AIProvider {
           max_tokens: maxTokens,
           temperature,
           stream: true,
-        });
+        }, { signal: options.signal });
 
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content;
@@ -86,7 +86,7 @@ export class OpenAIProvider implements AIProvider {
           messages: openaiMessages,
           max_tokens: maxTokens,
           temperature,
-        });
+        }, { signal: options.signal });
 
         const content = response.choices[0]?.message?.content;
         if (content) {
@@ -165,7 +165,7 @@ export class OpenAIProvider implements AIProvider {
     const formattedTools = this.formatTools(options.tools);
     if (formattedTools) payload.tools = formattedTools;
 
-    const response = await this.client.chat.completions.create(payload);
+    const response = await this.client.chat.completions.create(payload, { signal: options.signal });
     const choice = response.choices[0];
     const message = choice?.message;
 
@@ -216,7 +216,7 @@ export class OpenAIProvider implements AIProvider {
     const formattedTools = this.formatTools(options.tools);
     if (formattedTools) payload.tools = formattedTools;
 
-    const stream = await this.client.chat.completions.create(payload) as any;
+    const stream = await this.client.chat.completions.create(payload, { signal: options.signal }) as any;
     
     let content = '';
     const toolCallsMap = new Map<number, any>();
@@ -273,7 +273,7 @@ export class OpenAIProvider implements AIProvider {
         messages: [{ role: 'user', content: prompt }],
         max_tokens: maxTokens,
         temperature,
-      });
+      }, { signal: options.signal });
 
       return response.choices[0]?.message?.content || '';
     } catch (error) {

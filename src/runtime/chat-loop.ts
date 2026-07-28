@@ -81,7 +81,7 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
       stateNamespace: 'cli',
       runtimeMode,
     });
-    await registerConfiguredMcpTools(kernel);
+    const mcpManager = await registerConfiguredMcpTools(kernel);
 
     try {
       const renderer = new RuntimeEventRenderer();
@@ -106,6 +106,8 @@ export async function runInteractiveChatSession(options: InteractiveChatOptions)
       process.stdout.write('\n');
     } catch (error) {
       console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      await mcpManager.shutdown();
     }
   }
 }

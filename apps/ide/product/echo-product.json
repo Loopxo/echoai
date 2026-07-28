@@ -1,0 +1,25 @@
+{
+  "nameShort": "Echo AI",
+  "nameLong": "Echo AI IDE",
+  "applicationName": "echoai",
+  "dataFolderName": ".echoai-ide",
+  "serverDataFolderName": ".echoai-server",
+  "urlProtocol": "echoai",
+  "win32MutexName": "echoai",
+  "win32RegValueName": "EchoAI",
+  "win32AppUserModelId": "LoopXo.EchoAI",
+  "win32ShellNameShort": "Echo AI",
+  "darwinBundleIdentifier": "org.loopxo.echoai",
+  "linuxIconName": "echoai",
+  "licenseName": "MIT",
+  "licenseUrl": "https://github.com/Loopxo/echoai/blob/main/LICENSE",
+  "reportIssueUrl": "https://github.com/Loopxo/echoai/issues/new/choose",
+  "extensionsGallery": {
+    "serviceUrl": "https://open-vsx.org/vscode/gallery",
+    "servicePPEUrl": "https://open-vsx.org/vscode/gallery",
+    "searchUrl": "https://open-vsx.org/vscode/gallery",
+    "itemUrl": "https://open-vsx.org/vscode/item",
+    "resourceUrlTemplate": "https://open-vsx.org/vscode/asset/{publisher}/{name}/{version}/Microsoft.VisualStudio.Code.WebResources/{path}",
+    "controlUrl": ""
+  }
+}

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -42,8 +42,9 @@ export class SessionStore {
       : (existsSync(legacyDir) ? legacyDir : defaultDir);
 
     if (!existsSync(echoDir)) {
-      mkdirSync(echoDir, { recursive: true });
+      mkdirSync(echoDir, { recursive: true, mode: 0o700 });
     }
+    chmodSync(echoDir, 0o700);
 
     this.statePath = join(echoDir, 'sessions.json');
     this.state = this.readState();
@@ -195,7 +196,11 @@ export class SessionStore {
   }
 
   private writeState(): void {
-    writeFileSync(this.statePath, JSON.stringify(this.state, null, 2), 'utf8');
+    writeFileSync(this.statePath, JSON.stringify(this.state, null, 2), {
+      encoding: 'utf8',
+      mode: 0o600,
+    });
+    chmodSync(this.statePath, 0o600);
   }
 
   private deserializeSession(record: StoredSessionRecord): SessionData {

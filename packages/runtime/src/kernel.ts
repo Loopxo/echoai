@@ -23,8 +23,7 @@ import {
   PermissionResolverOrchestrator,
   RuntimePermissionManager,
   type PermissionRequest,
-  ensurePathWithinWorkspace,
-  resolveSafePath,
+  resolvePathWithinWorkspace,
 } from "./permissions.js";
 import {
   ToolRegistry,
@@ -72,6 +71,7 @@ interface AgentKernelOptions {
     session: KernelSession;
     toolCall: KernelToolCall;
     permissionRequest: PermissionRequest;
+    abortSignal?: AbortSignal;
   }) => Promise<{ decision: "approved" | "denied"; reason?: string }>;
 }
 
@@ -125,11 +125,12 @@ export class AgentKernel extends EventEmitter {
       ...(options.approvalResolver
         ? [{
             name: "interactive",
-            resolve: async ({ session, toolCall, permissionRequest }) => {
+            resolve: async ({ session, toolCall, permissionRequest, abortSignal }) => {
               const result = await options.approvalResolver!({
                 session,
                 toolCall,
                 permissionRequest,
+                abortSignal,
               });
               return {
                 decision: result.decision,
@@ -262,6 +263,7 @@ export class AgentKernel extends EventEmitter {
   }
 
   async *runEvents(options: KernelRunOptions): AsyncGenerator<KernelRunEvent, KernelRunResult> {
+    throwIfAborted(options.abortSignal);
     const provider = options.provider;
     const model = options.model;
     let session = options.sessionId
@@ -296,8 +298,13 @@ export class AgentKernel extends EventEmitter {
       session,
       options,
     });
+    throwIfAborted(options.abortSignal);
 
-    const userMessage = createMessage("user", options.input);
+    const userMessage = createMessage(
+      "user",
+      options.input,
+      options.userMessageId ? { id: options.userMessageId } : {}
+    );
     session.messages.push(userMessage);
     await this.saveAndEmitMessage(session, userMessage);
     yield { type: "message.created", sessionId: session.id, message: userMessage };
@@ -314,7 +321,9 @@ export class AgentKernel extends EventEmitter {
     const promptConfig = normalizeSystemPrompt(options.systemPrompt);
 
     while (turns < maxTurns) {
+      throwIfAborted(options.abortSignal);
       turns += 1;
+      const assistantMessageId = randomUUID();
       const sessionMemory = await this.sessionMemoryStore.read(session.id);
       const resolvedSystemPrompt = await this.resolveRunSystemPrompt(
         session,
@@ -326,7 +335,7 @@ export class AgentKernel extends EventEmitter {
       const completionIterator = this.streamCompletionEvents(session, {
         ...options,
         systemPrompt: resolvedSystemPrompt,
-      });
+      }, assistantMessageId);
       let completion: KernelCompletionResponse | undefined;
 
       while (true) {
@@ -341,8 +350,10 @@ export class AgentKernel extends EventEmitter {
       if (!completion) {
         throw new Error("Completion provider returned no response");
       }
+      throwIfAborted(options.abortSignal);
 
       const assistantMessage = createMessage("assistant", completion.content, {
+        id: assistantMessageId,
         toolCalls: completion.toolCalls,
         metadata: completion.metadata,
       });
@@ -401,6 +412,7 @@ export class AgentKernel extends EventEmitter {
       }
     }
 
+    throwIfAborted(options.abortSignal);
     await this.sessionMemoryStore.write(session);
 
     const result: KernelRunResult = {
@@ -498,15 +510,13 @@ export class AgentKernel extends EventEmitter {
     command: string,
     options: KernelShellTaskOptions = {}
   ): Promise<KernelTaskRecord> {
+    throwIfAborted(options.abortSignal);
     const session = await this.requireSession(sessionId);
+    throwIfAborted(options.abortSignal);
     const workspaceRoot = this.resolveWorkspaceRoot(session);
     const cwd = options.cwd
-      ? resolveSafePath(options.cwd, workspaceRoot)
-      : workspaceRoot;
-
-    if (options.cwd) {
-      ensurePathWithinWorkspace(options.cwd, workspaceRoot);
-    }
+      ? resolvePathWithinWorkspace(options.cwd, workspaceRoot)
+      : resolvePathWithinWorkspace(".", workspaceRoot);
 
     const taskTool = createShellTaskTool();
     const taskCall: KernelToolCall = {
@@ -519,9 +529,16 @@ export class AgentKernel extends EventEmitter {
     };
     const evaluation = this.permissionManager.evaluate(taskTool, taskCall, session, workspaceRoot);
     await this.auditLogStore.logPermission(evaluation.request);
+    throwIfAborted(options.abortSignal);
 
     if (evaluation.finalDecision !== "allow") {
-      const approval = await this.recordApproval(session, taskCall, evaluation.request);
+      const approval = await this.recordApproval(
+        session,
+        taskCall,
+        evaluation.request,
+        options.abortSignal
+      );
+      throwIfAborted(options.abortSignal);
       if (approval.decision === "denied") {
         throw new Error(approval.reason ?? `Background task "${command}" was denied`);
       }
@@ -541,19 +558,47 @@ export class AgentKernel extends EventEmitter {
 
     const handle = await this.taskRuntime.startShellTask(session.id, task.id, command, {
       cwd,
+      abortSignal: options.abortSignal,
     });
 
-    task.outputPath = handle.logPath;
-    task.metadata = buildTaskMetadata(command, handle, options.cwd);
-    session.tasks.push(task);
-    session.background = {
-      status: "running",
-      processId: handle.pid,
-      logPath: handle.logPath,
-      startedAt: now,
-    };
+    try {
+      throwIfAborted(options.abortSignal);
+      task.outputPath = handle.logPath;
+      task.metadata = buildTaskMetadata(command, handle, options.cwd);
+      session.tasks.push(task);
+      session.background = {
+        status: "running",
+        processId: handle.pid,
+        logPath: handle.logPath,
+        startedAt: now,
+      };
 
-    await this.sessions.save(session);
+      await this.sessions.save(session);
+      throwIfAborted(options.abortSignal);
+    } catch (error) {
+      stopTaskProcess(handle.pid);
+      task.status = options.abortSignal?.aborted ? "cancelled" : "failed";
+      task.updatedAt = Date.now();
+      task.outputPath = handle.logPath;
+      task.metadata = {
+        ...buildTaskMetadata(command, handle, options.cwd),
+        ...task.metadata,
+        startupError: error instanceof Error ? error.message : String(error),
+        stoppedAt: task.updatedAt,
+      };
+      if (!session.tasks.some((entry) => entry.id === task.id)) {
+        session.tasks.push(task);
+      }
+      session.background = {
+        status: options.abortSignal?.aborted ? "stopped" : "failed",
+        processId: handle.pid,
+        logPath: handle.logPath,
+        startedAt: now,
+      };
+      await this.sessions.save(session).catch(() => undefined);
+      throw error;
+    }
+
     this.emitTyped("task.started", { sessionId: session.id, task });
     this.emitTyped("session.updated", session);
     return task;
@@ -745,6 +790,7 @@ export class AgentKernel extends EventEmitter {
     const outcomes: ToolExecutionOutcome[] = [];
 
     for (const batch of batches) {
+      throwIfAborted(abortSignal);
       const batchPayload = {
         sessionId: session.id,
         mode: batch.mode,
@@ -795,6 +841,7 @@ export class AgentKernel extends EventEmitter {
     workspaceRoot?: string,
     abortSignal?: AbortSignal
   ): Promise<ToolExecutionOutcome> {
+    throwIfAborted(abortSignal);
     let { call, evaluation } = prepared;
     const tool = this.tools.get(call.name);
 
@@ -826,6 +873,7 @@ export class AgentKernel extends EventEmitter {
       workspaceRoot,
       abortSignal,
     });
+    throwIfAborted(abortSignal);
 
     if (beforeHook.call.id !== call.id || beforeHook.call.name !== call.name || beforeHook.call.input !== call.input) {
       call = beforeHook.call;
@@ -846,7 +894,8 @@ export class AgentKernel extends EventEmitter {
 
     let approval: KernelApprovalRecord | undefined;
     if (evaluation.finalDecision !== "allow") {
-      approval = await this.recordApproval(session, call, evaluation.request);
+      approval = await this.recordApproval(session, call, evaluation.request, abortSignal);
+      throwIfAborted(abortSignal);
       if (approval.decision === "denied") {
         return {
           call,
@@ -864,6 +913,7 @@ export class AgentKernel extends EventEmitter {
       workspaceRoot,
       abortSignal,
     });
+    throwIfAborted(abortSignal);
     this.recordToolLoopOutcome(session, call, result);
     const afterHook = await this.hooks.trigger<KernelToolAfterHookPayload>(HOOK_EVENTS.TOOL_AFTER, {
       session,
@@ -916,7 +966,8 @@ export class AgentKernel extends EventEmitter {
   private async recordApproval(
     session: KernelSession,
     call: KernelToolCall,
-    permissionRequest: PermissionRequest
+    permissionRequest: PermissionRequest,
+    abortSignal?: AbortSignal
   ): Promise<KernelApprovalRecord> {
     const resolved = permissionRequest.decision === "deny"
       ? {
@@ -930,6 +981,7 @@ export class AgentKernel extends EventEmitter {
           tool: this.tools.get(call.name)!,
           toolCall: call,
           permissionRequest,
+          abortSignal,
         }) ?? {
           decision: "denied" as const,
           reason: `No approval resolver configured for "${call.name}"`,
@@ -939,6 +991,7 @@ export class AgentKernel extends EventEmitter {
 
     const approval: KernelApprovalRecord = {
       id: randomUUID(),
+      toolCallId: call.id,
       toolName: call.name,
       decision: resolved.decision,
       reason: resolved.reason,
@@ -959,7 +1012,8 @@ export class AgentKernel extends EventEmitter {
 
   private async *streamCompletionEvents(
     session: KernelSession,
-    options: Omit<KernelRunOptions, "systemPrompt"> & { systemPrompt?: string }
+    options: Omit<KernelRunOptions, "systemPrompt"> & { systemPrompt?: string },
+    assistantMessageId: string
   ): AsyncGenerator<KernelRunEvent, KernelCompletionResponse> {
     if (!(options.stream && this.completionProvider?.stream)) {
       return this.completionProvider!.complete({
@@ -983,9 +1037,15 @@ export class AgentKernel extends EventEmitter {
         abortSignal: options.abortSignal,
       },
       (chunk) => {
+        if (options.abortSignal?.aborted) return;
         if (chunk.type === "text" && chunk.text) {
           chunks.push(chunk.text);
-          queue.push({ type: "assistant.delta", sessionId: session.id, text: chunk.text });
+          queue.push({
+            type: "assistant.delta",
+            sessionId: session.id,
+            messageId: assistantMessageId,
+            text: chunk.text,
+          });
         }
         if (chunk.type === "tool_call" && chunk.toolCall) {
           toolCalls.push(chunk.toolCall);
@@ -1110,6 +1170,16 @@ export class AgentKernel extends EventEmitter {
   ): void {
     this.emit(event, payload);
   }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  if (signal.reason instanceof Error) {
+    throw signal.reason;
+  }
+  const error = new Error("EchoAI operation was cancelled");
+  error.name = "AbortError";
+  throw error;
 }
 
 function deriveSessionTitle(input: string): string {

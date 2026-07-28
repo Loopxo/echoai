@@ -167,7 +167,8 @@ export function App(): ReactElement {
   const [runtimePrompt, setRuntimePrompt] = useState('');
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [selectedModel, setSelectedModel] = useState('echoai-local');
+  const [selectedProvider, setSelectedProvider] = useState('ollama');
+  const [selectedModel, setSelectedModel] = useState('llama3.2');
   const [selectedMode, setSelectedMode] = useState<'default' | 'plan'>('default');
   const [attachments, setAttachments] = useState<string[]>([]);
   const [workspaceFiles, setWorkspaceFiles] = useState<DesktopWorkspaceEntry[]>([]);
@@ -521,6 +522,10 @@ export function App(): ReactElement {
   async function refreshRuntimeStatus(): Promise<void> {
     const status = await window.echoaiDesktop.getRuntimeStatus();
     setRuntimeStatus(status);
+    if (!status.providers.some((provider) => provider.id === selectedProvider)) {
+      setSelectedProvider(status.provider);
+      setSelectedModel(status.model);
+    }
   }
 
   async function runRuntimePrompt(): Promise<void> {
@@ -532,6 +537,7 @@ export function App(): ReactElement {
       input: buildPromptWithAttachments(runtimePrompt, attachments),
       workspaceRoot: workspace?.path,
       mode: selectedMode,
+      provider: selectedProvider,
       model: selectedModel,
     });
     setActiveRunId(handle.runId);
@@ -841,6 +847,7 @@ export function App(): ReactElement {
       input: message.content,
       workspaceRoot: workspace?.path,
       mode: selectedMode,
+      provider: selectedProvider,
       model: selectedModel,
     });
   }
@@ -1277,20 +1284,33 @@ export function App(): ReactElement {
               </div>
               <div className="runtime-status">
                 {runtimeStatus
-                  ? `${runtimeStatus.sessionCount} sessions / ${runtimeStatus.activeRuns} active`
+                  ? `${runtimeStatus.provider} / ${runtimeStatus.sessionCount} sessions / ${runtimeStatus.activeRuns} active`
                   : 'Loading'}
               </div>
             </div>
             <div className="chat-toolbar">
               <select
+                aria-label="Provider"
+                onChange={(event) => {
+                  const providerId = event.target.value;
+                  const provider = runtimeStatus?.providers.find((item) => item.id === providerId);
+                  setSelectedProvider(providerId);
+                  if (provider) setSelectedModel(provider.defaultModel);
+                }}
+                value={selectedProvider}
+              >
+                {(runtimeStatus?.providers ?? []).map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.label}
+                  </option>
+                ))}
+              </select>
+              <input
                 aria-label="Model"
                 onChange={(event) => setSelectedModel(event.target.value)}
+                placeholder="Model ID"
                 value={selectedModel}
-              >
-                <option value="echoai-local">EchoAI Local</option>
-                <option value="echoai-free">EchoAI Free</option>
-                <option value="echoai-premium">EchoAI Premium</option>
-              </select>
+              />
               <select
                 aria-label="Prompt mode"
                 onChange={(event) => setSelectedMode(event.target.value === 'plan' ? 'plan' : 'default')}

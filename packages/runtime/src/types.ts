@@ -38,6 +38,7 @@ export interface KernelMessage {
 
 export interface KernelApprovalRecord {
   id: string;
+  toolCallId?: string;
   toolName: string;
   decision: "approved" | "denied";
   reason?: string;
@@ -183,6 +184,7 @@ export interface KernelRunOptions {
   sessionId?: string;
   title?: string;
   input: string;
+  userMessageId?: string;
   provider?: string;
   model?: string;
   mode?: KernelSessionMode;
@@ -299,7 +301,7 @@ export interface KernelSessionEventRecord {
 export type KernelRunEvent =
   | { type: "run.started"; session: KernelSession }
   | { type: "message.created"; sessionId: string; message: KernelMessage }
-  | { type: "assistant.delta"; sessionId: string; text: string }
+  | { type: "assistant.delta"; sessionId: string; messageId: string; text: string }
   | { type: "assistant.tool_call"; sessionId: string; call: KernelToolCall }
   | { type: "tool.batch.started"; sessionId: string; mode: KernelToolExecutionMode; calls: KernelToolCall[] }
   | { type: "tool.started"; sessionId: string; call: KernelToolCall }
@@ -311,6 +313,7 @@ export type KernelRunEvent =
 export interface KernelShellTaskOptions {
   title?: string;
   cwd?: string;
+  abortSignal?: AbortSignal;
 }
 
 export interface KernelEventPayloads {

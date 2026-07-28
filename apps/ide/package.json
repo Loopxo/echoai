@@ -1,0 +1,222 @@
+{
+  "name": "echoai-ide",
+  "displayName": "Echo AI",
+  "description": "Open-source agentic coding inside the Echo AI IDE.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "LoopXo",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "coding",
+    "acp",
+    "open-source"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onView:echoai.chat",
+    "onCommand:echoai.openChat",
+    "onCommand:echoai.newSession",
+    "onCommand:echoai.showSessions",
+    "onCommand:echoai.explainSelection",
+    "onCommand:echoai.fixSelection",
+    "onCommand:echoai.openTerminal",
+    "onCommand:echoai.login",
+    "onCommand:echoai.manageMcp",
+    "onCommand:echoai.configure"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Echo AI can run coding tools and therefore requires a trusted workspace."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "echoai",
+          "title": "Echo AI",
+          "icon": "media/echoai.svg"
+        }
+      ]
+    },
+    "views": {
+      "echoai": [
+        {
+          "id": "echoai.chat",
+          "name": "Agent",
+          "type": "webview"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "echoai.chat",
+        "contents": "Open a trusted folder to start Echo AI.\n[Open Folder](command:vscode.openFolder)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "echoai.openChat",
+        "title": "Echo AI: Open Agent",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "echoai.newSession",
+        "title": "Echo AI: New Session",
+        "icon": "$(add)"
+      },
+      {
+        "command": "echoai.showSessions",
+        "title": "Echo AI: Show Sessions",
+        "icon": "$(history)"
+      },
+      {
+        "command": "echoai.cancel",
+        "title": "Echo AI: Cancel Run",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "echoai.explainSelection",
+        "title": "Echo AI: Explain Selection"
+      },
+      {
+        "command": "echoai.fixSelection",
+        "title": "Echo AI: Fix Selection"
+      },
+      {
+        "command": "echoai.openTerminal",
+        "title": "Echo AI: Open CLI Terminal"
+      },
+      {
+        "command": "echoai.login",
+        "title": "Echo AI: Cloud Login"
+      },
+      {
+        "command": "echoai.manageMcp",
+        "title": "Echo AI: Manage MCP Servers"
+      },
+      {
+        "command": "echoai.configure",
+        "title": "Echo AI: Configure"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "echoai.newSession",
+          "when": "view == echoai.chat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "echoai.showSessions",
+          "when": "view == echoai.chat",
+          "group": "navigation@2"
+        },
+        {
+          "command": "echoai.cancel",
+          "when": "view == echoai.chat && echoai.running",
+          "group": "navigation@3"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "echoai.explainSelection",
+          "when": "editorHasSelection",
+          "group": "echoai@1"
+        },
+        {
+          "command": "echoai.fixSelection",
+          "when": "editorHasSelection",
+          "group": "echoai@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "echoai.cancel",
+          "when": "echoai.running"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "echoai.openChat",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i"
+      }
+    ],
+    "configuration": {
+      "title": "Echo AI",
+      "properties": {
+        "echoAI.cliPath": {
+          "type": "string",
+          "scope": "machine",
+          "default": "echoai",
+          "description": "Path to an external Echo AI executable or JavaScript CLI entry. Leave as echoai to use the IDE's bundled runtime."
+        },
+        "echoAI.defaultMode": {
+          "type": "string",
+          "default": "default",
+          "enum": [
+            "default",
+            "plan"
+          ],
+          "enumItemLabels": [
+            "Build",
+            "Plan"
+          ],
+          "description": "Agent mode used for new sessions."
+        },
+        "echoAI.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the local Echo AI ACP process when the agent view opens."
+        },
+        "echoAI.maxSelectionCharacters": {
+          "type": "number",
+          "default": 24000,
+          "minimum": 1000,
+          "maximum": 100000,
+          "description": "Maximum active-editor characters embedded with open-file and diagnostic metadata in an agent prompt."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "dev": "node ./scripts/build.mjs --watch",
+    "typecheck": "tsc -p ./tsconfig.json --noEmit",
+    "validate": "pnpm run typecheck && pnpm run build",
+    "base:check": "node ./scripts/apply-code-oss-overlay.mjs --check",
+    "base:apply": "node ./scripts/apply-code-oss-overlay.mjs"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "0.21.1",
+    "@echoai/runtime": "workspace:*",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.33",
+    "@types/vscode": "1.102.0",
+    "esbuild": "0.25.9",
+    "typescript": "5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Loopxo/echoai.git",
+    "directory": "apps/ide"
+  }
+}

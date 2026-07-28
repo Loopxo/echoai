@@ -9,6 +9,9 @@ export const mcpCommand = new Command()
   .description('Manage Model Context Protocol (MCP) servers and tools')
   .hook('preAction', async () => {
     await mcpManager.initialize();
+  })
+  .hook('postAction', async () => {
+    await mcpManager.shutdown();
   });
 
 mcpCommand

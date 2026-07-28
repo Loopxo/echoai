@@ -193,6 +193,6 @@ configCommand
     });
 
     console.log('\n✅ Configuration saved successfully!');
-    console.log('🔮 You can now use: echo "Hello, world!"');
-    console.log('💡 Try: echo agents list - to see available intelligent agents');
+    console.log('Run `echoai config list` to review the active routing configuration.');
+    console.log('Run `echoai "Explain this project"` from a workspace to start a session.');
   });

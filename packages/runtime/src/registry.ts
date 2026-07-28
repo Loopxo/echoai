@@ -43,14 +43,15 @@ function createDefaultSession(
 }
 
 export class SessionRegistry {
+  private readonly stateRoot: string;
   private readonly sessionsDir: string;
   private readonly eventsDir: string;
 
   constructor(options?: SessionRegistryOptions) {
     const namespace = options?.namespace ?? "runtime";
-    const stateRoot = path.join(resolveStateDir(options), namespace);
-    this.sessionsDir = path.join(stateRoot, "sessions");
-    this.eventsDir = path.join(stateRoot, "events");
+    this.stateRoot = path.join(resolveStateDir(options), namespace);
+    this.sessionsDir = path.join(this.stateRoot, "sessions");
+    this.eventsDir = path.join(this.stateRoot, "events");
   }
 
   async create(title: string, provider?: string, model?: string): Promise<KernelSession> {
@@ -61,30 +62,33 @@ export class SessionRegistry {
 
   async save(session: KernelSession): Promise<void> {
     session.updatedAt = Date.now();
-    await fs.mkdir(this.sessionsDir, { recursive: true });
+    await ensurePrivateDirectory(path.dirname(this.stateRoot));
+    await ensurePrivateDirectory(this.stateRoot);
+    await ensurePrivateDirectory(this.sessionsDir);
     const filePath = this.getFilePath(session.id);
     const tmpPath = `${filePath}.${randomUUID()}.tmp`;
-    
-    // Extract metadata to save in JSON
-    // We only strip messages because tasks, artifacts, and approvals are modified in-place
-    // and aren't fully event-sourced in the current architecture. Messages are fully event-sourced.
-    const metadataSession = {
+
+    // Messages are event-sourced. Everything else is snapshotted, with
+    // credential-shaped metadata recursively redacted before it reaches disk.
+    const metadataSession = sanitizeForPersistence({
       ...session,
-      messages: [], 
-    };
-    
-    await fs.writeFile(tmpPath, JSON.stringify(metadataSession, null, 2), "utf8");
+      messages: [],
+    });
+
+    await fs.writeFile(tmpPath, JSON.stringify(metadataSession, null, 2), {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    await fs.chmod(tmpPath, 0o600);
     await fs.rename(tmpPath, filePath);
-    
-    // Sync full state to events (Snapshot pattern)
-    // We could optimize this later by only appending new events instead of full state,
-    // but for now we'll ensure the JSONL log has the complete event state.
-    // In kernel.ts, message.created events are already appended.
+    await fs.chmod(filePath, 0o600);
   }
 
   async load(sessionId: string): Promise<KernelSession | null> {
     try {
-      const raw = await fs.readFile(this.getFilePath(sessionId), "utf8");
+      const filePath = this.getFilePath(sessionId);
+      await fs.chmod(filePath, 0o600);
+      const raw = await fs.readFile(filePath, "utf8");
       const metadata = JSON.parse(raw) as KernelSession;
       
       // Reconstruct state from JSONL events
@@ -120,13 +124,17 @@ export class SessionRegistry {
 
   async list(filter: SessionListFilter = {}): Promise<KernelSession[]> {
     try {
+      const query = filter.query?.trim().toLowerCase();
       const entries = await fs.readdir(this.sessionsDir);
       const sessions = await Promise.all(
         entries
           .filter((entry) => entry.endsWith(".json"))
           .map(async (entry) => {
-            const raw = await fs.readFile(path.join(this.sessionsDir, entry), "utf8");
-            return JSON.parse(raw) as KernelSession;
+            const filePath = path.join(this.sessionsDir, entry);
+            await fs.chmod(filePath, 0o600);
+            const raw = await fs.readFile(filePath, "utf8");
+            const snapshot = JSON.parse(raw) as KernelSession;
+            return query ? (await this.load(snapshot.id)) ?? snapshot : snapshot;
           })
       );
 
@@ -138,8 +146,7 @@ export class SessionRegistry {
           if (filter.mode && session.mode !== filter.mode) {
             return false;
           }
-          if (filter.query) {
-            const query = filter.query.toLowerCase();
+          if (query) {
             const haystack = JSON.stringify({
               title: session.title,
               messages: session.messages.map((message) => message.content),
@@ -148,6 +155,7 @@ export class SessionRegistry {
           }
           return true;
         })
+        .map((session) => query ? { ...session, messages: [] } : session)
         .sort((a, b) => b.updatedAt - a.updatedAt);
     } catch {
       return [];
@@ -190,7 +198,7 @@ export class SessionRegistry {
       payload.approvals = session.approvals;
     }
 
-    return JSON.stringify(payload, null, 2);
+    return JSON.stringify(sanitizeForPersistence(payload), null, 2);
   }
 
   async appendEvent(
@@ -198,21 +206,30 @@ export class SessionRegistry {
     type: string,
     payload: Record<string, unknown>
   ): Promise<void> {
-    const event: KernelSessionEventRecord = {
+    const event: KernelSessionEventRecord = sanitizeForPersistence({
       id: randomUUID(),
       sessionId,
       type,
       createdAt: Date.now(),
       payload,
-    };
+    }) as KernelSessionEventRecord;
 
-    await fs.mkdir(this.eventsDir, { recursive: true });
-    await fs.appendFile(this.getEventLogPath(sessionId), `${JSON.stringify(event)}\n`, "utf8");
+    await ensurePrivateDirectory(path.dirname(this.stateRoot));
+    await ensurePrivateDirectory(this.stateRoot);
+    await ensurePrivateDirectory(this.eventsDir);
+    const eventPath = this.getEventLogPath(sessionId);
+    await fs.appendFile(eventPath, `${JSON.stringify(event)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    await fs.chmod(eventPath, 0o600);
   }
 
   async readEventLog(sessionId: string): Promise<KernelSessionEventRecord[]> {
     try {
-      const raw = await fs.readFile(this.getEventLogPath(sessionId), "utf8");
+      const eventPath = this.getEventLogPath(sessionId);
+      await fs.chmod(eventPath, 0o600);
+      const raw = await fs.readFile(eventPath, "utf8");
       return raw
         .split("\n")
         .filter((line) => line.trim().length > 0)
@@ -223,10 +240,64 @@ export class SessionRegistry {
   }
 
   private getFilePath(sessionId: string): string {
-    return path.join(this.sessionsDir, `${sessionId}.json`);
+    return path.join(this.sessionsDir, `${requireSafeSessionId(sessionId)}.json`);
   }
 
   private getEventLogPath(sessionId: string): string {
-    return path.join(this.eventsDir, `${sessionId}.jsonl`);
+    return path.join(this.eventsDir, `${requireSafeSessionId(sessionId)}.jsonl`);
   }
+}
+
+function requireSafeSessionId(sessionId: string): string {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(sessionId)) {
+    throw new Error("Invalid session ID");
+  }
+  return sessionId;
+}
+
+const SENSITIVE_PERSISTENCE_KEYS = new Set([
+  "authorization",
+  "apikey",
+  "accesstoken",
+  "refreshtoken",
+  "password",
+  "secret",
+  "clientsecret",
+  "privatekey",
+  "cookie",
+  "setcookie",
+  "headers",
+  "env",
+]);
+
+async function ensurePrivateDirectory(directory: string): Promise<void> {
+  await fs.mkdir(directory, { recursive: true, mode: 0o700 });
+  await fs.chmod(directory, 0o700);
+}
+
+function sanitizeForPersistence(value: unknown, key?: string): unknown {
+  if (key && isSensitivePersistenceKey(key)) {
+    return "[REDACTED]";
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeForPersistence(entry));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const sanitized: Record<string, unknown> = {};
+  for (const [entryKey, entryValue] of Object.entries(value as Record<string, unknown>)) {
+    sanitized[entryKey] = sanitizeForPersistence(entryValue, entryKey);
+  }
+  return sanitized;
+}
+
+function isSensitivePersistenceKey(key: string): boolean {
+  const normalized = key.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  return SENSITIVE_PERSISTENCE_KEYS.has(normalized)
+    || normalized.endsWith("token")
+    || normalized.endsWith("secret")
+    || normalized.endsWith("password")
+    || normalized.endsWith("apikey");
 }

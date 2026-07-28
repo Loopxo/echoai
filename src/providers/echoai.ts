@@ -60,7 +60,7 @@ export class EchoAIProvider implements AIProvider {
       temperature: options.temperature,
       maxTokens: options.maxTokens,
       stream: false,
-    });
+    }, options.signal);
 
     return {
       content: String(response.content ?? ''),
@@ -91,6 +91,7 @@ export class EchoAIProvider implements AIProvider {
         maxTokens: options.maxTokens,
         stream: true,
       }),
+      signal: options.signal,
     });
 
     if (!res.ok) {
@@ -106,6 +107,7 @@ export class EchoAIProvider implements AIProvider {
     const toolCalls: StructuredToolCall[] = [];
 
     while (true) {
+      options.signal?.throwIfAborted();
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -143,7 +145,11 @@ export class EchoAIProvider implements AIProvider {
     return { isValid: errors.length === 0, errors };
   }
 
-  private async fetchGateway(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async fetchGateway(
+    path: string,
+    body: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<Record<string, unknown>> {
     const auth = requireAuthFile();
     const res = await fetch(`${this.apiUrl.replace(/\/$/, '')}${path}`, {
       method: 'POST',
@@ -152,6 +158,7 @@ export class EchoAIProvider implements AIProvider {
         Authorization: `Bearer ${auth.accessToken}`,
       },
       body: JSON.stringify(body),
+      signal,
     });
 
     if (!res.ok) {

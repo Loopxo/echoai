@@ -142,3 +142,143 @@ describe("RuntimePermissionManager", () => {
     expect(evaluation.request.risk).toBe("high");
   });
 });
+
+function createWriteTool(permission?: KernelTool["permission"]): KernelTool {
+  return {
+    name: "write_file",
+    description: "Write files",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        content: { type: "string" },
+      },
+      required: ["path", "content"],
+    },
+    permission: permission ?? { write: "ask" },
+    async execute() {
+      return { success: true, output: "ok" };
+    },
+  };
+}
+
+describe("permission profile enforcement", () => {
+  const workspaceRoot = process.cwd();
+
+  it("honours a profile that denies writes instead of falling back to ask", () => {
+    // Plan mode passes { read: "allow", write: "deny", ... }. The profile used
+    // to be assigned and never read, so plan mode silently degraded to "ask".
+    const manager = new RuntimePermissionManager({
+      profile: { read: "allow", write: "deny", network: "ask", process: "ask" },
+    });
+
+    const evaluation = manager.evaluate(
+      createWriteTool(),
+      {
+        id: "call-deny-1",
+        name: "write_file",
+        input: { path: "src/example.ts", content: "hello" },
+      },
+      createSession(),
+      workspaceRoot
+    );
+
+    expect(evaluation.finalDecision).toBe("deny");
+  });
+
+  it("does not let a safe-path heuristic widen an explicit deny", () => {
+    const manager = new RuntimePermissionManager({
+      profile: { read: "allow", write: "deny", network: "ask", process: "ask" },
+    });
+
+    // README.md matches the safe-write globs, which previously produced an
+    // "allow" that overrode the profile's deny.
+    const evaluation = manager.evaluate(
+      createWriteTool(),
+      {
+        id: "call-deny-2",
+        name: "write_file",
+        input: { path: "README.md", content: "hello" },
+      },
+      createSession(),
+      workspaceRoot
+    );
+
+    expect(evaluation.finalDecision).toBe("deny");
+    expect(evaluation.resolvedBy).toBe("default");
+  });
+
+  it("still auto-approves documentation writes under the default profile", () => {
+    const manager = new RuntimePermissionManager();
+
+    const evaluation = manager.evaluate(
+      createWriteTool(),
+      {
+        id: "call-allow-1",
+        name: "write_file",
+        input: { path: "docs/notes.md", content: "hello" },
+      },
+      createSession(),
+      workspaceRoot
+    );
+
+    expect(evaluation.finalDecision).toBe("allow");
+    expect(evaluation.resolvedBy).toBe("safe_path");
+  });
+
+  it("never auto-approves build-critical writes", () => {
+    const manager = new RuntimePermissionManager();
+
+    // package.json used to match the `.json` safe-write glob, so the agent
+    // could rewrite `scripts` with no prompt and no approval record.
+    for (const target of [
+      "package.json",
+      "tsconfig.json",
+      ".github/workflows/ci.yml",
+      ".env",
+      "pnpm-lock.yaml",
+    ]) {
+      const evaluation = manager.evaluate(
+        createWriteTool(),
+        {
+          id: `call-critical-${target}`,
+          name: "write_file",
+          input: { path: target, content: "hello" },
+        },
+        createSession(),
+        workspaceRoot
+      );
+
+      expect(evaluation.finalDecision, `${target} must not auto-approve`).not.toBe("allow");
+    }
+  });
+
+  it("keeps an explicit rule authoritative over the profile", () => {
+    const manager = new RuntimePermissionManager({
+      profile: { read: "allow", write: "deny", network: "ask", process: "ask" },
+      rules: [
+        {
+          id: "allow-scratch",
+          scope: "write",
+          pattern: "scratch/",
+          decision: "allow",
+          description: "Scratch directory is always writable",
+        },
+      ],
+    });
+
+    const evaluation = manager.evaluate(
+      createWriteTool(),
+      {
+        id: "call-rule-1",
+        name: "write_file",
+        input: { path: "scratch/tmp.ts", content: "hello" },
+      },
+      createSession(),
+      workspaceRoot
+    );
+
+    expect(evaluation.finalDecision).toBe("allow");
+    expect(evaluation.resolvedBy).toBe("rule");
+  });
+});

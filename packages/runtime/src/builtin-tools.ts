@@ -13,8 +13,7 @@ import type { KernelArtifact, KernelTool } from "./types.js";
 import { createTodoReadTool, createTodoTool, createTodoWriteTool } from "./tools-todo.js";
 import {
   ensureParentDirectory,
-  ensurePathWithinWorkspace,
-  resolveSafePath,
+  resolvePathWithinWorkspace,
 } from "./permissions.js";
 
 interface BuiltInToolOptions {
@@ -167,8 +166,8 @@ function createGlobTool(options: BuiltInToolOptions): KernelTool {
       const pattern = requireString(input.pattern, "pattern");
       const basePath = typeof input.basePath === "string" ? input.basePath : ".";
       const resolvedBase = resolveWorkspacePath(basePath, context.workspaceRoot ?? options.workspaceRoot);
-      const rgFiles = await runRgFiles(resolvedBase, pattern);
-      const relativeMatches = rgFiles ?? (await walkFiles(resolvedBase))
+      const rgFiles = await runRgFiles(resolvedBase, pattern, context.abortSignal);
+      const relativeMatches = rgFiles ?? (await walkFiles(resolvedBase, context.abortSignal))
         .map((filePath) => path.relative(resolvedBase, filePath))
         .filter((relativePath) => globToRegExp(pattern).test(normalizeSlashes(relativePath)));
 
@@ -199,7 +198,7 @@ function createGrepTool(options: BuiltInToolOptions): KernelTool {
       const patternText = requireString(input.pattern, "pattern");
       const basePath = typeof input.basePath === "string" ? input.basePath : ".";
       const resolvedBase = resolveWorkspacePath(basePath, context.workspaceRoot ?? options.workspaceRoot);
-      const rgResult = await runRgSearch(resolvedBase, patternText);
+      const rgResult = await runRgSearch(resolvedBase, patternText, context.abortSignal);
       if (rgResult) {
         return {
           success: true,
@@ -209,10 +208,11 @@ function createGrepTool(options: BuiltInToolOptions): KernelTool {
       }
 
       const pattern = new RegExp(patternText, "i");
-      const files = await walkFiles(resolvedBase);
+      const files = await walkFiles(resolvedBase, context.abortSignal);
       const matches: string[] = [];
 
       for (const filePath of files) {
+        throwIfAborted(context.abortSignal);
         try {
           const stat = await fs.stat(filePath);
           if (stat.size > 10 * 1024 * 1024) continue; // Skip files > 10MB
@@ -268,18 +268,18 @@ function createWriteFileTool(options: BuiltInToolOptions): KernelTool {
     async execute(input, context) {
       const targetPath = requireString(input.path, "path");
       const content = requireString(input.content, "content");
-      const resolved = resolveWorkspacePath(targetPath, context.workspaceRoot ?? options.workspaceRoot);
+      const workspaceRoot = context.workspaceRoot ?? options.workspaceRoot;
+      let resolved = resolveWorkspacePath(targetPath, workspaceRoot);
       const previous = await safeReadFile(resolved);
       pushUndoSnapshot(context.session.metadata, {
         summary: `Before write_file ${targetPath}`,
         files: [{ path: targetPath, content: previous }],
       });
       ensureParentDirectory(resolved);
+      resolved = resolveWorkspacePath(targetPath, workspaceRoot);
       await fs.writeFile(resolved, content, "utf8");
 
-      const artifacts = previous === null
-        ? []
-        : [createDiffArtifact(targetPath, previous, content)];
+      const artifacts = [createDiffArtifact(targetPath, previous, content)];
 
       return {
         success: true,
@@ -323,6 +323,7 @@ function createApplyPatchTool(options: BuiltInToolOptions): KernelTool {
         summary: `Before apply_patch ${targetPath}`,
         files: [{ path: targetPath, content: previous }],
       });
+      resolveWorkspacePath(targetPath, context.workspaceRoot ?? options.workspaceRoot);
       await fs.writeFile(resolved, next, "utf8");
       return {
         success: true,
@@ -390,6 +391,7 @@ function createMultiEditTool(options: BuiltInToolOptions): KernelTool {
         summary: `Before multi_edit ${targetPath}`,
         files: [{ path: targetPath, content: previous }],
       });
+      resolveWorkspacePath(targetPath, context.workspaceRoot ?? options.workspaceRoot);
       await fs.writeFile(resolved, next, "utf8");
       return {
         success: true,
@@ -410,7 +412,7 @@ function createGitStatusTool(options: BuiltInToolOptions): KernelTool {
     renderer: { kind: "text", collapsible: true },
     async execute(_input, context) {
       const cwd = context.workspaceRoot ?? options.workspaceRoot ?? process.cwd();
-      const result = await runCommand("git status --short --branch", cwd, 30_000);
+      const result = await runCommand("git status --short --branch", cwd, 30_000, context.abortSignal);
       return {
         success: result.code === 0,
         output: [result.stdout, result.stderr].filter(Boolean).join("\n").trim(),
@@ -440,7 +442,7 @@ function createGitDiffTool(options: BuiltInToolOptions): KernelTool {
         ? ` -- ${shellQuote(input.path)}`
         : "";
       const command = `git diff${input.staged === true ? " --staged" : ""}${target}`;
-      const result = await runCommand(command, cwd, 30_000);
+      const result = await runCommand(command, cwd, 30_000, context.abortSignal);
       return {
         success: result.code === 0,
         output: [result.stdout, result.stderr].filter(Boolean).join("\n").trim() || "No diff",
@@ -500,7 +502,7 @@ function createDiagnosticsTool(options: BuiltInToolOptions, name = "diagnostics"
       const outputs: string[] = [];
       let ok = true;
       for (const command of commands) {
-        const result = await runCommand(command, cwd, 120_000);
+        const result = await runCommand(command, cwd, 120_000, context.abortSignal);
         ok = ok && result.code === 0;
         outputs.push(formatCommandResult(command, result));
       }
@@ -554,7 +556,7 @@ function createRunProjectCommandTool(options: BuiltInToolOptions, name: "run_tes
         };
       }
 
-      const result = await runCommand(command, cwd, timeoutMs);
+      const result = await runCommand(command, cwd, timeoutMs, context.abortSignal);
       return {
         success: result.code === 0,
         output: compactOutput(formatCommandResult(command, result)),
@@ -607,7 +609,7 @@ function createSymbolSearchTool(options: BuiltInToolOptions): KernelTool {
       }
 
       const pattern = buildDefinitionPattern(query);
-      const result = await runRgSearchWithArgs(cwd, pattern, limit);
+      const result = await runRgSearchWithArgs(cwd, pattern, limit, context.abortSignal);
       return {
         success: true,
         output: appendFallbackReason(result.output || "No symbols found", lsp),
@@ -648,7 +650,7 @@ function createWorkspaceSymbolsTool(options: BuiltInToolOptions): KernelTool {
         };
       }
 
-      const result = await runRgSearchWithArgs(cwd, buildDefinitionPattern(query), limit);
+      const result = await runRgSearchWithArgs(cwd, buildDefinitionPattern(query), limit, context.abortSignal);
       return {
         success: true,
         output: appendFallbackReason(result.output || "No workspace symbols found", lsp),
@@ -703,7 +705,7 @@ function createFindReferencesTool(options: BuiltInToolOptions): KernelTool {
 
       const symbol = requireString(input.symbol, "symbol");
       const pattern = `\\b${escapeRegExp(symbol)}\\b`;
-      const result = await runRgSearchWithArgs(cwd, pattern, limit);
+      const result = await runRgSearchWithArgs(cwd, pattern, limit, context.abortSignal);
       return {
         success: true,
         output: result.output || "No references found",
@@ -751,7 +753,7 @@ function createGotoDefinitionTool(options: BuiltInToolOptions): KernelTool {
       }
 
       const symbol = requireString(input.symbol, "symbol");
-      const result = await runRgSearchWithArgs(cwd, buildDefinitionPattern(symbol), limit);
+      const result = await runRgSearchWithArgs(cwd, buildDefinitionPattern(symbol), limit, context.abortSignal);
       return {
         success: true,
         output: result.output || "No likely definition found",
@@ -811,6 +813,7 @@ function createRevertTool(options: BuiltInToolOptions): KernelTool {
         summary: `Before revert ${targetPath}`,
         files: [{ path: targetPath, content: previous }],
       });
+      resolveWorkspacePath(targetPath, context.workspaceRoot ?? options.workspaceRoot);
       await fs.writeFile(resolved, snapshot.content, "utf8");
       return {
         success: true,
@@ -844,7 +847,7 @@ function createRunShellTool(options: BuiltInToolOptions): KernelTool {
         : context.workspaceRoot ?? options.workspaceRoot ?? process.cwd();
       const timeoutMs = typeof input.timeoutMs === "number" ? input.timeoutMs : 60_000;
 
-      const result = await runCommand(command, cwd, timeoutMs);
+      const result = await runCommand(command, cwd, timeoutMs, context.abortSignal);
       return {
         success: result.code === 0,
         output: [result.stdout, result.stderr].filter(Boolean).join("\n").trim(),
@@ -944,18 +947,20 @@ function relativeDisplayPath(targetPath: string, workspaceRoot: string): string 
   return relative && !relative.startsWith("..") ? relative : targetPath;
 }
 
-async function walkFiles(basePath: string): Promise<string[]> {
+async function walkFiles(basePath: string, abortSignal?: AbortSignal): Promise<string[]> {
+  throwIfAborted(abortSignal);
   const results: string[] = [];
   const entries = await fs.readdir(basePath, { withFileTypes: true });
 
   for (const entry of entries) {
+    throwIfAborted(abortSignal);
     if (entry.name.startsWith(".git") || entry.name === "node_modules") {
       continue;
     }
 
     const fullPath = path.join(basePath, entry.name);
     if (entry.isDirectory()) {
-      results.push(...await walkFiles(fullPath));
+      results.push(...await walkFiles(fullPath, abortSignal));
       continue;
     }
     results.push(fullPath);
@@ -965,12 +970,33 @@ async function walkFiles(basePath: string): Promise<string[]> {
 }
 
 function globToRegExp(pattern: string): RegExp {
-  const normalized = normalizeSlashes(pattern)
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\\\*\\\*/g, ".*")
-    .replace(/\\\*/g, "[^/]*")
-    .replace(/\\\?/g, ".");
-  return new RegExp(`^${normalized}$`);
+  const normalized = normalizeSlashes(pattern);
+  let source = "^";
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    const character = normalized[index];
+    if (character === "*") {
+      if (normalized[index + 1] === "*") {
+        index += 1;
+        if (normalized[index + 1] === "/") {
+          index += 1;
+          source += "(?:.*/)?";
+        } else {
+          source += ".*";
+        }
+      } else {
+        source += "[^/]*";
+      }
+      continue;
+    }
+    if (character === "?") {
+      source += "[^/]";
+      continue;
+    }
+    source += escapeRegExp(character);
+  }
+
+  return new RegExp(`${source}$`);
 }
 
 function normalizeSlashes(value: string): string {
@@ -981,8 +1007,7 @@ function resolveWorkspacePath(targetPath: string, workspaceRoot?: string): strin
   if (!workspaceRoot) {
     throw new Error("Workspace root is required for built-in file and shell tools");
   }
-  ensurePathWithinWorkspace(targetPath, workspaceRoot);
-  return resolveSafePath(targetPath, workspaceRoot);
+  return resolvePathWithinWorkspace(targetPath, workspaceRoot);
 }
 
 function requireString(value: unknown, field: string): string {
@@ -1131,12 +1156,17 @@ function getSnapshotStore(metadata: Record<string, unknown>): Record<string, { c
   return snapshots;
 }
 
-function createDiffArtifact(filePath: string, before: string, after: string): KernelArtifact {
+function createDiffArtifact(filePath: string, before: string | null, after: string): KernelArtifact {
   return {
     id: path.basename(filePath),
     label: filePath,
     type: "diff",
-    content: createPatch(filePath, before, after),
+    path: filePath,
+    content: createPatch(filePath, before ?? "", after),
+    metadata: {
+      oldText: before,
+      newText: after,
+    },
     createdAt: Date.now(),
   };
 }
@@ -1179,7 +1209,11 @@ function getUndoStack(metadata: Record<string, unknown>): UndoSnapshot[] {
   return stack;
 }
 
-async function runRgFiles(cwd: string, pattern: string): Promise<string[] | null> {
+async function runRgFiles(
+  cwd: string,
+  pattern: string,
+  abortSignal?: AbortSignal
+): Promise<string[] | null> {
   const result = await runCommandWithArgs("rg", [
     "--files",
     "--hidden",
@@ -1189,7 +1223,7 @@ async function runRgFiles(cwd: string, pattern: string): Promise<string[] | null
     "!**/node_modules/**",
     "--glob",
     pattern,
-  ], cwd, 30_000);
+  ], cwd, 30_000, abortSignal);
 
   if (result.missing) {
     return null;
@@ -1205,7 +1239,8 @@ async function runRgFiles(cwd: string, pattern: string): Promise<string[] | null
 
 async function runRgSearch(
   cwd: string,
-  pattern: string
+  pattern: string,
+  abortSignal?: AbortSignal
 ): Promise<{ output: string; matchCount: number } | null> {
   const result = await runCommandWithArgs("rg", [
     "--line-number",
@@ -1218,7 +1253,7 @@ async function runRgSearch(
     "!**/node_modules/**",
     pattern,
     ".",
-  ], cwd, 30_000);
+  ], cwd, 30_000, abortSignal);
 
   if (result.missing) {
     return null;
@@ -1235,7 +1270,8 @@ async function runRgSearch(
 async function runRgSearchWithArgs(
   cwd: string,
   pattern: string,
-  limit: number
+  limit: number,
+  abortSignal?: AbortSignal
 ): Promise<{ output: string; matchCount: number }> {
   const result = await runCommandWithArgs("rg", [
     "--line-number",
@@ -1248,7 +1284,7 @@ async function runRgSearchWithArgs(
     "!**/node_modules/**",
     pattern,
     ".",
-  ], cwd, 30_000);
+  ], cwd, 30_000, abortSignal);
 
   if (!result.missing) {
     const lines = result.stdout.split("\n").filter((line) => line.trim());
@@ -1261,7 +1297,8 @@ async function runRgSearchWithArgs(
 
   const regex = new RegExp(pattern, "i");
   const matches: string[] = [];
-  for (const filePath of await walkFiles(cwd)) {
+  for (const filePath of await walkFiles(cwd, abortSignal)) {
+    throwIfAborted(abortSignal);
     if (matches.length >= limit) break;
     try {
       const stat = await fs.stat(filePath);
@@ -1280,25 +1317,93 @@ async function runRgSearchWithArgs(
   return { output: matches.join("\n"), matchCount: matches.length };
 }
 
+interface SpawnedCommandResult {
+  stdout: string;
+  stderr: string;
+  code: number;
+  missing?: boolean;
+}
+
 async function runCommandWithArgs(
   command: string,
   args: string[],
   cwd: string,
-  timeoutMs: number
-): Promise<{ stdout: string; stderr: string; code: number; missing?: boolean }> {
+  timeoutMs: number,
+  abortSignal?: AbortSignal
+): Promise<SpawnedCommandResult> {
+  return runSpawnedCommand(command, args, cwd, timeoutMs, abortSignal, true);
+}
+
+async function runCommand(
+  command: string,
+  cwd: string,
+  timeoutMs: number,
+  abortSignal?: AbortSignal
+): Promise<SpawnedCommandResult> {
+  return runSpawnedCommand("sh", ["-c", command], cwd, timeoutMs, abortSignal, false);
+}
+
+function runSpawnedCommand(
+  command: string,
+  args: string[],
+  cwd: string,
+  timeoutMs: number,
+  abortSignal: AbortSignal | undefined,
+  allowMissing: boolean
+): Promise<SpawnedCommandResult> {
   return new Promise((resolve, reject) => {
+    if (abortSignal?.aborted) {
+      reject(abortError(abortSignal));
+      return;
+    }
+
     const child = spawn(command, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
+      detached: process.platform !== "win32",
     });
 
     let stdout = "";
     let stderr = "";
-    const timer = setTimeout(() => {
+    let settled = false;
+
+    const terminate = () => {
+      if (child.pid && process.platform !== "win32") {
+        try {
+          process.kill(-child.pid, "SIGTERM");
+          return;
+        } catch {
+          // Fall through to terminating the immediate child.
+        }
+      }
       child.kill("SIGTERM");
-      reject(new Error(`Command timed out after ${timeoutMs}ms`));
+    };
+    const cleanup = () => {
+      clearTimeout(timer);
+      abortSignal?.removeEventListener("abort", onAbort);
+    };
+    const finishResolve = (result: SpawnedCommandResult) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+    const finishReject = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const onAbort = () => {
+      terminate();
+      finishReject(abortError(abortSignal));
+    };
+    const timer = setTimeout(() => {
+      terminate();
+      finishReject(new Error(`Command timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
+    abortSignal?.addEventListener("abort", onAbort, { once: true });
     child.stdout?.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
     });
@@ -1306,16 +1411,14 @@ async function runCommandWithArgs(
       stderr += chunk.toString();
     });
     child.on("error", (error: NodeJS.ErrnoException) => {
-      clearTimeout(timer);
-      if (error.code === "ENOENT") {
-        resolve({ stdout: "", stderr: error.message, code: 127, missing: true });
+      if (allowMissing && error.code === "ENOENT") {
+        finishResolve({ stdout: "", stderr: error.message, code: 127, missing: true });
         return;
       }
-      reject(error);
+      finishReject(error);
     });
     child.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({
+      finishResolve({
         stdout,
         stderr,
         code: code ?? 0,
@@ -1324,37 +1427,13 @@ async function runCommandWithArgs(
   });
 }
 
-async function runCommand(command: string, cwd: string, timeoutMs: number) {
-  return new Promise<{ stdout: string; stderr: string; code: number }>((resolve, reject) => {
-    const child = spawn("sh", ["-c", command], {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw abortError(signal);
+}
 
-    let stdout = "";
-    let stderr = "";
-    const timer = setTimeout(() => {
-      child.kill("SIGTERM");
-      reject(new Error(`Command timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    child.stdout?.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString();
-    });
-    child.stderr?.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({
-        stdout,
-        stderr,
-        code: code ?? 0,
-      });
-    });
-  });
+function abortError(signal?: AbortSignal): Error {
+  if (signal?.reason instanceof Error) return signal.reason;
+  const error = new Error("EchoAI tool execution was cancelled");
+  error.name = "AbortError";
+  return error;
 }

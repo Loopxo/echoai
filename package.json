@@ -65,6 +65,7 @@
   ],
   "workspaces": [
     "apps/desktop",
+    "apps/ide",
     "apps/web",
     "packages/*",
     "channels/*"

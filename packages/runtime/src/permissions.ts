@@ -73,7 +73,6 @@ export interface RuntimePermissionOptions {
   profile?: Partial<PermissionProfile>;
   rules?: PermissionRule[];
   layeredRules?: Partial<Record<KernelPermissionRuleLayer, PermissionRule[]>>;
-  safeCommands?: RegExp[];
   safeWriteGlobs?: RegExp[];
 }
 
@@ -87,7 +86,6 @@ export const DEFAULT_PERMISSION_PROFILE: PermissionProfile = {
 export class RuntimePermissionManager {
   private readonly profile: PermissionProfile;
   private readonly rules: PermissionRule[];
-  private readonly safeCommands: RegExp[];
   private readonly safeWriteGlobs: RegExp[];
 
   constructor(options: RuntimePermissionOptions = {}) {
@@ -96,7 +94,6 @@ export class RuntimePermissionManager {
       ...options.profile,
     };
     this.rules = flattenRules(options.rules ?? [], options.layeredRules);
-    this.safeCommands = options.safeCommands ?? DEFAULT_SAFE_COMMANDS;
     this.safeWriteGlobs = options.safeWriteGlobs ?? DEFAULT_SAFE_WRITE_GLOBS;
   }
 
@@ -106,15 +103,40 @@ export class RuntimePermissionManager {
     session: KernelSession,
     workspaceRoot?: string
   ): PermissionEvaluation {
-    const request = createPermissionRequest(tool, call, session, workspaceRoot);
+    const request = createPermissionRequest(tool, call, session, workspaceRoot, this.profile);
     const matchingRule = findMatchingRule(this.rules, request);
-    const safePathDecision = evaluateSafePathApproval(
-      request,
-      call.input,
-      workspaceRoot,
-      this.safeCommands,
-      this.safeWriteGlobs
-    );
+
+    // Free-form shell commands always require an explicit approval. A command
+    // prefix is not a security boundary: `cat`, `find`, and `rg` can read
+    // outside the workspace and shell composition can append arbitrary work.
+    // Explicit denies remain absolute, but an allow rule cannot bypass the
+    // per-invocation prompt for run_shell.
+    if (tool.name === "run_shell") {
+      const finalDecision = request.decision === "deny" || matchingRule?.decision === "deny"
+        ? "deny"
+        : "ask";
+      return {
+        request: { ...request, decision: finalDecision },
+        finalDecision,
+        matchedRule: matchingRule,
+        resolvedBy: matchingRule?.decision === "deny" ? "rule" : "default",
+      };
+    }
+
+    // An explicit `deny` from the active profile (for example plan mode's
+    // `write: "deny"`) must never be widened by a safe-path heuristic. Only a
+    // matching rule — which is an intentional, user-authored statement — can
+    // override it. Ordering mirrors deny > ask > allow.
+    const safePathDecision =
+      request.decision === "deny"
+        ? undefined
+        : evaluateSafePathApproval(
+            request,
+            call.input,
+            workspaceRoot,
+            this.safeWriteGlobs
+          );
+
     const finalDecision = matchingRule?.decision ?? safePathDecision ?? request.decision;
     return {
       request: {
@@ -141,21 +163,6 @@ const RULE_LAYER_PRIORITY: KernelPermissionRuleLayer[] = [
   "safe_path",
 ];
 
-const DEFAULT_SAFE_COMMANDS: RegExp[] = [
-  /^pwd$/i,
-  /^ls(?:\s|$)/i,
-  /^find(?:\s|$)/i,
-  /^cat(?:\s|$)/i,
-  /^head(?:\s|$)/i,
-  /^tail(?:\s|$)/i,
-  /^wc(?:\s|$)/i,
-  /^which(?:\s|$)/i,
-  /^git\s+status(?:\s|$)/i,
-  /^git\s+diff(?:\s|$)/i,
-  /^git\s+log(?:\s|$)/i,
-  /^rg(?:\s|$)/i,
-];
-
 const DEFAULT_CLASSIFIER_SAFE_COMMANDS: RegExp[] = [
   /^git\s+(status|diff|log|show)(?:\s|$)/i,
   /^npm\s+test(?:\s|$)/i,
@@ -164,12 +171,39 @@ const DEFAULT_CLASSIFIER_SAFE_COMMANDS: RegExp[] = [
   /^tsc(?:\s|$)/i,
 ];
 
+// Documentation-shaped files only. `.json` and `.yaml` are deliberately absent:
+// auto-approving them covers package.json `scripts`, tsconfig.json, and
+// .github/workflows/*.yml, which turns a "safe" write into arbitrary code
+// execution on the next build with no prompt and no approval record.
 const DEFAULT_SAFE_WRITE_GLOBS: RegExp[] = [
   /\.md$/i,
   /\.txt$/i,
-  /\.json$/i,
-  /\.ya?ml$/i,
 ];
+
+// Second layer, independent of the configurable globs above: these paths are
+// never auto-approved, so a custom `safeWriteGlobs` cannot reintroduce the
+// build-critical hole either.
+const NEVER_AUTO_APPROVED_WRITES: RegExp[] = [
+  /(^|[\\/])package\.json$/i,
+  /(^|[\\/])package-lock\.json$/i,
+  /(^|[\\/])pnpm-lock\.yaml$/i,
+  /(^|[\\/])pnpm-workspace\.yaml$/i,
+  /(^|[\\/])yarn\.lock$/i,
+  /(^|[\\/])tsconfig(\..*)?\.json$/i,
+  /(^|[\\/])\.npmrc$/i,
+  /(^|[\\/])\.env(\..*)?$/i,
+  /[\\/]\.github[\\/]/i,
+  /[\\/]\.echoai[\\/]/i,
+  /(^|[\\/])ECHOAI\.md$/i,
+  /(^|[\\/])Dockerfile$/i,
+  /(^|[\\/])docker-compose(\..*)?\.ya?ml$/i,
+  /(^|[\\/])Makefile$/i,
+  /(^|[\\/])\.git[\\/]/i,
+];
+
+export function isNeverAutoApprovedWrite(resolvedPath: string): boolean {
+  return NEVER_AUTO_APPROVED_WRITES.some((pattern) => pattern.test(resolvedPath));
+}
 
 function flattenRules(
   rules: PermissionRule[],
@@ -208,26 +242,25 @@ function findMatchingRule(
 
 function evaluateSafePathApproval(
   request: PermissionRequest,
-  input: Record<string, unknown>,
+  _input: Record<string, unknown>,
   workspaceRoot: string | undefined,
-  safeCommands: RegExp[],
   safeWriteGlobs: RegExp[]
 ): PermissionDecision | undefined {
   if (request.scope === "read" && request.risk === "low") {
     return "allow";
   }
 
-  if (request.scope === "process") {
-    const command = String(input.command ?? request.resource ?? "").trim();
-    if (request.risk === "low" && safeCommands.some((pattern) => pattern.test(command))) {
-      return "allow";
-    }
-  }
-
   if (request.scope === "write" && workspaceRoot && request.resource && request.risk === "medium") {
-    const resolved = resolveSafePath(request.resource, workspaceRoot);
-    const inWorkspace = resolved.startsWith(path.resolve(workspaceRoot));
-    if (inWorkspace && safeWriteGlobs.some((pattern) => pattern.test(resolved))) {
+    let resolved: string;
+    try {
+      resolved = resolvePathWithinWorkspace(request.resource, workspaceRoot);
+    } catch {
+      return undefined;
+    }
+    if (
+      !isNeverAutoApprovedWrite(resolved) &&
+      safeWriteGlobs.some((pattern) => pattern.test(resolved))
+    ) {
       return "allow";
     }
   }
@@ -239,12 +272,13 @@ export function createPermissionRequest(
   tool: KernelTool,
   call: KernelToolCall,
   session: KernelSession,
-  workspaceRoot?: string
+  workspaceRoot?: string,
+  profile: PermissionProfile = DEFAULT_PERMISSION_PROFILE
 ): PermissionRequest {
   const scope = inferPermissionScope(tool, call);
   const resource = inferPermissionResource(call.input);
   const risk = classifyRisk(scope, resource, call.input, workspaceRoot);
-  const baseDecision = DEFAULT_PERMISSION_PROFILE[scope];
+  const baseDecision = profile[scope];
   const toolDecision = tool.permission?.[scope];
   const decision = mergeDecision(baseDecision, toolDecision, risk);
 
@@ -386,7 +420,13 @@ export function createSafetyClassifierResolver(
         };
       }
 
-      if (safeCommands.some((pattern) => pattern.test(command))) {
+      // run_shell is intentionally never auto-approved. Even commands that
+      // look read-only can target ~/.ssh, /, or append another shell command.
+      if (permissionRequest.toolName === "run_shell") {
+        return null;
+      }
+
+      if (safeCommands.some((pattern) => pattern.test(command)) && !containsShellComposition(command)) {
         return {
           decision: "approved",
           reason: `Approved by automated safety classifier: ${command}`,
@@ -404,13 +444,12 @@ export class PermissionResolverOrchestrator {
   constructor(private readonly resolvers: PermissionResolver[]) {}
 
   async resolve(context: PermissionResolverContext): Promise<PermissionResolverResult | undefined> {
-    if (this.resolvers.length === 0) {
+    if (this.resolvers.length === 0 || context.abortSignal?.aborted) {
       return undefined;
     }
 
     const controller = new AbortController();
-    const abortListener = () => controller.abort();
-    context.abortSignal?.addEventListener("abort", abortListener, { once: true });
+    let abortListener: (() => void) | undefined;
 
     try {
       return await new Promise<PermissionResolverResult | undefined>((resolve) => {
@@ -425,6 +464,9 @@ export class PermissionResolverOrchestrator {
           controller.abort();
           resolve(result);
         };
+
+        abortListener = () => finish(undefined);
+        context.abortSignal?.addEventListener("abort", abortListener, { once: true });
 
         for (const resolver of this.resolvers) {
           void resolver.resolve({
@@ -453,25 +495,28 @@ export class PermissionResolverOrchestrator {
         }
       });
     } finally {
-      context.abortSignal?.removeEventListener("abort", abortListener);
+      if (abortListener) {
+        context.abortSignal?.removeEventListener("abort", abortListener);
+      }
     }
   }
 }
 
+function containsShellComposition(command: string): boolean {
+  return /[;&|<>`$()\r\n]/.test(command);
+}
+
 function classifyFileRisk(resource: string | undefined, workspaceRoot?: string): RiskLevel {
-  if (!resource) {
+  if (!resource || !workspaceRoot) {
     return "medium";
   }
 
-  if (!workspaceRoot) {
-    return "medium";
-  }
-
-  const resolved = resolveSafePath(resource, workspaceRoot);
-  if (!resolved.startsWith(path.resolve(workspaceRoot))) {
+  try {
+    resolvePathWithinWorkspace(resource, workspaceRoot);
+    return "low";
+  } catch {
     return "high";
   }
-  return "low";
 }
 
 function classifyWriteRisk(
@@ -483,10 +528,17 @@ function classifyWriteRisk(
     return "high";
   }
 
-  const resolved = workspaceRoot ? resolveSafePath(resource, workspaceRoot) : path.resolve(resource);
-  const homeDir = os.homedir();
-  if (resolved.startsWith(homeDir) && !resolved.startsWith(workspaceRoot ?? "")) {
-    return "high";
+  if (workspaceRoot) {
+    try {
+      resolvePathWithinWorkspace(resource, workspaceRoot);
+    } catch {
+      return "high";
+    }
+  } else {
+    const resolved = path.resolve(resource);
+    if (isPathWithin(resolved, os.homedir())) {
+      return "high";
+    }
   }
 
   const content = String(input.content ?? input.patch ?? "");
@@ -494,7 +546,7 @@ function classifyWriteRisk(
     return "high";
   }
 
-  return workspaceRoot && resolved.startsWith(path.resolve(workspaceRoot)) ? "medium" : "high";
+  return workspaceRoot ? "medium" : "high";
 }
 
 function classifyNetworkRisk(resource: string | undefined): RiskLevel {
@@ -531,6 +583,12 @@ function mergeDecision(
   toolDecision: PermissionDecision | undefined,
   risk: RiskLevel
 ): PermissionDecision {
+  // Deny is absolute and is never downgraded to a prompt. Without this, a
+  // profile that denies a scope (plan mode denying writes) silently became
+  // "ask" for every high-risk call, which is the opposite of the intent.
+  if (baseDecision === "deny" || toolDecision === "deny") {
+    return "deny";
+  }
   if (risk === "critical") {
     return "ask";
   }
@@ -552,13 +610,50 @@ export function resolveSafePath(targetPath: string, workspaceRoot: string): stri
   return path.resolve(workspaceRoot, targetPath);
 }
 
-export function ensurePathWithinWorkspace(targetPath: string, workspaceRoot: string): void {
+export function resolvePathWithinWorkspace(targetPath: string, workspaceRoot: string): string {
   const resolvedWorkspace = path.resolve(workspaceRoot);
   const resolvedTarget = resolveSafePath(targetPath, workspaceRoot);
 
-  if (resolvedTarget !== resolvedWorkspace && !resolvedTarget.startsWith(`${resolvedWorkspace}${path.sep}`)) {
+  if (!isPathWithin(resolvedTarget, resolvedWorkspace)) {
     throw new Error(`Path ${targetPath} is outside the workspace root`);
   }
+
+  const canonicalWorkspace = fs.realpathSync.native(resolvedWorkspace);
+  const canonicalTarget = canonicalizeFromExistingAncestor(resolvedTarget);
+  if (!isPathWithin(canonicalTarget, canonicalWorkspace)) {
+    throw new Error(`Path ${targetPath} resolves outside the workspace root`);
+  }
+
+  return resolvedTarget;
+}
+
+export function ensurePathWithinWorkspace(targetPath: string, workspaceRoot: string): void {
+  resolvePathWithinWorkspace(targetPath, workspaceRoot);
+}
+
+function canonicalizeFromExistingAncestor(targetPath: string): string {
+  let existing = targetPath;
+  const missingSegments: string[] = [];
+
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) {
+      throw new Error(`No existing ancestor for ${targetPath}`);
+    }
+    missingSegments.unshift(path.basename(existing));
+    existing = parent;
+  }
+
+  return path.resolve(fs.realpathSync.native(existing), ...missingSegments);
+}
+
+function isPathWithin(candidate: string, root: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative === "" || (
+    relative !== ".." &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative)
+  );
 }
 
 export function ensureParentDirectory(filePath: string): void {

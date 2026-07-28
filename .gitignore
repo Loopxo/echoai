@@ -99,3 +99,17 @@ nvidia-nim
 cc-cc
 
 samples
+
+# Local upstream Code-OSS source used only as an overlay target.
+vscode-main/
+
+# Read-only competitor reference trees. NEVER commit these.
+# Licensing: third-party-main (xAI Grok Build) is Apache-2.0 -> port only with
+# NOTICE + Apache 4(b) change notes. sample-code-main (T3 Code) has NO root
+# license -> all rights reserved; reimplement behaviour only, never copy code.
+sample-code-main
+third-party-main
+what.md
+
+
+docs/

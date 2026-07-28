@@ -52,7 +52,7 @@ export default async function handleDirectPrompt(prompt: string, options: any) {
       stream: context.stream,
       stateNamespace: 'cli',
     });
-    await registerConfiguredMcpTools(kernel);
+    const mcpManager = await registerConfiguredMcpTools(kernel);
 
     const runOptions = {
       input: fullPrompt,
@@ -63,26 +63,30 @@ export default async function handleDirectPrompt(prompt: string, options: any) {
       stream: context.stream,
     };
 
-    if (context.stream) {
-      const renderer = new RuntimeEventRenderer();
-      let response = '';
+    try {
+      if (context.stream) {
+        const renderer = new RuntimeEventRenderer();
+        let response = '';
 
-      for await (const event of kernel.runEvents(runOptions)) {
-        renderer.consume(event);
-        if (event.type === 'run.completed') {
-          response = event.result.response;
+        for await (const event of kernel.runEvents(runOptions)) {
+          renderer.consume(event);
+          if (event.type === 'run.completed') {
+            response = event.result.response;
+          }
         }
+
+        renderer.finish();
+        if (!response.trim()) {
+          process.stdout.write('\n');
+        }
+        return;
       }
 
-      renderer.finish();
-      if (!response.trim()) {
-        process.stdout.write('\n');
-      }
-      return;
+      const result = await kernel.run(runOptions);
+      console.log(result.response);
+    } finally {
+      await mcpManager.shutdown();
     }
-
-    const result = await kernel.run(runOptions);
-    console.log(result.response);
   } catch (error) {
     console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);

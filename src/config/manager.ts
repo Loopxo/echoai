@@ -2,7 +2,7 @@ import { cosmiconfig } from 'cosmiconfig';
 import { z } from 'zod';
 import { homedir } from 'os';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync, chmodSync } from 'fs';
 import { Config, ProviderConfig, VSCodeConfig, GitConfig } from '../types/index.js';
 
 const ProviderConfigSchema = z.object({
@@ -174,10 +174,21 @@ export class ConfigManager {
     
     const configDir = join(homedir(), '.echoai');
     if (!existsSync(configDir)) {
-      mkdirSync(configDir, { recursive: true });
+      // 0o700: this directory holds provider API keys and session state.
+      mkdirSync(configDir, { recursive: true, mode: 0o700 });
     }
 
-    writeFileSync(this.globalConfigPath, JSON.stringify(mergedConfig, null, 2));
+    // 0o600 explicitly. Without a mode this file lands at the process umask
+    // (commonly 0644) while containing every BYOK provider API key in
+    // plaintext, readable by any local user.
+    writeFileSync(this.globalConfigPath, JSON.stringify(mergedConfig, null, 2), { mode: 0o600 });
+    try {
+      chmodSync(this.globalConfigPath, 0o600);
+      chmodSync(configDir, 0o700);
+    } catch {
+      // Non-POSIX filesystems (Windows, some network mounts) reject chmod.
+      // The file is still written; tightening is best-effort there.
+    }
     this.cachedConfig = mergedConfig;
     this.pendingConfig = undefined;
   }

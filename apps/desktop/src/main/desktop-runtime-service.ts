@@ -4,8 +4,6 @@ import {
   AuditLogStore,
   RuntimePermissionManager,
   SessionRegistry,
-  type KernelCompletionProvider,
-  type KernelCompletionRequest,
   type KernelRunEvent,
   type KernelSession,
 } from '@echoai/runtime';
@@ -17,6 +15,7 @@ import type {
   DesktopRuntimeStatus,
 } from '@shared/ipc';
 import type { DesktopLogger } from './logger';
+import { DesktopProviderCatalog } from './desktop-completion-provider';
 
 type RuntimeEventSink = (event: DesktopRuntimeEvent) => void;
 
@@ -27,16 +26,19 @@ interface ActiveRun {
 
 export class DesktopRuntimeService {
   private readonly kernel: AgentKernel;
+  private readonly providers: DesktopProviderCatalog;
   private readonly activeRuns = new Map<string, ActiveRun>();
 
   constructor(
     stateDir: string,
     private readonly logger: DesktopLogger,
-    private readonly emitEvent: RuntimeEventSink
+    private readonly emitEvent: RuntimeEventSink,
+    providers = new DesktopProviderCatalog()
   ) {
+    this.providers = providers;
     const registryOptions = { stateDir, namespace: 'desktop' };
     this.kernel = new AgentKernel({
-      completionProvider: createDesktopCompletionProvider(),
+      completionProvider: this.providers.completionProvider,
       sessionRegistry: new SessionRegistry(registryOptions),
       auditLogStore: new AuditLogStore(registryOptions),
       permissionManager: new RuntimePermissionManager({
@@ -48,11 +50,13 @@ export class DesktopRuntimeService {
 
   async getStatus(): Promise<DesktopRuntimeStatus> {
     const sessions = await this.kernel.listSessions();
+    const defaultProvider = this.providers.getDefault();
     return {
       activeRuns: this.activeRuns.size,
       sessionCount: sessions.length,
-      provider: 'desktop',
-      model: 'echoai-local',
+      provider: defaultProvider.provider,
+      model: defaultProvider.model,
+      providers: this.providers.list(),
     };
   }
 
@@ -62,7 +66,12 @@ export class DesktopRuntimeService {
   }
 
   async createSession(title: string): Promise<DesktopRuntimeSessionSummary> {
-    const session = await this.kernel.createSession(title.trim() || 'Desktop session', 'desktop', 'echoai-local');
+    const defaultProvider = this.providers.getDefault();
+    const session = await this.kernel.createSession(
+      title.trim() || 'Desktop session',
+      defaultProvider.provider,
+      defaultProvider.model
+    );
     return toSessionSummary(session);
   }
 
@@ -119,14 +128,15 @@ export class DesktopRuntimeService {
     controller: AbortController
   ): Promise<void> {
     try {
+      const selection = this.providers.resolve(request.provider, request.model);
       for await (const event of this.kernel.runEvents({
         sessionId: request.sessionId,
         title: 'Desktop session',
         input: request.input,
         workspaceRoot: request.workspaceRoot,
         mode: request.mode,
-        provider: request.provider ?? 'desktop',
-        model: request.model ?? 'echoai-local',
+        provider: selection.provider,
+        model: selection.model,
         stream: true,
         abortSignal: controller.signal,
       })) {
@@ -145,38 +155,6 @@ export class DesktopRuntimeService {
       this.activeRuns.delete(runId);
     }
   }
-}
-
-function createDesktopCompletionProvider(): KernelCompletionProvider {
-  return {
-    async complete(request) {
-      return {
-        content: buildDesktopResponse(request),
-        metadata: { provider: 'desktop', model: 'echoai-local' },
-      };
-    },
-    async stream(request, onChunk) {
-      const content = buildDesktopResponse(request);
-      for (const chunk of content.match(/.{1,48}/g) ?? [content]) {
-        if (request.abortSignal?.aborted) {
-          throw new Error('Run cancelled');
-        }
-        onChunk({ type: 'text', text: chunk });
-        await new Promise((resolve) => setTimeout(resolve, 2));
-      }
-      onChunk({ type: 'done' });
-      return {
-        content,
-        metadata: { provider: 'desktop', model: 'echoai-local' },
-      };
-    },
-  };
-}
-
-function buildDesktopResponse(request: KernelCompletionRequest): string {
-  const latestUserMessage = [...request.messages].reverse().find((message) => message.role === 'user');
-  const prompt = latestUserMessage?.content.trim() || 'No prompt provided.';
-  return `EchoAI desktop runtime is connected.\n\n${prompt}`;
 }
 
 function toSessionSummary(session: KernelSession): DesktopRuntimeSessionSummary {
