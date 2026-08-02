@@ -173,8 +173,9 @@ export class EchoAcpAgent implements Agent {
     const cwd = resolveAcpWorkspaceRoot(params.cwd, this.workspaceRoot);
     const config = await new ConfigManager().getConfig();
     const session = await this.sessions.create('ACP Session');
-    session.provider = config.defaults.provider;
-    session.model = config.defaults.model;
+    const requestedRouting = readEchoRoutingMeta(params._meta);
+    session.provider = requestedRouting.provider || config.defaults.provider;
+    session.model = requestedRouting.model || config.defaults.model;
     session.metadata.provider = session.provider;
     session.metadata.model = session.model;
     session.metadata.workspaceRoot = cwd;
@@ -298,6 +299,35 @@ export class EchoAcpAgent implements Agent {
     try {
       const session = await this.loadRequiredSession(params.sessionId);
       const promptText = contentBlocksToText(params.prompt).trim();
+
+      // A model switch in the client applies from the next turn onward, so routing
+      // is re-read per prompt and persisted onto the session.
+      const requestedRouting = readEchoRoutingMeta(params._meta);
+      if (requestedRouting.provider || requestedRouting.model) {
+        let routingChanged = false;
+        if (requestedRouting.provider && requestedRouting.provider !== session.provider) {
+          session.provider = requestedRouting.provider;
+          session.metadata.provider = requestedRouting.provider;
+          routingChanged = true;
+        }
+        if (requestedRouting.model && requestedRouting.model !== session.model) {
+          session.model = requestedRouting.model;
+          session.metadata.model = requestedRouting.model;
+          routingChanged = true;
+        }
+        if (routingChanged) {
+          await this.sessions.save(session);
+          await this.safeSessionUpdate({
+            sessionId: session.id,
+            update: {
+              sessionUpdate: 'session_info_update',
+              title: session.title,
+              updatedAt: new Date(session.updatedAt).toISOString(),
+              _meta: echoSessionMeta(session),
+            },
+          });
+        }
+      }
 
       if (runController.signal.aborted || this.cancelled.has(session.id)) {
         return { stopReason: 'cancelled', userMessageId: userMessageId ?? null };
@@ -765,6 +795,26 @@ function echoSessionMeta(session: KernelSession): Record<string, unknown> {
       ...(provider ? { provider } : {}),
       ...(model ? { model } : {}),
     },
+  };
+}
+
+/**
+ * Read a client-requested provider/model out of an ACP request `_meta`.
+ *
+ * A client such as the Echo AI IDE model picker needs to route a turn without
+ * editing the user's global config. Routing is accepted on `session/new` and on
+ * `session/prompt`; anything unparseable is ignored so an older or unrelated ACP
+ * client keeps the configured defaults.
+ */
+function readEchoRoutingMeta(meta: unknown): { provider?: string; model?: string } {
+  if (!isRecord(meta)) return {};
+  const echoai = meta.echoai;
+  if (!isRecord(echoai)) return {};
+  const provider = typeof echoai.provider === 'string' ? echoai.provider.trim() : '';
+  const model = typeof echoai.model === 'string' ? echoai.model.trim() : '';
+  return {
+    ...(provider && provider.length <= 100 ? { provider } : {}),
+    ...(model && model.length <= 200 ? { model } : {}),
   };
 }
 

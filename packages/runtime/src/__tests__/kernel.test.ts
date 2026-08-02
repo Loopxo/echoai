@@ -417,8 +417,11 @@ describe("PermissionResolverOrchestrator", () => {
     expect(order[0]).toBe("fast");
   });
 
-  it("auto-approves known safe dev commands via the classifier resolver", async () => {
-    const session = createEmptySession("classifier");
+  it("never auto-approves run_shell, even for a known safe command", async () => {
+    // `run_shell` takes a free-form command, so a matching prefix is not a
+    // security boundary: the command can still read outside the workspace or
+    // append further work. The classifier must defer to an explicit approval.
+    const session = createEmptySession("classifier-shell");
     const tool: KernelTool = {
       name: "run_shell",
       description: "Run shell",
@@ -449,7 +452,78 @@ describe("PermissionResolverOrchestrator", () => {
       },
     });
 
+    expect(result).toBeNull();
+  });
+
+  it("auto-approves known safe dev commands for non-shell process tools", async () => {
+    const session = createEmptySession("classifier");
+    const tool: KernelTool = {
+      name: "run_typecheck",
+      description: "Run the project typechecker",
+      inputSchema: { type: "object", properties: {} },
+      permission: { process: "ask" },
+      async execute() {
+        return { success: true };
+      },
+    };
+
+    const resolver = createSafetyClassifierResolver();
+    const result = await resolver.resolve({
+      session,
+      tool,
+      toolCall: {
+        id: "call-1",
+        name: "run_typecheck",
+        input: { command: "pnpm exec tsc --noEmit" },
+      },
+      permissionRequest: {
+        id: "perm-1",
+        sessionId: session.id,
+        toolName: "run_typecheck",
+        scope: "process",
+        decision: "ask",
+        risk: "medium",
+        reason: "process access",
+      },
+    });
+
     expect(result?.decision).toBe("approved");
+    expect(result?.source).toBe("classifier");
+  });
+
+  it("denies critical-risk process commands regardless of tool", async () => {
+    const session = createEmptySession("classifier-critical");
+    const tool: KernelTool = {
+      name: "run_typecheck",
+      description: "Run the project typechecker",
+      inputSchema: { type: "object", properties: {} },
+      permission: { process: "ask" },
+      async execute() {
+        return { success: true };
+      },
+    };
+
+    const resolver = createSafetyClassifierResolver();
+    const result = await resolver.resolve({
+      session,
+      tool,
+      toolCall: {
+        id: "call-1",
+        name: "run_typecheck",
+        input: { command: "rm -rf /" },
+      },
+      permissionRequest: {
+        id: "perm-1",
+        sessionId: session.id,
+        toolName: "run_typecheck",
+        scope: "process",
+        decision: "ask",
+        risk: "critical",
+        reason: "process access",
+      },
+    });
+
+    expect(result?.decision).toBe("denied");
     expect(result?.source).toBe("classifier");
   });
 });
