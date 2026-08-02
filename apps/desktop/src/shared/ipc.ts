@@ -103,6 +103,12 @@ export const IPC_INVOKE_CHANNELS = [
   'window:maximizeToggle',
   'window:close',
   'window:getState',
+  'git:getStatus',
+  'git:listChangedFiles',
+  'git:getDiff',
+  'git:stageFiles',
+  'git:unstageFiles',
+  'git:commit',
 ] as const;
 
 export const IPC_EVENT_CHANNELS = [
@@ -425,6 +431,56 @@ export interface DesktopWindowState {
   isFullScreen: boolean;
 }
 
+/**
+ * Window chrome facts the renderer needs before its first paint.
+ *
+ * Exposed as a plain value (not a promise) from the preload so the title bar
+ * can decide whether to draw its own controls without a frame of flicker.
+ * `app:getSnapshot` also reports the platform, but it resolves asynchronously
+ * and would land after the shell has already rendered.
+ */
+export interface DesktopWindowChrome {
+  platform: NodeJS.Platform;
+  /** True when the renderer must draw minimize/maximize/close itself. */
+  usesCustomWindowControls: boolean;
+  /** True when macOS traffic lights overlap the top-left of the web contents. */
+  hasNativeTrafficLights: boolean;
+  /** Horizontal space in px to reserve for the native traffic lights. */
+  trafficLightInset: number;
+  /** Height in px of the draggable title bar the window was configured for. */
+  titleBarHeight: number;
+}
+
+/** Height of the custom title bar. Shared so the main process can centre the
+ * macOS traffic lights against the exact same value the renderer lays out. */
+export const DESKTOP_TITLE_BAR_HEIGHT = 48;
+
+/** Left offset of the macOS traffic light cluster inside the web contents. */
+export const DESKTOP_TRAFFIC_LIGHT_X = 16;
+
+/**
+ * Horizontal space the renderer reserves for the traffic lights: the cluster
+ * starts at DESKTOP_TRAFFIC_LIGHT_X, spans three ~12px buttons with ~8px gaps
+ * (52px), and we leave a 16px gutter after it.
+ */
+export const DESKTOP_TRAFFIC_LIGHT_INSET = DESKTOP_TRAFFIC_LIGHT_X + 52 + 16;
+
+/** Vertical offset that centres the ~12px traffic lights in the title bar. */
+export const DESKTOP_TRAFFIC_LIGHT_Y = Math.round((DESKTOP_TITLE_BAR_HEIGHT - 12) / 2);
+
+export function buildDesktopWindowChrome(platform: NodeJS.Platform): DesktopWindowChrome {
+  const isMac = platform === 'darwin';
+  return {
+    platform,
+    // macOS keeps its native traffic lights via titleBarStyle 'hiddenInset';
+    // every other platform runs frameless and needs HTML controls.
+    usesCustomWindowControls: !isMac,
+    hasNativeTrafficLights: isMac,
+    trafficLightInset: isMac ? DESKTOP_TRAFFIC_LIGHT_INSET : 0,
+    titleBarHeight: DESKTOP_TITLE_BAR_HEIGHT,
+  };
+}
+
 export interface DesktopAccountStatus {
   signedIn: boolean;
   email: string | null;
@@ -472,11 +528,19 @@ export interface DesktopRuntimeStatus {
   providers: DesktopRuntimeProvider[];
 }
 
+/** Where a provider's inference runs, used to group the model picker. */
+export type DesktopProviderRegion = 'us' | 'cn' | 'local';
+
 export interface DesktopRuntimeProvider {
   id: string;
   label: string;
   defaultModel: string;
   source: 'configured' | 'local';
+  /** Selectable model ids. Always non-empty and always includes defaultModel. */
+  models: string[];
+  region: DesktopProviderRegion;
+  /** Group label for the picker, e.g. 'Qwen', 'GLM', 'Claude'. */
+  family: string;
 }
 
 export interface DesktopRuntimeSessionSummary {
@@ -565,6 +629,58 @@ export interface DesktopArtifactEntry {
   type: 'diff' | 'file' | 'report' | 'log' | 'other';
   size: number;
   modifiedAt: number;
+}
+
+export type DesktopGitFileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked';
+
+export interface DesktopGitCommitSummary {
+  hash: string;
+  subject: string;
+  author: string;
+  /** ISO-8601 author date, straight from git. */
+  at: string;
+}
+
+export interface DesktopGitStatus {
+  /** False for a plain directory, so the UI can hide git affordances without an error path. */
+  isRepository: boolean;
+  /** Null on a detached HEAD; check `detached` to tell that apart from "no repository". */
+  branch: string | null;
+  detached: boolean;
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+  staged: number;
+  unstaged: number;
+  untracked: number;
+  clean: boolean;
+  lastCommit: DesktopGitCommitSummary | null;
+}
+
+export interface DesktopGitFileChange {
+  /** Repository-relative path. Renames report the new path. */
+  path: string;
+  status: DesktopGitFileStatus;
+  /** A file changed on both sides appears twice, once per side. */
+  staged: boolean;
+  insertions: number;
+  deletions: number;
+}
+
+export interface DesktopGitDiffOptions {
+  /** Repository-relative path. Omit for the whole worktree. */
+  path?: string;
+  staged?: boolean;
+}
+
+export interface DesktopGitCommitOptions {
+  /** Stage every tracked modification first, like `git commit -a`. */
+  all?: boolean;
+}
+
+export interface DesktopGitCommitResult {
+  hash: string;
+  subject: string;
 }
 
 export type DesktopCommandRisk = 'safe' | 'ask' | 'deny';
@@ -978,6 +1094,8 @@ export interface DesktopWebChatRunResult {
 }
 
 export interface EchoAIDesktopApi {
+  /** Synchronous window chrome facts, available before the first paint. */
+  windowChrome: DesktopWindowChrome;
   getSnapshot: () => Promise<DesktopAppSnapshot>;
   selectWorkspace: () => Promise<WorkspaceSelection | null>;
   openWorkspace: (path: string) => Promise<WorkspaceSelection>;
@@ -1139,6 +1257,16 @@ export interface EchoAIDesktopApi {
   onRuntimeEvent: (callback: (event: DesktopRuntimeEvent) => void) => () => void;
   onTaskUpdate: (callback: (task: DesktopTaskRecord) => void) => () => void;
   onWindowState: (callback: (state: DesktopWindowState) => void) => () => void;
+  getGitStatus: (rootPath: string) => Promise<DesktopGitStatus>;
+  listGitChangedFiles: (rootPath: string) => Promise<DesktopGitFileChange[]>;
+  getGitDiff: (rootPath: string, options?: DesktopGitDiffOptions) => Promise<string>;
+  stageGitFiles: (rootPath: string, paths: string[]) => Promise<void>;
+  unstageGitFiles: (rootPath: string, paths: string[]) => Promise<void>;
+  commitGitChanges: (
+    rootPath: string,
+    message: string,
+    options?: DesktopGitCommitOptions
+  ) => Promise<DesktopGitCommitResult>;
 }
 
 export function isIpcInvokeChannel(value: string): value is DesktopIpcInvokeChannel {

@@ -16,6 +16,7 @@ import type {
 } from '@shared/ipc';
 import type { DesktopLogger } from './logger';
 import { DesktopProviderCatalog } from './desktop-completion-provider';
+import { getSharedMcpRuntime, type McpRuntime } from './mcp-runtime';
 
 type RuntimeEventSink = (event: DesktopRuntimeEvent) => void;
 
@@ -28,14 +29,19 @@ export class DesktopRuntimeService {
   private readonly kernel: AgentKernel;
   private readonly providers: DesktopProviderCatalog;
   private readonly activeRuns = new Map<string, ActiveRun>();
+  private readonly mcpRuntime: McpRuntime;
+  private readonly unsubscribeMcp: () => void;
+  private registeredMcpToolNames: string[] = [];
 
   constructor(
     stateDir: string,
     private readonly logger: DesktopLogger,
     private readonly emitEvent: RuntimeEventSink,
-    providers = new DesktopProviderCatalog()
+    providers = new DesktopProviderCatalog(),
+    mcpRuntime: McpRuntime = getSharedMcpRuntime()
   ) {
     this.providers = providers;
+    this.mcpRuntime = mcpRuntime;
     const registryOptions = { stateDir, namespace: 'desktop' };
     this.kernel = new AgentKernel({
       completionProvider: this.providers.completionProvider,
@@ -46,6 +52,44 @@ export class DesktopRuntimeService {
       }),
       autoCompactMessages: 30,
     });
+
+    // `AgentKernel.tools` is a live `ToolRegistry`, so MCP tools can be swapped in
+    // and out after construction; the kernel reads it at each turn. The runtime
+    // pushes a change notification whenever servers start, stop, or fail.
+    this.unsubscribeMcp = this.mcpRuntime.onToolsChanged(() => {
+      this.refreshMcpTools();
+    });
+    this.refreshMcpTools();
+  }
+
+  /**
+   * Replaces the registered MCP tools with whatever the runtime currently has
+   * discovered. Removal is name-based because the registry is keyed by tool name.
+   */
+  refreshMcpTools(): number {
+    for (const name of this.registeredMcpToolNames) {
+      this.kernel.tools.unregister(name);
+    }
+
+    const tools = this.mcpRuntime.listKernelTools();
+    for (const tool of tools) {
+      this.kernel.tools.register(tool);
+    }
+    this.registeredMcpToolNames = tools.map((tool) => tool.name);
+    return tools.length;
+  }
+
+  listMcpToolNames(): string[] {
+    return [...this.registeredMcpToolNames];
+  }
+
+  async dispose(): Promise<void> {
+    this.unsubscribeMcp();
+    for (const run of this.activeRuns.values()) {
+      run.controller.abort();
+    }
+    this.activeRuns.clear();
+    await this.mcpRuntime.stop();
   }
 
   async getStatus(): Promise<DesktopRuntimeStatus> {

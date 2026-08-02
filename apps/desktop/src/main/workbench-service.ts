@@ -53,6 +53,12 @@ interface WorkbenchSnapshotInput {
   releaseReadiness: DesktopReleaseChecklistItem[];
   mcpServers: DesktopMcpServer[];
   mcpTools: DesktopMcpToolInfo[];
+  /**
+   * Live status from the MCP runtime. Preferred over deriving it from the
+   * persisted config, which cannot tell a server that handshook from one that
+   * crashed on startup.
+   */
+  mcpRuntimeStatus?: DesktopMcpRuntimeStatus[];
   terminalTasks: DesktopTaskRecord[];
 }
 
@@ -88,7 +94,8 @@ export class DesktopWorkbenchService {
       browserActions: state.browserActions,
       sandboxProfiles: createSandboxProfiles(input.sandboxStatus),
       sandboxPlans: state.sandboxPlans,
-      mcpRuntimes: createMcpRuntimes(input.mcpServers, input.mcpTools),
+      mcpRuntimes:
+        input.mcpRuntimeStatus ?? createMcpRuntimes(input.mcpServers, input.mcpTools),
       memoryIndex: createMemoryIndex(state.memories),
       terminalWorkspaces: createTerminalWorkspaces(input.terminalTasks),
       serviceHealth: createServiceHealth(input),

@@ -7,11 +7,13 @@ import type {
   DesktopCanvasEntry,
   DesktopComputerUseAudit,
   DesktopGuiPermissionStatus,
+  DesktopMcpRuntimeStatus,
   DesktopMcpServer,
   DesktopMcpToolInfo,
   DesktopSkillEntry,
   DesktopToolSummary,
 } from '@shared/ipc';
+import { getSharedMcpRuntime, type McpRuntime, type McpServerConfig } from './mcp-runtime';
 
 interface ToolingState {
   mcpServers: DesktopMcpServer[];
@@ -22,13 +24,16 @@ interface ToolingState {
 
 export class DesktopToolingService {
   private readonly stateFile: string;
+  private readonly mcpRuntime: McpRuntime;
 
   constructor(
     private readonly dataDir: string,
     private readonly skillsDir: string,
-    private readonly cacheDir: string
+    private readonly cacheDir: string,
+    mcpRuntime: McpRuntime = getSharedMcpRuntime()
   ) {
     this.stateFile = join(dataDir, 'tooling-state.json');
+    this.mcpRuntime = mcpRuntime;
   }
 
   async listMcpServers(): Promise<DesktopMcpServer[]> {
@@ -44,6 +49,7 @@ export class DesktopToolingService {
       args: input.args ?? [],
     };
     await this.write({ ...state, mcpServers: [server, ...state.mcpServers] });
+    await this.syncMcpRuntime();
     return server;
   }
 
@@ -51,24 +57,42 @@ export class DesktopToolingService {
     const state = await this.read();
     const next = state.mcpServers.filter((server) => server.id !== serverId);
     await this.write({ ...state, mcpServers: next });
+    await this.syncMcpRuntime();
     return next.length !== state.mcpServers.length;
   }
 
   async testMcpServer(serverId: string): Promise<boolean> {
     const state = await this.read();
-    return state.mcpServers.some((server) => server.id === serverId && server.enabled);
+    const server = state.mcpServers.find((entry) => entry.id === serverId);
+    if (!server || !server.enabled) {
+      return false;
+    }
+    return this.mcpRuntime.ensureServer(toMcpServerConfig(server));
   }
 
   async listMcpTools(): Promise<DesktopMcpToolInfo[]> {
+    await this.syncMcpRuntime();
+    return this.mcpRuntime.listTools().map((tool) => ({
+      serverId: tool.serverId,
+      name: tool.kernelToolName,
+      description: tool.description,
+      schema: tool.inputSchema,
+    }));
+  }
+
+  async listMcpRuntimeStatus(): Promise<DesktopMcpRuntimeStatus[]> {
+    await this.syncMcpRuntime();
+    return this.mcpRuntime.listRuntimeStatus();
+  }
+
+  /** Starts enabled servers and stops the rest so the harness sees live tools. */
+  async syncMcpRuntime(): Promise<void> {
     const servers = await this.listMcpServers();
-    return servers
-      .filter((server) => server.enabled)
-      .map((server) => ({
-        serverId: server.id,
-        name: `${server.name}.status`,
-        description: `Status tool exposed by ${server.name}`,
-        schema: { type: 'object', properties: {} },
-      }));
+    await this.mcpRuntime.sync(servers.map(toMcpServerConfig));
+  }
+
+  async stopMcpRuntime(): Promise<void> {
+    await this.mcpRuntime.stop();
   }
 
   async listSkills(): Promise<DesktopSkillEntry[]> {
@@ -213,6 +237,35 @@ export class DesktopToolingService {
     await mkdir(this.skillsDir, { recursive: true });
     await writeFile(join(this.skillsDir, 'skills.json'), `${JSON.stringify(skills, null, 2)}\n`, 'utf8');
   }
+}
+
+function toMcpServerConfig(server: DesktopMcpServer): McpServerConfig {
+  return {
+    id: server.id,
+    name: server.name,
+    command: server.command,
+    args: server.args ?? [],
+    enabled: server.enabled,
+    // `DesktopMcpServer` has no `env` field yet, but persisted records may already
+    // carry one; forward it so per-server credentials keep working when the
+    // settings surface catches up.
+    env: readServerEnv(server),
+  };
+}
+
+function readServerEnv(server: DesktopMcpServer): Record<string, string> | undefined {
+  const candidate = (server as { env?: unknown }).env;
+  if (typeof candidate !== 'object' || candidate === null) {
+    return undefined;
+  }
+
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(candidate as Record<string, unknown>)) {
+    if (typeof value === 'string') {
+      env[key] = value;
+    }
+  }
+  return Object.keys(env).length > 0 ? env : undefined;
 }
 
 function createBuiltInSkill(id: string, description: string): DesktopSkillEntry {

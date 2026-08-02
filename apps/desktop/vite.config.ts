@@ -27,6 +27,7 @@ export default defineConfig({
           },
           build: {
             outDir: 'dist-electron/main',
+            emptyOutDir: true,
             rollupOptions: {
               external: [...nodeBuiltins, 'electron'],
             },
@@ -44,8 +45,24 @@ export default defineConfig({
           },
           build: {
             outDir: 'dist-electron/preload',
+            emptyOutDir: true,
+            // `vite-plugin-electron` derives `build.lib.formats` from the host
+            // package.json `type` field, which is "module" here. Lib formats win
+            // over `rollupOptions.output.format`, so lib mode would emit ESM into
+            // a `.cjs` file and Electron's sandboxed preload loader would fail with
+            // "Cannot use import statement outside a module". Opting out of lib
+            // mode lets the explicit CommonJS output below take effect.
+            lib: false,
+            modulePreload: false,
             rollupOptions: {
+              input: resolve(__dirname, 'src/preload/index.ts'),
               external: ['electron'],
+              output: {
+                format: 'cjs',
+                inlineDynamicImports: true,
+                entryFileNames: 'index.cjs',
+                chunkFileNames: '[name].cjs',
+              },
             },
           },
         },

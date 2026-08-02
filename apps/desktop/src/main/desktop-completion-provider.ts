@@ -15,6 +15,8 @@ import type {
 } from '@echoai/runtime';
 import type { DesktopRuntimeProvider } from '@shared/ipc';
 
+export type ProviderRegion = 'us' | 'cn' | 'local';
+
 interface ProviderDefinition {
   id: string;
   label: string;
@@ -22,7 +24,26 @@ interface ProviderDefinition {
   configAliases: string[];
   envKeys: string[];
   defaultModel: string;
+  models: string[];
+  region: ProviderRegion;
+  family: string;
+  // Vendors without a dedicated class in @echoai/providers ride the
+  // OpenAI-compatible client, so the endpoint has to travel with the definition.
+  // `@echoai/providers` also lets a `baseUrl` override the class default, which is
+  // how DeepSeek and Kimi reach their own APIs instead of api.openai.com.
+  defaultBaseUrl?: string;
   alwaysAvailable?: boolean;
+}
+
+/**
+ * `DesktopRuntimeProvider` in @shared/ipc still describes only
+ * {id,label,defaultModel,source}. It needs widening with `models`, `region` and
+ * `family` before the renderer can render a grouped picker over these values.
+ */
+export interface DesktopProviderDescriptor extends DesktopRuntimeProvider {
+  models: string[];
+  region: ProviderRegion;
+  family: string;
 }
 
 interface StoredProviderConfig {
@@ -53,14 +74,74 @@ const PROVIDERS: ProviderDefinition[] = [
     configAliases: ['deepseek'],
     envKeys: ['DEEPSEEK_API_KEY'],
     defaultModel: 'deepseek-chat',
+    models: ['deepseek-chat', 'deepseek-reasoner'],
+    region: 'cn',
+    family: 'DeepSeek',
+    defaultBaseUrl: 'https://api.deepseek.com',
   },
   {
     id: 'kimi',
-    label: 'Kimi',
+    label: 'Kimi (Moonshot)',
     type: 'kimi',
-    configAliases: ['kimi'],
+    configAliases: ['kimi', 'moonshot'],
     envKeys: ['KIMI_API_KEY', 'MOONSHOT_API_KEY'],
     defaultModel: 'moonshot-v1-32k',
+    models: [
+      'kimi-k2-0711-preview',
+      'kimi-k2-turbo-preview',
+      'moonshot-v1-8k',
+      'moonshot-v1-32k',
+      'moonshot-v1-128k',
+    ],
+    region: 'cn',
+    family: 'Moonshot',
+    defaultBaseUrl: 'https://api.moonshot.cn/v1',
+  },
+  {
+    id: 'qwen',
+    label: 'Qwen (DashScope)',
+    type: 'openai',
+    configAliases: ['qwen', 'dashscope'],
+    envKeys: ['DASHSCOPE_API_KEY', 'QWEN_API_KEY'],
+    defaultModel: 'qwen-plus',
+    models: [
+      'qwen-plus',
+      'qwen-max',
+      'qwen-turbo',
+      'qwen-long',
+      'qwen3-coder-plus',
+      'qwen2.5-72b-instruct',
+    ],
+    region: 'cn',
+    family: 'Qwen',
+    // Singapore/international accounts use a different host; a stored `baseUrl`
+    // overrides this without needing a second catalog entry.
+    defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  },
+  {
+    id: 'glm',
+    label: 'GLM (Zhipu)',
+    type: 'openai',
+    configAliases: ['glm', 'zhipu', 'bigmodel'],
+    envKeys: ['ZHIPU_API_KEY', 'GLM_API_KEY'],
+    defaultModel: 'glm-4-plus',
+    models: ['glm-4-plus', 'glm-4.6', 'glm-4.5', 'glm-4-air', 'glm-4-long', 'glm-4-flash'],
+    region: 'cn',
+    family: 'GLM',
+    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+  },
+  {
+    id: 'minimax',
+    label: 'MiniMax',
+    type: 'openai',
+    configAliases: ['minimax'],
+    envKeys: ['MINIMAX_API_KEY'],
+    defaultModel: 'MiniMax-M2',
+    models: ['MiniMax-M2', 'MiniMax-M1', 'MiniMax-Text-01', 'abab6.5s-chat'],
+    region: 'cn',
+    family: 'MiniMax',
+    // Mainland accounts point at api.minimaxi.com/v1 instead; override via config.
+    defaultBaseUrl: 'https://api.minimax.io/v1',
   },
   {
     id: 'openai',
@@ -69,6 +150,17 @@ const PROVIDERS: ProviderDefinition[] = [
     configAliases: ['openai'],
     envKeys: ['OPENAI_API_KEY'],
     defaultModel: 'gpt-4o',
+    models: [
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-4-turbo',
+      'gpt-4',
+      'gpt-3.5-turbo',
+      'o1-preview',
+      'o1-mini',
+    ],
+    region: 'us',
+    family: 'GPT',
   },
   {
     id: 'claude',
@@ -77,6 +169,14 @@ const PROVIDERS: ProviderDefinition[] = [
     configAliases: ['claude', 'anthropic'],
     envKeys: ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY'],
     defaultModel: 'claude-sonnet-4-20250514',
+    models: [
+      'claude-sonnet-4-20250514',
+      'claude-3-5-sonnet-20241022',
+      'claude-3-5-haiku-20241022',
+      'claude-3-opus-20240229',
+    ],
+    region: 'us',
+    family: 'Claude',
   },
   {
     id: 'nim',
@@ -85,6 +185,14 @@ const PROVIDERS: ProviderDefinition[] = [
     configAliases: ['nim'],
     envKeys: ['NVIDIA_API_KEY', 'NIM_API_KEY'],
     defaultModel: 'meta/llama-3.1-70b-instruct',
+    models: [
+      'meta/llama-3.1-70b-instruct',
+      'meta/llama-3.1-8b-instruct',
+      'mistralai/mistral-large',
+      'nvidia/nemotron-4-340b-instruct',
+    ],
+    region: 'us',
+    family: 'NVIDIA NIM',
   },
   {
     id: 'ollama',
@@ -93,13 +201,18 @@ const PROVIDERS: ProviderDefinition[] = [
     configAliases: ['ollama'],
     envKeys: [],
     defaultModel: 'llama3.2',
+    // Suggestions only: the daemon reports whatever the user has pulled, and
+    // `resolve` lets any model id through.
+    models: ['llama3.2', 'llama3.1', 'qwen2.5-coder', 'deepseek-r1', 'mistral', 'phi4'],
+    region: 'local',
+    family: 'Ollama',
     alwaysAvailable: true,
   },
 ];
 
 export class DesktopProviderCatalog {
   readonly completionProvider: KernelCompletionProvider;
-  private readonly descriptors: DesktopRuntimeProvider[];
+  private readonly descriptors: DesktopProviderDescriptor[];
   private readonly configs = new Map<string, ProviderConfig>();
   private readonly providers = new Map<string, Provider>();
   private readonly providerFactory: (config: ProviderConfig) => Provider;
@@ -133,21 +246,31 @@ export class DesktopProviderCatalog {
       this.configs.set(definition.id, {
         type: definition.type,
         apiKey,
-        baseUrl: storedConfig?.baseUrl?.trim() || undefined,
+        baseUrl: storedConfig?.baseUrl?.trim() || definition.defaultBaseUrl,
         model,
       });
     }
 
     this.descriptors = PROVIDERS
       .filter((definition) => this.configs.has(definition.id))
-      .map((definition) => ({
-        id: definition.id,
-        label: definition.label,
-        defaultModel: this.configs.get(definition.id)?.model ?? definition.defaultModel,
-        source: definition.alwaysAvailable && !stored.providers?.[definition.id]
-          ? 'local'
-          : 'configured',
-      }));
+      .map((definition) => {
+        const defaultModel = this.configs.get(definition.id)?.model ?? definition.defaultModel;
+        return {
+          id: definition.id,
+          label: definition.label,
+          defaultModel,
+          source: definition.alwaysAvailable && !stored.providers?.[definition.id]
+            ? 'local'
+            : 'configured',
+          // A privately hosted or newly released model id chosen in config.json
+          // still belongs in the picker, otherwise the UI would silently drop it.
+          models: definition.models.includes(defaultModel)
+            ? [...definition.models]
+            : [defaultModel, ...definition.models],
+          region: definition.region,
+          family: definition.family,
+        };
+      });
 
     const requestedDefault = stored.defaults?.provider;
     const matchedDefault = requestedDefault
@@ -186,8 +309,13 @@ export class DesktopProviderCatalog {
     };
   }
 
-  list(): DesktopRuntimeProvider[] {
-    return this.descriptors.map((descriptor) => ({ ...descriptor }));
+  // Structurally still a DesktopRuntimeProvider[]; the extra fields are additive
+  // until the shared IPC type is widened.
+  list(): DesktopProviderDescriptor[] {
+    return this.descriptors.map((descriptor) => ({
+      ...descriptor,
+      models: [...descriptor.models],
+    }));
   }
 
   getDefault(): { provider: string; model: string } {

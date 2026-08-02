@@ -7,6 +7,7 @@ import {
   session as electronSession,
 } from 'electron';
 import type { OpenDialogOptions } from 'electron';
+import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AuthStore } from './auth-store';
@@ -14,6 +15,7 @@ import { AutoUpdateService } from './auto-update-service';
 import { DesktopRuntimeService } from './desktop-runtime-service';
 import { buildDesktopAppPaths, ensureDesktopAppPaths } from './app-paths';
 import { DesktopGatewayService } from './gateway-service';
+import { DesktopGitService } from './git-service';
 import { DesktopLogger } from './logger';
 import { RecoveryStore } from './recovery-store';
 import { TerminalTaskService, classifyCommand, getSandboxStatus } from './terminal-task-service';
@@ -30,6 +32,8 @@ import {
   type DesktopSecuritySummary,
   type DesktopWindowState,
   type WorkspaceSelection,
+  DESKTOP_TRAFFIC_LIGHT_X,
+  DESKTOP_TRAFFIC_LIGHT_Y,
   isEchoAIProtocolUrl,
   isSafeExternalUrl,
 } from '@shared/ipc';
@@ -58,10 +62,18 @@ let runtimeService: DesktopRuntimeService | null = null;
 let gatewayService: DesktopGatewayService | null = null;
 let webAppService: DesktopWebAppService | null = null;
 let workbenchService: DesktopWorkbenchService | null = null;
+let gitService: DesktopGitService | null = null;
 let updateService: AutoUpdateService | null = null;
 const pendingProtocolUrls: string[] = [];
 
-app.setName('EchoAI');
+export const APP_DISPLAY_NAME = 'EchoAI Agent';
+
+app.setName(APP_DISPLAY_NAME);
+
+// `userData` is derived from the app name, so renaming the app would silently
+// move the data directory and orphan existing sessions, logs and credentials.
+// Pin it to the original location and let only the display name change.
+app.setPath('userData', join(app.getPath('appData'), 'EchoAI'));
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
@@ -95,6 +107,7 @@ app.on('web-contents-created', (_event, contents) => {
 
 app.whenReady().then(async () => {
   await bootstrap();
+  applyDockIcon();
   registerProtocolClient();
   registerPermissionPolicy();
   registerIpcHandlers();
@@ -116,17 +129,30 @@ app.on('activate', () => {
 });
 
 app.on('window-all-closed', () => {
-  terminalTaskService?.cleanup();
-  void gatewayService?.stopGateway();
+  void shutdownServices();
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
 app.on('before-quit', () => {
-  terminalTaskService?.cleanup();
-  void gatewayService?.stopGateway();
+  void shutdownServices();
 });
+
+/**
+ * Release every child process the app owns.
+ *
+ * MCP servers are long-lived spawned children, so without an explicit stop they
+ * outlive the window and leak until the user kills them by hand.
+ */
+async function shutdownServices(): Promise<void> {
+  terminalTaskService?.cleanup();
+  await Promise.allSettled([
+    gatewayService?.stopGateway(),
+    runtimeService?.dispose(),
+    toolingService?.stopMcpRuntime(),
+  ]);
+}
 
 async function bootstrap(): Promise<void> {
   appPaths = buildDesktopAppPaths(app.getPath('userData'));
@@ -154,7 +180,30 @@ async function bootstrap(): Promise<void> {
   gatewayService = new DesktopGatewayService(appPaths, logger);
   webAppService = new DesktopWebAppService(appPaths);
   workbenchService = new DesktopWorkbenchService(appPaths.dataDir);
+  gitService = new DesktopGitService();
   updateService = new AutoUpdateService(logger, app.isPackaged);
+}
+
+/**
+ * Chrome options per platform.
+ *
+ * macOS: `titleBarStyle: 'hiddenInset'` hides the native title bar but keeps
+ * the traffic lights, so the renderer must NOT draw its own controls. `frame`
+ * is deliberately left unset here — setting `frame: false` on macOS removes
+ * the traffic lights entirely, which is what previously forced the renderer to
+ * paint a second set of buttons on the right.
+ *
+ * Windows/Linux: frameless, so the renderer owns the controls.
+ */
+function getWindowChromeOptions(): Electron.BrowserWindowConstructorOptions {
+  if (process.platform === 'darwin') {
+    return {
+      titleBarStyle: 'hiddenInset',
+      trafficLightPosition: { x: DESKTOP_TRAFFIC_LIGHT_X, y: DESKTOP_TRAFFIC_LIGHT_Y },
+    };
+  }
+
+  return { frame: false };
 }
 
 async function createMainWindow(): Promise<BrowserWindow> {
@@ -162,21 +211,19 @@ async function createMainWindow(): Promise<BrowserWindow> {
   const recovery = await services.recoveryStore.read();
   const bounds = recovery.lastWindowBounds ?? { width: 1280, height: 820 };
   const window = new BrowserWindow({
-    title: 'EchoAI',
+    title: APP_DISPLAY_NAME,
     width: bounds.width,
     height: bounds.height,
     x: bounds.x,
     y: bounds.y,
-    minWidth: 1100,
-    minHeight: 720,
-    backgroundColor: '#f7f4ee',
-    frame: process.platform === 'darwin',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
-    trafficLightPosition: process.platform === 'darwin' ? { x: 16, y: 16 } : undefined,
+    minWidth: 860,
+    minHeight: 620,
+    backgroundColor: '#0b0b0c',
+    ...getWindowChromeOptions(),
     icon: getIconPath(),
     show: false,
     webPreferences: {
-      preload: join(mainDir, '../preload/index.js'),
+      preload: join(mainDir, '../preload/index.cjs'),
       contextIsolation: securitySummary.contextIsolation,
       nodeIntegration: securitySummary.nodeIntegration,
       sandbox: securitySummary.sandbox,
@@ -280,6 +327,7 @@ function registerIpcHandlers(): void {
       releaseReadiness,
       mcpServers,
       mcpTools,
+      mcpRuntimeStatus,
     ] = await Promise.all([
       services.recoveryStore.read(),
       services.runtimeService.getStatus(),
@@ -287,6 +335,7 @@ function registerIpcHandlers(): void {
       services.gatewayService.getReleaseChecklist(),
       services.toolingService.listMcpServers(),
       services.toolingService.listMcpTools(),
+      services.toolingService.listMcpRuntimeStatus(),
     ]);
     return services.workbenchService.getSnapshot({
       activeWorkspacePath: recovery.lastWorkspacePath,
@@ -296,6 +345,7 @@ function registerIpcHandlers(): void {
       releaseReadiness,
       mcpServers,
       mcpTools,
+      mcpRuntimeStatus,
       terminalTasks: services.terminalTaskService.list(),
     });
   });
@@ -980,6 +1030,62 @@ function registerIpcHandlers(): void {
     const window = getActiveWindow();
     return window ? getWindowState(window) : { isMaximized: false, isFullScreen: false };
   });
+
+  ipcMain.handle('git:getStatus', async (_event, rootPath: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid git status request');
+    }
+
+    return requireServices().gitService.getStatus(rootPath);
+  });
+
+  ipcMain.handle('git:listChangedFiles', async (_event, rootPath: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid git changed files request');
+    }
+
+    return requireServices().gitService.listChangedFiles(rootPath);
+  });
+
+  ipcMain.handle('git:getDiff', async (_event, rootPath: unknown, options: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid git diff request');
+    }
+
+    const source = isRecord(options) ? options : {};
+    return requireServices().gitService.getDiff(rootPath, {
+      path: typeof source.path === 'string' ? source.path : undefined,
+      staged: source.staged === true,
+    });
+  });
+
+  ipcMain.handle('git:stageFiles', async (_event, rootPath: unknown, paths: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid git stage request');
+    }
+
+    return requireServices().gitService.stageFiles(rootPath, toStringArray(paths));
+  });
+
+  ipcMain.handle('git:unstageFiles', async (_event, rootPath: unknown, paths: unknown) => {
+    if (typeof rootPath !== 'string') {
+      throw new Error('Invalid git unstage request');
+    }
+
+    return requireServices().gitService.unstageFiles(rootPath, toStringArray(paths));
+  });
+
+  ipcMain.handle(
+    'git:commit',
+    async (_event, rootPath: unknown, message: unknown, options: unknown) => {
+      if (typeof rootPath !== 'string' || typeof message !== 'string') {
+        throw new Error('Invalid git commit request');
+      }
+
+      const source = isRecord(options) ? options : {};
+      return requireServices().gitService.commit(rootPath, message, { all: source.all === true });
+    }
+  );
 }
 
 function registerProtocolClient(): void {
@@ -1135,6 +1241,14 @@ function toCommandRisk(value: unknown): DesktopCommandRisk {
   return value === 'safe' || value === 'ask' || value === 'deny' ? value : 'ask';
 }
 
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error('Expected an array of paths');
+  }
+
+  return value.filter((entry): entry is string => typeof entry === 'string');
+}
+
 function isInternalNavigation(url: string): boolean {
   if (devServerUrl && url.startsWith(devServerUrl)) {
     return true;
@@ -1151,6 +1265,31 @@ function getIconPath(): string {
   return resolve(mainDir, '../../../../assets/echo-logo.png');
 }
 
+/**
+ * Replace the generic Electron dock icon during development.
+ *
+ * Packaged builds get their icon from the app bundle, but `npm run dev` runs
+ * inside the stock Electron binary, which is why the default Electron logo was
+ * showing instead of the EchoAI mark.
+ */
+function applyDockIcon(): void {
+  if (process.platform !== 'darwin' || app.isPackaged || !app.dock) {
+    return;
+  }
+
+  const iconPath = getIconPath();
+  if (!existsSync(iconPath)) {
+    logger?.warn('dock icon missing', { iconPath });
+    return;
+  }
+
+  try {
+    app.dock.setIcon(iconPath);
+  } catch (error) {
+    logger?.warn('could not set dock icon', { error: String(error) });
+  }
+}
+
 function requireServices(): {
   appPaths: DesktopAppPaths;
   logger: DesktopLogger;
@@ -1164,6 +1303,7 @@ function requireServices(): {
   gatewayService: DesktopGatewayService;
   webAppService: DesktopWebAppService;
   workbenchService: DesktopWorkbenchService;
+  gitService: DesktopGitService;
   updateService: AutoUpdateService;
 } {
   if (
@@ -1179,6 +1319,7 @@ function requireServices(): {
     !gatewayService ||
     !webAppService ||
     !workbenchService ||
+    !gitService ||
     !updateService
   ) {
     throw new Error('EchoAI desktop services are not ready');
@@ -1197,6 +1338,7 @@ function requireServices(): {
     gatewayService,
     webAppService,
     workbenchService,
+    gitService,
     updateService,
   };
 }

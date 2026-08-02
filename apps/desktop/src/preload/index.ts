@@ -21,6 +21,11 @@ import {
   type DesktopComputerUseAudit,
   type DesktopFilePreview,
   type DesktopGatewayStatus,
+  type DesktopGitCommitOptions,
+  type DesktopGitCommitResult,
+  type DesktopGitDiffOptions,
+  type DesktopGitFileChange,
+  type DesktopGitStatus,
   type DesktopGuiPermissionStatus,
   type DesktopMcpServer,
   type DesktopMcpToolInfo,
@@ -68,6 +73,7 @@ import {
   type EchoAIDesktopApi,
   type LogSearchEntry,
   type WorkspaceSelection,
+  buildDesktopWindowChrome,
   isIpcEventChannel,
   isIpcInvokeChannel,
 } from '@shared/ipc';
@@ -100,6 +106,10 @@ function subscribe<T>(
 }
 
 const api: EchoAIDesktopApi = {
+  // Plain value, not a promise: the title bar needs to know whether to draw its
+  // own window controls on the very first render. `process.platform` is
+  // available in a sandboxed preload, so this needs no IPC round trip.
+  windowChrome: buildDesktopWindowChrome(process.platform),
   getSnapshot: () => invoke<DesktopAppSnapshot>('app:getSnapshot'),
   selectWorkspace: () => invoke<WorkspaceSelection | null>('app:selectWorkspace'),
   openWorkspace: (path: string) => invoke<WorkspaceSelection>('app:openWorkspace', path),
@@ -265,6 +275,17 @@ const api: EchoAIDesktopApi = {
     subscribe('tasks:update', callback, isDesktopTaskRecord),
   onWindowState: (callback: (state: DesktopWindowState) => void) =>
     subscribe('window:state', callback, isDesktopWindowState),
+  getGitStatus: (rootPath: string) => invoke<DesktopGitStatus>('git:getStatus', rootPath),
+  listGitChangedFiles: (rootPath: string) =>
+    invoke<DesktopGitFileChange[]>('git:listChangedFiles', rootPath),
+  getGitDiff: (rootPath: string, options?: DesktopGitDiffOptions) =>
+    invoke<string>('git:getDiff', rootPath, options),
+  stageGitFiles: (rootPath: string, paths: string[]) =>
+    invoke<void>('git:stageFiles', rootPath, paths),
+  unstageGitFiles: (rootPath: string, paths: string[]) =>
+    invoke<void>('git:unstageFiles', rootPath, paths),
+  commitGitChanges: (rootPath: string, message: string, options?: DesktopGitCommitOptions) =>
+    invoke<DesktopGitCommitResult>('git:commit', rootPath, message, options),
 };
 
 for (const channel of IPC_EVENT_CHANNELS) {

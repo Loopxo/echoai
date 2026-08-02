@@ -1,7 +1,7 @@
 appId: ai.echoai.desktop
-productName: EchoAI
+productName: EchoAI Agent
 asar: true
-artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+artifactName: EchoAI-Agent-${version}-${os}-${arch}.${ext}
 directories:
   output: release
 files:
