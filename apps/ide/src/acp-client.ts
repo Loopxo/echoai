@@ -17,6 +17,11 @@ export interface EchoSessionState {
   model?: string;
 }
 
+export interface EchoRouting {
+  provider: string;
+  model: string;
+}
+
 export interface EchoSessionListItem extends EchoSessionState {
   cwd: string;
   updatedAt?: string;
@@ -65,10 +70,36 @@ export class EchoAcpClient implements vscode.Disposable {
   private loadingSession: LoadingSession | undefined;
   private cancelPendingPermission: (() => void) | undefined;
   private status: EchoAgentStatus = 'stopped';
+  private requestedRouting: EchoRouting | undefined;
 
   readonly onDidEvent = this.eventEmitter.event;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
+
+  /**
+   * Route subsequent turns to a provider/model chosen in the panel. The agent reads
+   * this from request `_meta`, so the selection applies from the next prompt onward
+   * without rewriting the user's global configuration.
+   */
+  setRouting(routing: EchoRouting | undefined): void {
+    this.requestedRouting = routing;
+    if (routing && this.sessionState) {
+      this.sessionState = {
+        ...this.sessionState,
+        provider: routing.provider,
+        model: routing.model,
+      };
+      this.emitSession();
+    }
+  }
+
+  get currentRouting(): EchoRouting | undefined {
+    return this.requestedRouting ? { ...this.requestedRouting } : undefined;
+  }
+
+  private routingMeta(): { _meta: { echoai: EchoRouting } } | Record<string, never> {
+    return this.requestedRouting ? { _meta: { echoai: { ...this.requestedRouting } } } : {};
+  }
 
   get currentStatus(): EchoAgentStatus {
     return this.status;
@@ -120,7 +151,11 @@ export class EchoAcpClient implements vscode.Disposable {
     await this.ensureConnected();
     const connection = this.requireConnection();
     const workspaceRoot = this.requireWorkspaceRoot();
-    const result = await connection.newSession({ cwd: workspaceRoot, mcpServers: [] });
+    const result = await connection.newSession({
+      cwd: workspaceRoot,
+      mcpServers: [],
+      ...this.routingMeta(),
+    });
     this.sessionId = result.sessionId;
 
     let mode = normalizeMode(result.modes?.currentModeId) ?? 'default';
@@ -189,6 +224,7 @@ export class EchoAcpClient implements vscode.Disposable {
           sessionId,
           messageId: randomUUID(),
           prompt,
+          ...this.routingMeta(),
         });
         if (
           this.activeTurn?.id === turnId &&
@@ -383,7 +419,7 @@ export class EchoAcpClient implements vscode.Disposable {
     workspaceRoot: string,
   ): Promise<void> {
     const result = await withTimeout(
-      connection.newSession({ cwd: workspaceRoot, mcpServers: [] }),
+      connection.newSession({ cwd: workspaceRoot, mcpServers: [], ...this.routingMeta() }),
       15_000,
       'Timed out creating an Echo AI session.',
     );
@@ -629,7 +665,11 @@ export class EchoAcpClient implements vscode.Disposable {
 
     if (process.platform === 'win32' && (!configuredExtension || configuredExtension === '.cmd' || configuredExtension === '.bat')) {
       const shim = configuredExtension ? configured : `${configured}.cmd`;
-      if (/[&|<>^\"]/u.test(shim)) {
+      // A double quote needs no escape inside a character class, and `\"` is not a
+      // legal identity escape under the `u` flag. Because regex literals are
+      // validated when the script is parsed, the escaped form made the whole
+      // extension fail to activate on every platform, not just Windows.
+      if (/[&|<>^"]/u.test(shim)) {
         throw new Error('echoAI.cliPath contains characters that cannot be launched safely on Windows.');
       }
       const commandLine = [shim, ...args].map(quoteWindowsArgument).join(' ');

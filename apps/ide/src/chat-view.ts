@@ -1,6 +1,8 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import * as vscode from 'vscode';
 import {
   EchoAcpClient,
@@ -8,12 +10,38 @@ import {
   type EchoContentBlock,
   type EchoSessionListItem,
 } from './acp-client.js';
+import { renderChatWebview } from './chat-webview.js';
+import type { EchoAccountService } from './echo-account.js';
+import { isKnownRouting, listModelOptions } from './model-catalog.js';
+
+const execFileAsync = promisify(execFile);
+
+/** Context kinds offered by the composer's `#` picker. */
+type ContextKind =
+  | 'openFiles'
+  | 'diagnostics'
+  | 'gitDiff'
+  | 'file'
+  | 'folder'
+  | 'spec'
+  | 'steering'
+  | 'mcp'
+  | 'terminal';
+
+interface ContextChip {
+  kind: ContextKind;
+  label: string;
+  detail?: string;
+  text: string;
+}
 
 interface EditorContext {
   displayText: string;
   blocks: EchoContentBlock[];
 }
 
+const sessionPreviewKey = 'echoai.sessionPreviews';
+const openTabsKey = 'echoai.openTabs';
 const MAX_PROMPT_CHARACTERS = 262_144;
 const MAX_TOOL_PATH_CHARACTERS = 4_000;
 const MAX_DIFF_CHARACTERS = 128_000;
@@ -45,12 +73,23 @@ export class EchoChatViewProvider implements vscode.WebviewViewProvider, vscode.
   private view: vscode.WebviewView | undefined;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly diffDocuments = new EchoDiffContentProvider();
+  /** Workspace-relative paths the agent has edited in this session, for the change bar. */
+  private readonly changedFiles = new Set<string>();
+  private autopilot = true;
+  private effortLevel = 'medium';
+
+  private readonly extensionUri: vscode.Uri;
 
   constructor(
-    private readonly extensionUri: vscode.Uri,
+    private readonly context: vscode.ExtensionContext,
     private readonly client: EchoAcpClient,
+    private readonly account: EchoAccountService,
   ) {
+    this.extensionUri = context.extensionUri;
     this.disposables.push(
+      this.account.onDidChange(() => {
+        void this.postPanelState();
+      }),
       this.client.onDidEvent((event) => this.handleClientEvent(event)),
       vscode.workspace.registerTextDocumentContentProvider('echoai-diff', this.diffDocuments),
       this.diffDocuments,
@@ -63,7 +102,7 @@ export class EchoChatViewProvider implements vscode.WebviewViewProvider, vscode.
       enableScripts: true,
       localResourceRoots: [this.extensionUri],
     };
-    view.webview.html = renderWebview(view.webview);
+    view.webview.html = renderChatWebview(view.webview);
     this.disposables.push(
       view.webview.onDidReceiveMessage((message: unknown) => {
         void this.handleWebviewMessage(message).catch((error: unknown) => this.reportError(error));
@@ -132,6 +171,7 @@ export class EchoChatViewProvider implements vscode.WebviewViewProvider, vscode.
     await this.reveal();
     try {
       await this.client.start();
+      this.rememberSessionPreview(normalized);
       this.post({
         type: 'localUser',
         text: normalized,
@@ -141,6 +181,38 @@ export class EchoChatViewProvider implements vscode.WebviewViewProvider, vscode.
     } catch (error) {
       this.reportError(error);
     }
+  }
+
+  /**
+   * Label each tab with the words the conversation opened on.
+   *
+   * The agent titles every session "ACP Session", and ACP has no rename call, so the
+   * opening prompt is kept per session on the IDE side. Only the first prompt counts,
+   * so a tab keeps a stable name for the whole conversation.
+   */
+  private rememberSessionPreview(prompt: string): void {
+    const sessionId = this.client.currentSession?.sessionId;
+    if (!sessionId) return;
+    const previews = this.readSessionPreviews();
+    if (previews[sessionId]) return;
+    const words = prompt.replace(/\s+/g, ' ').trim().slice(0, 60);
+    if (!words) return;
+    previews[sessionId] = words;
+    const entries = Object.entries(previews).slice(-60);
+    void this.context.workspaceState.update(sessionPreviewKey, Object.fromEntries(entries));
+    void this.postPanelState();
+  }
+
+  private readSessionPreviews(): Record<string, string> {
+    const stored = this.context.workspaceState.get<unknown>(sessionPreviewKey);
+    if (!isRecord(stored)) return {};
+    const previews: Record<string, string> = {};
+    for (const [key, value] of Object.entries(stored)) {
+      if (typeof value === 'string' && value.trim()) {
+        previews[key] = value.slice(0, 60);
+      }
+    }
+    return previews;
   }
 
   async sendEditorInstruction(instruction: string): Promise<void> {
@@ -164,19 +236,76 @@ export class EchoChatViewProvider implements vscode.WebviewViewProvider, vscode.
     }
 
     switch (message.type) {
+      case 'ready':
+        await this.postPanelState();
+        break;
       case 'send':
         if (typeof message.text === 'string') {
           await this.sendPrompt(
             message.text,
-            message.includeContext === true ? collectEditorContext(false) : undefined,
+            this.buildPromptContext(message.context),
           );
         }
         break;
       case 'newSession':
         await this.newSession();
+        await this.postPanelState();
+        break;
+      case 'switchSession':
+        if (typeof message.sessionId === 'string') {
+          await this.openSessionTab(message.sessionId);
+        }
+        break;
+      case 'closeSession':
+        if (typeof message.sessionId === 'string') {
+          await this.closeSessionTab(message.sessionId);
+        }
+        break;
+      case 'listHistory':
+        await this.postHistory();
+        break;
+      case 'addContext':
+        if (typeof message.kind === 'string') {
+          await this.addContext(message.kind as ContextKind);
+        }
+        break;
+      case 'setModel':
+        if (typeof message.provider === 'string' && typeof message.model === 'string') {
+          this.setRouting(message.provider, message.model);
+          await this.postPanelState();
+        }
+        break;
+      case 'setEffort':
+        if (typeof message.level === 'string') {
+          this.effortLevel = message.level;
+        }
+        break;
+      case 'setAutopilot':
+        this.autopilot = message.enabled === true;
+        break;
+      case 'viewChanges':
+        await this.viewChanges();
+        break;
+      case 'revertChanges':
+        await this.revertChanges();
+        break;
+      case 'signIn':
+        try {
+          await this.account.signIn();
+          void vscode.window.showInformationMessage('Signed in to Echo AI.');
+        } catch (error) {
+          this.reportError(error);
+        }
+        await this.postPanelState();
+        break;
+      case 'showAccount':
+        // Signed in, the row is a way into the full profile rather than a sign-out
+        // shortcut, so plan and credit detail is one click away.
+        await vscode.commands.executeCommand('echoai.showAccount');
         break;
       case 'showSessions':
         await this.showSessionPicker();
+        await this.postPanelState();
         break;
       case 'cancel':
         await this.client.cancel();
@@ -223,7 +352,368 @@ export class EchoChatViewProvider implements vscode.WebviewViewProvider, vscode.
     if (event.type === 'status') {
       void vscode.commands.executeCommand('setContext', 'echoai.running', event.status === 'running');
     }
+    if (event.type === 'update') {
+      this.trackChangedFiles(event.update);
+    }
     this.post(event);
+  }
+
+  /**
+   * Collect the files the agent actually edited, so the change bar reports a real
+   * count instead of a guess. Structured diffs are the reliable signal: a tool that
+   * only read a file never produces one.
+   */
+  private trackChangedFiles(update: unknown): void {
+    if (!isRecord(update)) return;
+    const kind = update.sessionUpdate;
+    if (kind !== 'tool_call' && kind !== 'tool_call_update') return;
+    if (!Array.isArray(update.content)) return;
+    let added = false;
+    for (const item of update.content) {
+      if (!isRecord(item) || item.type !== 'diff' || typeof item.path !== 'string') continue;
+      const relative = toWorkspaceRelative(item.path);
+      if (relative && !this.changedFiles.has(relative)) {
+        this.changedFiles.add(relative);
+        added = true;
+      }
+    }
+    if (added) {
+      this.postChanges();
+    }
+  }
+
+  private postChanges(): void {
+    this.post({ type: 'changes', files: [...this.changedFiles].slice(0, 200) });
+  }
+
+  private setRouting(provider: string, model: string): void {
+    if (!isKnownRouting(provider, model)) {
+      this.reportError(new Error(`Unknown Echo model routing: ${provider} / ${model}`));
+      return;
+    }
+    this.client.setRouting({ provider, model });
+  }
+
+  /**
+   * Tabs are the sessions the user has open in the panel, which is deliberately not
+   * the same as the sessions persisted on disk. Listing every persisted session made
+   * old runs reappear as tabs that could not be dismissed, because closing one only
+   * removed it from a list that was rebuilt from disk on the next refresh.
+   */
+  private readOpenTabs(): string[] {
+    const stored = this.context.workspaceState.get<unknown>(openTabsKey);
+    return Array.isArray(stored)
+      ? stored.filter((value): value is string => typeof value === 'string').slice(0, 20)
+      : [];
+  }
+
+  private async writeOpenTabs(tabs: string[]): Promise<void> {
+    const unique = [...new Set(tabs)].slice(-20);
+    await this.context.workspaceState.update(openTabsKey, unique);
+  }
+
+  private async trackOpenTab(sessionId: string): Promise<void> {
+    const tabs = this.readOpenTabs();
+    if (!tabs.includes(sessionId)) {
+      await this.writeOpenTabs([...tabs, sessionId]);
+    }
+  }
+
+  private async openSessionTab(sessionId: string): Promise<void> {
+    if (sessionId === this.client.currentSession?.sessionId) return;
+    try {
+      await this.client.loadSession(sessionId);
+      await this.trackOpenTab(sessionId);
+      this.changedFiles.clear();
+      this.postChanges();
+    } catch (error) {
+      this.reportError(error);
+    }
+    await this.postPanelState();
+  }
+
+  /**
+   * Close a tab. The persisted session is left on disk so it stays reachable from
+   * history; only the panel's open list changes.
+   */
+  private async closeSessionTab(sessionId: string): Promise<void> {
+    const tabs = this.readOpenTabs().filter((id) => id !== sessionId);
+    await this.writeOpenTabs(tabs);
+
+    if (sessionId === this.client.currentSession?.sessionId) {
+      const next = tabs[tabs.length - 1];
+      if (next) {
+        try {
+          await this.client.loadSession(next);
+          this.changedFiles.clear();
+          this.postChanges();
+        } catch {
+          await this.newSession();
+        }
+      } else {
+        // Closing the last tab leaves a fresh one, so the panel is never empty.
+        await this.newSession();
+      }
+    }
+    await this.postPanelState();
+  }
+
+  /** Push tabs, model list, account and control state into the panel. */
+  private async postPanelState(): Promise<void> {
+    const session = this.client.currentSession;
+    const previews = this.readSessionPreviews();
+
+    if (session) {
+      await this.trackOpenTab(session.sessionId);
+    }
+
+    let titles = new Map<string, string | undefined>();
+    try {
+      for (const item of await this.client.listSessions()) {
+        titles.set(item.sessionId, item.title);
+      }
+    } catch {
+      titles = new Map();
+    }
+
+    const openTabs = this.readOpenTabs();
+    const sessions = openTabs.map((sessionId) => ({
+      sessionId,
+      title: titles.get(sessionId),
+      preview: previews[sessionId],
+    }));
+
+    const routing = this.client.currentRouting
+      ?? (session?.provider && session?.model
+        ? { provider: session.provider, model: session.model }
+        : undefined);
+
+    this.post({
+      type: 'panelState',
+      sessions,
+      activeSessionId: session?.sessionId,
+      models: listModelOptions(),
+      routing,
+      mode: session?.mode ?? 'default',
+      autopilot: this.autopilot,
+      effort: this.effortLevel,
+      account: await this.account.getState(),
+    });
+  }
+
+  /** History renders inside the panel, so it never pulls focus to a top quick pick. */
+  private async postHistory(): Promise<void> {
+    const previews = this.readSessionPreviews();
+    const openTabs = new Set(this.readOpenTabs());
+    try {
+      const listed = await this.client.listSessions();
+      this.post({
+        type: 'history',
+        sessions: listed.slice(0, 60).map((item) => ({
+          sessionId: item.sessionId,
+          title: item.title,
+          preview: previews[item.sessionId],
+          updatedAt: item.updatedAt,
+          provider: item.provider,
+          model: item.model,
+          open: openTabs.has(item.sessionId),
+        })),
+      });
+    } catch (error) {
+      this.post({ type: 'history', sessions: [], error: describeError(error) });
+    }
+  }
+
+  /** Turn composer chips into ACP content blocks alongside the active editor context. */
+  private buildPromptContext(rawChips: unknown): EditorContext | undefined {
+    const chips = Array.isArray(rawChips)
+      ? rawChips.filter((chip): chip is ContextChip =>
+          isRecord(chip) && typeof chip.text === 'string' && typeof chip.label === 'string')
+      : [];
+    const editor = collectEditorContext(false);
+    if (chips.length === 0) {
+      return editor;
+    }
+
+    const chipText = chips
+      .map((chip) => `## ${chip.label}\n${chip.text}`)
+      .join('\n\n')
+      .slice(0, 120_000);
+    const blocks: EchoContentBlock[] = [
+      { type: 'text', text: `Attached context:\n\n${chipText}` },
+      ...(editor?.blocks ?? []),
+    ];
+    const label = chips.map((chip) => chip.label).join(', ');
+    return {
+      displayText: [label, editor?.displayText].filter(Boolean).join(' · '),
+      blocks,
+    };
+  }
+
+  private async addContext(kind: ContextKind): Promise<void> {
+    try {
+      const chip = await this.collectContext(kind);
+      if (chip) {
+        this.post({ type: 'contextAdded', chip });
+      }
+    } catch (error) {
+      this.reportError(error);
+    }
+  }
+
+  private async collectContext(kind: ContextKind): Promise<ContextChip | undefined> {
+    const root = vscode.workspace.workspaceFolders?.[0];
+    switch (kind) {
+      case 'openFiles': {
+        const files = openWorkspaceFiles();
+        if (files.length === 0) {
+          void vscode.window.showInformationMessage('No workspace files are open.');
+          return undefined;
+        }
+        return {
+          kind,
+          label: `Open files (${files.length})`,
+          detail: files.join('\n'),
+          text: files.map((file) => `- ${file}`).join('\n'),
+        };
+      }
+      case 'diagnostics': {
+        const lines = workspaceDiagnosticLines();
+        if (lines.length === 0) {
+          void vscode.window.showInformationMessage('No diagnostics reported in this workspace.');
+          return undefined;
+        }
+        return {
+          kind,
+          label: `Diagnostics (${lines.length})`,
+          text: lines.join('\n'),
+        };
+      }
+      case 'gitDiff': {
+        if (!root) return undefined;
+        const diff = await readGitDiff(root.uri.fsPath);
+        if (!diff) {
+          void vscode.window.showInformationMessage('No uncommitted git changes were found.');
+          return undefined;
+        }
+        return { kind, label: 'Git diff', text: diff };
+      }
+      case 'file': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: true,
+          canSelectFolders: false,
+          openLabel: 'Attach',
+          defaultUri: root?.uri,
+        });
+        const first = picked?.[0];
+        if (!picked?.length || !first) return undefined;
+        const parts: string[] = [];
+        for (const uri of picked.slice(0, 10)) {
+          const relative = vscode.workspace.asRelativePath(uri, false);
+          const bytes = await vscode.workspace.fs.readFile(uri);
+          parts.push(`### ${relative}\n${Buffer.from(bytes).toString('utf8').slice(0, 40_000)}`);
+        }
+        return {
+          kind,
+          label: picked.length === 1
+            ? vscode.workspace.asRelativePath(first, false)
+            : `${picked.length} files`,
+          text: parts.join('\n\n'),
+        };
+      }
+      case 'folder': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          canSelectFolders: true,
+          canSelectFiles: false,
+          openLabel: 'Attach',
+          defaultUri: root?.uri,
+        });
+        const folder = picked?.[0];
+        if (!folder) return undefined;
+        const relative = vscode.workspace.asRelativePath(folder, false);
+        const listing = await listFolderEntries(folder);
+        return {
+          kind,
+          label: `${relative}/`,
+          text: `Folder ${relative} contains:\n${listing.join('\n')}`,
+        };
+      }
+      case 'spec':
+      case 'steering': {
+        if (!root) return undefined;
+        const directory = vscode.Uri.joinPath(root.uri, '.echoai', kind === 'spec' ? 'specs' : 'steering');
+        const documents = await readMarkdownTree(directory);
+        if (documents.length === 0) {
+          void vscode.window.showInformationMessage(
+            `No ${kind} documents found in .echoai/${kind === 'spec' ? 'specs' : 'steering'}.`,
+          );
+          return undefined;
+        }
+        return {
+          kind,
+          label: `${kind === 'spec' ? 'Spec' : 'Steering'} (${documents.length})`,
+          text: documents.join('\n\n'),
+        };
+      }
+      case 'mcp': {
+        return {
+          kind,
+          label: 'MCP servers',
+          text: 'Use the configured MCP servers and their tools for this request.',
+        };
+      }
+      case 'terminal': {
+        const terminal = vscode.window.activeTerminal;
+        if (!terminal) {
+          void vscode.window.showInformationMessage('No terminal is open.');
+          return undefined;
+        }
+        // The extension API exposes no terminal buffer, so the agent is pointed at the
+        // shell instead of being handed output that cannot be read.
+        return {
+          kind,
+          label: `Terminal: ${terminal.name}`,
+          text: `The active terminal is "${terminal.name}". Re-run any command you need with the shell tool to read its output.`,
+        };
+      }
+    }
+  }
+
+  private async viewChanges(): Promise<void> {
+    if (this.changedFiles.size === 0) return;
+    await vscode.commands.executeCommand('workbench.view.scm');
+  }
+
+  private async revertChanges(): Promise<void> {
+    const files = [...this.changedFiles];
+    if (files.length === 0) return;
+    const confirmation = await vscode.window.showWarningMessage(
+      `Discard Echo's edits to ${files.length} file${files.length === 1 ? '' : 's'}?`,
+      { modal: true, detail: files.slice(0, 20).join('\n') },
+      'Discard changes',
+    );
+    if (confirmation !== 'Discard changes') return;
+
+    const root = vscode.workspace.workspaceFolders?.[0];
+    if (!root) return;
+    try {
+      // Restore from git rather than reconstructing content, so the result matches the
+      // last commit exactly. Paths are passed as argv entries, never interpolated.
+      await execFileAsync('git', ['checkout', '--', ...files], {
+        cwd: root.uri.fsPath,
+        timeout: 30_000,
+      });
+      this.changedFiles.clear();
+      this.postChanges();
+      void vscode.window.showInformationMessage('Echo reverted its edits from git.');
+    } catch (error) {
+      this.reportError(
+        new Error(
+          `Could not revert with git: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
   }
 
   private async openLocation(toolPath: string, line?: number): Promise<void> {
@@ -440,620 +930,110 @@ function isPathInside(candidate: string, root: string): boolean {
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
-function renderWebview(webview: vscode.Webview): string {
-  const nonce = randomBytes(16).toString('base64');
-  const csp = [
-    "default-src 'none'",
-    `style-src ${webview.cspSource} 'nonce-${nonce}'`,
-    `script-src 'nonce-${nonce}'`,
-  ].join('; ');
+/** Normalize a tool-reported path to a workspace-relative one, or drop it if outside. */
+function toWorkspaceRelative(candidate: string): string | undefined {
+  try {
+    const uri = resolveWorkspaceToolUri(candidate);
+    return vscode.workspace.asRelativePath(uri, false);
+  } catch {
+    return undefined;
+  }
+}
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="${csp}">
-  <style nonce="${nonce}">
-    :root { color-scheme: light dark; }
-    * { box-sizing: border-box; }
-    body { margin: 0; height: 100vh; color: var(--vscode-foreground); background: var(--vscode-sideBar-background); font-family: var(--vscode-font-family); }
-    button, select, textarea { font: inherit; }
-    .shell { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
-    .topbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; min-height: 48px; padding: 7px 10px; border-bottom: 1px solid var(--vscode-panel-border); }
-    .mark { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 7px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); font-weight: 700; }
-    .identity { min-width: 0; }
-    .title { font-size: 12px; font-weight: 650; }
-    .status, .session-meta { overflow: hidden; color: var(--vscode-descriptionForeground); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-    .mode { width: 72px; padding: 3px 4px; color: var(--vscode-dropdown-foreground); background: var(--vscode-dropdown-background); border: 1px solid var(--vscode-dropdown-border); border-radius: 4px; font-size: 11px; }
-    .icon-button { padding: 3px 5px; color: var(--vscode-foreground); background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 11px; }
-    .icon-button:hover { background: var(--vscode-toolbar-hoverBackground); }
-    .conversation { overflow-y: auto; padding: 12px 10px 18px; }
-    .empty { display: grid; place-items: center; min-height: 65%; padding: 28px 12px; color: var(--vscode-descriptionForeground); text-align: center; line-height: 1.5; }
-    .empty strong { display: block; margin-bottom: 8px; color: var(--vscode-foreground); font-size: 15px; }
-    .message { margin: 0 0 12px; }
-    .message-label { margin-bottom: 4px; color: var(--vscode-descriptionForeground); font-size: 10px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
-    .bubble { padding: 9px 10px; border: 1px solid var(--vscode-panel-border); border-radius: 8px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .user .bubble { background: var(--vscode-input-background); }
-    .assistant .bubble { border-color: transparent; background: transparent; padding-left: 2px; padding-right: 2px; }
-    .context { margin-top: 5px; color: var(--vscode-descriptionForeground); font-size: 11px; }
-    .tool { margin: 8px 0 12px; padding: 8px 9px; border-left: 2px solid var(--vscode-charts-blue); background: var(--vscode-textBlockQuote-background); border-radius: 3px; }
-    .tool.failed { border-left-color: var(--vscode-errorForeground); }
-    .tool-head { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; }
-    .tool-state { color: var(--vscode-descriptionForeground); font-weight: 400; }
-    .tool-section { margin-top: 7px; }
-    .tool-caption { margin-bottom: 3px; color: var(--vscode-descriptionForeground); font-size: 9px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
-    .tool-output, .tool-input { max-height: 220px; overflow: auto; color: var(--vscode-descriptionForeground); font-family: var(--vscode-editor-font-family); font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .tool-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
-    .tool-link { padding: 2px 6px; color: var(--vscode-textLink-foreground); background: transparent; border: 1px solid var(--vscode-panel-border); border-radius: 3px; cursor: pointer; font-size: 10px; }
-    .diff-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; padding: 5px 6px; border: 1px solid var(--vscode-panel-border); border-radius: 4px; color: var(--vscode-descriptionForeground); font-size: 10px; }
-    .plan { margin: 8px 0 12px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border); border-radius: 7px; }
-    .plan-item { margin: 5px 0; color: var(--vscode-descriptionForeground); font-size: 11px; }
-    .plan-item.done { text-decoration: line-through; opacity: .75; }
-    .run-summary { margin: 8px 0 12px; color: var(--vscode-descriptionForeground); font-size: 10px; text-align: right; }
-    .error { margin: 8px 0 12px; padding: 8px 10px; color: var(--vscode-errorForeground); background: var(--vscode-inputValidation-errorBackground); border: 1px solid var(--vscode-inputValidation-errorBorder); border-radius: 6px; white-space: pre-wrap; }
-    .composer { padding: 9px 10px 10px; border-top: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); }
-    .input-wrap { border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 8px; background: var(--vscode-input-background); }
-    textarea { display: block; width: 100%; min-height: 64px; max-height: 180px; resize: vertical; padding: 9px 10px 5px; color: var(--vscode-input-foreground); background: transparent; border: 0; outline: none; }
-    .actions { display: flex; align-items: center; gap: 8px; padding: 4px 6px 6px; }
-    .context-toggle { display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; color: var(--vscode-descriptionForeground); font-size: 10px; }
-    .context-toggle input { margin: 0; }
-    .button { padding: 4px 10px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 0; border-radius: 4px; cursor: pointer; }
-    .button:hover { background: var(--vscode-button-hoverBackground); }
-    .button:disabled, .mode:disabled { cursor: default; opacity: .55; }
-    .link { padding: 2px 0; color: var(--vscode-textLink-foreground); background: transparent; border: 0; cursor: pointer; font-size: 11px; }
-    .empty-links { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <main class="shell">
-    <header class="topbar">
-      <div class="mark">E</div>
-      <div class="identity">
-        <div class="title">Echo AI</div>
-        <div class="status" id="status">Stopped</div>
-        <div class="session-meta" id="sessionMeta"></div>
-      </div>
-      <button class="icon-button" id="sessions" title="Saved sessions" aria-label="Saved sessions">History</button>
-      <select class="mode" id="mode" aria-label="Agent mode"><option value="default">Build</option><option value="plan">Plan</option></select>
-    </header>
-    <section class="conversation" id="conversation" aria-live="polite"></section>
-    <footer class="composer">
-      <div class="input-wrap">
-        <textarea id="prompt" aria-label="Message Echo AI" placeholder="Ask Echo AI to build, fix, or explain…"></textarea>
-        <div class="actions">
-          <label class="context-toggle" title="Attach active editor content, open files, and diagnostics"><input id="includeContext" type="checkbox" checked> editor context</label>
-          <button class="link" id="cancel" hidden>Cancel</button>
-          <button class="button" id="send">Send</button>
-        </div>
-      </div>
-    </footer>
-  </main>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    const conversation = document.getElementById('conversation');
-    const status = document.getElementById('status');
-    const sessionMeta = document.getElementById('sessionMeta');
-    const prompt = document.getElementById('prompt');
-    const send = document.getElementById('send');
-    const cancel = document.getElementById('cancel');
-    const mode = document.getElementById('mode');
-    const includeContext = document.getElementById('includeContext');
-    const saved = vscode.getState();
-    const restored = isPlainObject(saved) && saved.version === 1 ? saved : {};
-    const restoredEntries = Array.isArray(restored.entries)
-      ? restored.entries.map(normalizeEntry).filter(Boolean).slice(-200)
-      : [];
-    const ui = {
-      version: 1,
-      entries: restoredEntries,
-      tools: restoreTools(restored.tools, restoredEntries),
-      sessionId: typeof restored.sessionId === 'string' ? restored.sessionId : undefined,
-      session: normalizeSession(restored.session),
-      activeAssistantId: typeof restored.activeAssistantId === 'string' ? restored.activeAssistantId : undefined,
-    };
-    const nodes = new Map();
-    let activeAssistantId = ui.activeAssistantId;
-    let persistTimer;
+function openWorkspaceFiles(): string[] {
+  return vscode.window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .map((tab) => tabInputUri(tab.input))
+    .filter((uri): uri is vscode.Uri =>
+      Boolean(uri && uri.scheme === 'file' && vscode.workspace.getWorkspaceFolder(uri)))
+    .map((uri) => vscode.workspace.asRelativePath(uri, false))
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .slice(0, 60);
+}
 
-    function isPlainObject(value) {
-      return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+function workspaceDiagnosticLines(): string[] {
+  const lines: string[] = [];
+  for (const [uri, diagnostics] of vscode.languages.getDiagnostics()) {
+    if (uri.scheme !== 'file' || !vscode.workspace.getWorkspaceFolder(uri)) continue;
+    const relative = vscode.workspace.asRelativePath(uri, false);
+    for (const diagnostic of diagnostics.slice(0, 20)) {
+      lines.push(
+        `- ${relative}:${diagnostic.range.start.line + 1}:${diagnostic.range.start.character + 1} ` +
+        `[${diagnosticSeverityName(diagnostic.severity)}] ${diagnostic.message.slice(0, 600)}`,
+      );
+      if (lines.length >= 200) return lines;
     }
-    function normalizeEntry(value) {
-      if (!isPlainObject(value) || typeof value.id !== 'string') return undefined;
-      if (value.type === 'message' && (value.role === 'user' || value.role === 'assistant')) {
-        return {
-          type: 'message',
-          id: value.id,
-          role: value.role,
-          text: typeof value.text === 'string' ? value.text.slice(-262144) : '',
-          context: typeof value.context === 'string' ? value.context.slice(0, 4000) : undefined,
-        };
-      }
-      if (value.type === 'tool') return { type: 'tool', id: value.id };
-      if (value.type === 'plan') {
-        const entries = Array.isArray(value.entries)
-          ? value.entries.filter(isPlainObject).filter((entry) => typeof entry.content === 'string').slice(-100).map((entry) => ({
-              content: entry.content.slice(0, 1000),
-              status: entry.status === 'completed' || entry.status === 'in_progress' ? entry.status : 'pending',
-            }))
-          : [];
-        return { type: 'plan', id: value.id, entries };
-      }
-      if (value.type === 'error' && typeof value.message === 'string') {
-        return { type: 'error', id: value.id, message: value.message.slice(0, 16000) };
-      }
-      if (value.type === 'turn' && typeof value.text === 'string') {
-        return { type: 'turn', id: value.id, text: value.text.slice(0, 1000) };
-      }
-      return undefined;
-    }
-    function restoreTools(value, entries) {
-      const tools = Object.create(null);
-      if (!isPlainObject(value)) return tools;
-      const ids = entries.filter((entry) => entry.type === 'tool').map((entry) => entry.id).slice(-100);
-      for (const id of ids) {
-        if (Object.prototype.hasOwnProperty.call(value, id) && isPlainObject(value[id])) {
-          tools[id] = normalizeToolUpdate({ ...value[id], toolCallId: id });
-        }
-      }
-      return tools;
-    }
-    function normalizeSession(value) {
-      if (!isPlainObject(value) || typeof value.sessionId !== 'string') return undefined;
-      return {
-        sessionId: value.sessionId,
-        mode: value.mode === 'plan' ? 'plan' : 'default',
-        title: typeof value.title === 'string' ? value.title.slice(0, 1000) : undefined,
-        provider: typeof value.provider === 'string' ? value.provider.slice(0, 500) : undefined,
-        model: typeof value.model === 'string' ? value.model.slice(0, 500) : undefined,
-      };
-    }
+  }
+  return lines;
+}
 
-    function persist() {
-      if (persistTimer) clearTimeout(persistTimer);
-      persistTimer = setTimeout(() => {
-        ui.activeAssistantId = activeAssistantId;
-        const entries = ui.entries.slice(-200);
-        const retainedToolIds = new Set(entries.filter((entry) => entry && entry.type === 'tool').map((entry) => entry.id));
-        const tools = Object.create(null);
-        for (const id of Array.from(retainedToolIds).slice(-100)) {
-          if (ui.tools[id]) tools[id] = { ...ui.tools[id] };
-        }
-        const snapshot = {
-          version: 1,
-          entries,
-          tools,
-          sessionId: ui.sessionId,
-          session: ui.session,
-          activeAssistantId,
-        };
-        let serialized = JSON.stringify(snapshot);
-        while (serialized.length > 262144 && snapshot.entries.length > 20) {
-          const removed = snapshot.entries.shift();
-          if (removed && removed.type === 'tool') delete snapshot.tools[removed.id];
-          serialized = JSON.stringify(snapshot);
-        }
-        if (serialized.length > 262144) {
-          for (const tool of Object.values(snapshot.tools)) {
-            if (!tool || typeof tool !== 'object') continue;
-            delete tool.rawOutput;
-            delete tool.content;
-          }
-          serialized = JSON.stringify(snapshot);
-        }
-        vscode.setState(serialized.length <= 262144 ? JSON.parse(serialized) : {
-          version: 1,
-          entries: snapshot.entries.slice(-20).map((entry) => {
-            if (entry.type === 'message') return { ...entry, text: String(entry.text || '').slice(-4000) };
-            if (entry.type === 'plan') return {
-              ...entry,
-              entries: Array.isArray(entry.entries)
-                ? entry.entries.slice(-20).map((item) => ({ ...item, content: String(item.content || '').slice(0, 500) }))
-                : [],
-            };
-            if (entry.type === 'error') return { ...entry, message: String(entry.message || '').slice(0, 4000) };
-            return entry;
-          }),
-          tools: {},
-          sessionId: snapshot.sessionId,
-          session: snapshot.session,
-        });
-      }, 80);
-    }
-    function makeEmpty() {
-      const root = document.createElement('div');
-      root.className = 'empty';
-      const content = document.createElement('div');
-      const title = document.createElement('strong');
-      title.textContent = 'Build with Echo AI';
-      content.append(title, document.createTextNode('Use the production EchoAI runtime for codebase work, edits, and review.'));
-      const links = document.createElement('div');
-      links.className = 'empty-links';
-      for (const [label, type] of [['Configure', 'configureRuntime'], ['MCP', 'manageMcp'], ['Login', 'login']]) {
-        const button = document.createElement('button');
-        button.className = 'link';
-        button.textContent = label;
-        button.addEventListener('click', () => vscode.postMessage({ type }));
-        links.append(button);
-      }
-      content.append(links);
-      root.append(content);
-      return root;
-    }
-    function ensureEmpty() {
-      if (ui.entries.length === 0 && conversation.childElementCount === 0) conversation.append(makeEmpty());
-    }
-    function clearEmpty() {
-      const empty = conversation.querySelector('.empty');
-      if (empty) empty.remove();
-    }
-    function scrollToEnd() { conversation.scrollTop = conversation.scrollHeight; }
-    function appendEntry(entry) {
-      ui.entries.push(entry);
-      if (ui.entries.length > 300) {
-        ui.entries.splice(0, ui.entries.length - 300);
-        const retainedTools = new Set(ui.entries.filter((candidate) => candidate.type === 'tool').map((candidate) => candidate.id));
-        for (const id of Object.keys(ui.tools)) {
-          if (!retainedTools.has(id)) delete ui.tools[id];
-        }
-        nodes.clear();
-        conversation.replaceChildren();
-        for (const retained of ui.entries) renderEntry(retained);
-      } else {
-        renderEntry(entry);
-      }
-      persist();
-      scrollToEnd();
-    }
-    function renderEntry(entry) {
-      clearEmpty();
-      if (entry.type === 'message') renderMessage(entry);
-      if (entry.type === 'tool') renderTool(entry.id);
-      if (entry.type === 'plan') renderPlan(entry);
-      if (entry.type === 'error') renderError(entry);
-      if (entry.type === 'turn') renderTurn(entry);
-    }
-    function renderMessage(entry) {
-      const item = document.createElement('article');
-      item.className = 'message ' + entry.role;
-      const label = document.createElement('div');
-      label.className = 'message-label';
-      label.textContent = entry.role === 'user' ? 'You' : 'Echo AI';
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-      bubble.textContent = entry.text || '';
-      item.append(label, bubble);
-      if (entry.context) {
-        const contextNode = document.createElement('div');
-        contextNode.className = 'context';
-        contextNode.textContent = 'Attached: ' + entry.context;
-        item.append(contextNode);
-      }
-      conversation.append(item);
-      nodes.set(entry.id, bubble);
-    }
-    function boundMessageText(value) {
-      const text = String(value || '');
-      if (text.length <= 262144) return text;
-      return text.slice(0, 196608) + '\\n… message truncated in IDE history …\\n' + text.slice(-32768);
-    }
-    function addMessage(role, text, context, messageId) {
-      activeAssistantId = undefined;
-      const entry = {
-        type: 'message',
-        id: messageId || crypto.randomUUID(),
-        role,
-        text: boundMessageText(text),
-        context: typeof context === 'string' ? context.slice(0, 4000) : undefined,
-      };
-      appendEntry(entry);
-      return entry.id;
-    }
-    function appendAssistant(text, messageId) {
-      const targetId = typeof messageId === 'string' ? messageId : activeAssistantId;
-      let entry = ui.entries.find((candidate) => candidate.type === 'message' && candidate.id === targetId);
-      if (!entry) {
-        const id = targetId || crypto.randomUUID();
-        entry = { type: 'message', id, role: 'assistant', text: '' };
-        activeAssistantId = id;
-        appendEntry(entry);
-      } else {
-        activeAssistantId = entry.id;
-      }
-      entry.text = boundMessageText(String(entry.text || '') + String(text || ''));
-      const bubble = nodes.get(entry.id);
-      if (bubble) bubble.textContent = entry.text;
-      persist();
-      scrollToEnd();
-    }
-    function boundedValue(value, maxLength = 32000) {
-      if (value === undefined || value === null) return value;
-      if (typeof value === 'string') return value.slice(0, maxLength);
-      try {
-        const serialized = JSON.stringify(value);
-        return serialized.length <= maxLength ? value : serialized.slice(0, maxLength) + '…';
-      } catch {
-        return String(value).slice(0, maxLength);
-      }
-    }
-    function normalizeToolContent(value) {
-      if (!Array.isArray(value)) return [];
-      const content = [];
-      for (const item of value.slice(-50)) {
-        if (!isPlainObject(item)) continue;
-        if (item.type === 'content' && isPlainObject(item.content) && item.content.type === 'text' && typeof item.content.text === 'string') {
-          content.push({ type: 'content', content: { type: 'text', text: item.content.text.slice(0, 32000) } });
-          continue;
-        }
-        if (item.type === 'diff' && typeof item.path === 'string' && typeof item.newText === 'string') {
-          content.push({
-            type: 'diff',
-            path: item.path.slice(0, 4000),
-            oldText: typeof item.oldText === 'string' ? item.oldText.slice(0, 128000) : undefined,
-            newText: item.newText.slice(0, 128000),
-          });
-        }
-      }
-      return content;
-    }
-    function normalizeToolUpdate(update) {
-      const normalized = { toolCallId: update.toolCallId };
-      if (typeof update.title === 'string') normalized.title = update.title.slice(0, 1000);
-      if (['pending', 'in_progress', 'completed', 'failed'].includes(update.status)) normalized.status = update.status;
-      if (typeof update.kind === 'string') normalized.kind = update.kind.slice(0, 100);
-      if (Object.prototype.hasOwnProperty.call(update, 'rawInput')) normalized.rawInput = boundedValue(update.rawInput);
-      if (Object.prototype.hasOwnProperty.call(update, 'rawOutput')) normalized.rawOutput = boundedValue(update.rawOutput);
-      if (update.content === null) normalized.content = null;
-      else if (Array.isArray(update.content)) normalized.content = normalizeToolContent(update.content);
-      if (update.locations === null) normalized.locations = null;
-      else if (Array.isArray(update.locations)) {
-        normalized.locations = update.locations.filter(isPlainObject).filter((location) => typeof location.path === 'string').slice(-100).map((location) => ({
-          path: location.path.slice(0, 4000),
-          line: typeof location.line === 'number' && Number.isFinite(location.line) ? Math.floor(location.line) : undefined,
-        }));
-      }
-      return normalized;
-    }
-    function formatJson(value) {
-      if (value === undefined || value === null) return '';
-      try {
-        const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-        return text.length > 16000 ? text.slice(0, 16000) + '\\n… output truncated in card' : text;
-      } catch { return String(value); }
-    }
-    function toolText(content) {
-      return (content || [])
-        .filter((entry) => entry && entry.type === 'content' && entry.content && entry.content.type === 'text')
-        .map((entry) => entry.content.text)
-        .filter(Boolean)
-        .join('\\n');
-    }
-    function mergeTool(update) {
-      const boundedUpdate = normalizeToolUpdate(update);
-      const previous = ui.tools[boundedUpdate.toolCallId] || {};
-      const next = { ...previous, ...boundedUpdate };
-      for (const key of ['content', 'locations']) {
-        if (boundedUpdate[key] === null) next[key] = [];
-        else if (boundedUpdate[key] === undefined && previous[key] !== undefined) next[key] = previous[key];
-      }
-      ui.tools[boundedUpdate.toolCallId] = next;
-      return next;
-    }
-    function upsertTool(update) {
-      activeAssistantId = undefined;
-      const exists = Boolean(ui.tools[update.toolCallId]);
-      mergeTool(update);
-      if (!exists) {
-        appendEntry({ type: 'tool', id: update.toolCallId });
-      } else {
-        const old = nodes.get('tool:' + update.toolCallId);
-        const replacement = buildTool(update.toolCallId);
-        if (old && replacement) old.replaceWith(replacement);
-        persist();
-        scrollToEnd();
-      }
-    }
-    function renderTool(id) {
-      const card = buildTool(id);
-      if (card) conversation.append(card);
-    }
-    function buildTool(id) {
-      const tool = ui.tools[id];
-      if (!tool) return undefined;
-      const root = document.createElement('section');
-      root.className = 'tool' + (tool.status === 'failed' ? ' failed' : '');
-      nodes.set('tool:' + id, root);
-      const head = document.createElement('div');
-      head.className = 'tool-head';
-      const title = document.createElement('span');
-      title.textContent = tool.title || 'Tool';
-      const state = document.createElement('span');
-      state.className = 'tool-state';
-      state.textContent = (tool.status || '').replace('_', ' ');
-      head.append(title, state);
-      root.append(head);
+async function readGitDiff(cwd: string): Promise<string | undefined> {
+  try {
+    const { stdout } = await execFileAsync('git', ['diff', '--stat', 'HEAD'], { cwd, timeout: 20_000, maxBuffer: 4_000_000 });
+    const { stdout: patch } = await execFileAsync('git', ['diff', 'HEAD'], { cwd, timeout: 20_000, maxBuffer: 8_000_000 });
+    const combined = `${stdout.trim()}\n\n${patch}`.trim();
+    return combined.length > 0 ? combined.slice(0, 120_000) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
-      const input = formatJson(tool.rawInput);
-      if (input) root.append(makeToolSection('Input', input, 'tool-input'));
-      const output = toolText(tool.content) || formatJson(tool.rawOutput);
-      if (output) root.append(makeToolSection('Result', output, 'tool-output'));
+/** `vscode.workspace.fs` returns Thenables, which have no `.catch`. */
+async function tryReadDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+  try {
+    return await vscode.workspace.fs.readDirectory(uri);
+  } catch {
+    return [];
+  }
+}
 
-      const locations = Array.isArray(tool.locations) ? tool.locations : [];
-      if (locations.length) {
-        const actions = document.createElement('div');
-        actions.className = 'tool-actions';
-        for (const location of locations) {
-          if (!location || typeof location.path !== 'string') continue;
-          const button = document.createElement('button');
-          button.className = 'tool-link';
-          button.textContent = location.path + (location.line ? ':' + location.line : '');
-          button.addEventListener('click', () => vscode.postMessage({ type: 'openLocation', path: location.path, line: location.line }));
-          actions.append(button);
-        }
-        root.append(actions);
+async function tryReadFile(uri: vscode.Uri): Promise<Uint8Array | undefined> {
+  try {
+    return await vscode.workspace.fs.readFile(uri);
+  } catch {
+    return undefined;
+  }
+}
+
+async function listFolderEntries(folder: vscode.Uri): Promise<string[]> {
+  const out: string[] = [];
+  const walk = async (directory: vscode.Uri, depth: number): Promise<void> => {
+    if (depth > 2 || out.length >= 200) return;
+    const entries = await tryReadDirectory(directory);
+    for (const [name, kind] of entries) {
+      if (name.startsWith('.') || name === 'node_modules' || out.length >= 200) continue;
+      const child = vscode.Uri.joinPath(directory, name);
+      out.push(vscode.workspace.asRelativePath(child, false) + (kind === vscode.FileType.Directory ? '/' : ''));
+      if (kind === vscode.FileType.Directory) {
+        await walk(child, depth + 1);
       }
+    }
+  };
+  await walk(folder, 0);
+  return out;
+}
 
-      for (const item of Array.isArray(tool.content) ? tool.content : []) {
-        if (!item || item.type !== 'diff' || typeof item.path !== 'string' || typeof item.newText !== 'string') continue;
-        const row = document.createElement('div');
-        row.className = 'diff-row';
-        const label = document.createElement('span');
-        label.textContent = item.path;
-        const button = document.createElement('button');
-        button.className = 'tool-link';
-        button.textContent = 'Open Diff';
-        button.addEventListener('click', () => vscode.postMessage({
-          type: 'openDiff', path: item.path, oldText: item.oldText, newText: item.newText,
-        }));
-        row.append(label, button);
-        root.append(row);
-      }
-      return root;
+async function readMarkdownTree(directory: vscode.Uri): Promise<string[]> {
+  const entries = await tryReadDirectory(directory);
+  const documents: string[] = [];
+  for (const [name, kind] of entries) {
+    if (documents.length >= 12) break;
+    const child = vscode.Uri.joinPath(directory, name);
+    if (kind === vscode.FileType.Directory) {
+      documents.push(...(await readMarkdownTree(child)));
+      continue;
     }
-    function makeToolSection(captionText, value, className) {
-      const section = document.createElement('div');
-      section.className = 'tool-section';
-      const caption = document.createElement('div');
-      caption.className = 'tool-caption';
-      caption.textContent = captionText;
-      const body = document.createElement('div');
-      body.className = className;
-      body.textContent = value;
-      section.append(caption, body);
-      return section;
-    }
-    function showPlan(entries) {
-      activeAssistantId = undefined;
-      const previous = ui.entries.find((entry) => entry.type === 'plan');
-      const normalized = normalizeEntry({
-        type: 'plan',
-        id: previous?.id || crypto.randomUUID(),
-        entries,
-      });
-      const normalizedEntries = normalized ? normalized.entries : [];
-      if (previous) {
-        previous.entries = normalizedEntries;
-        const old = nodes.get(previous.id);
-        const replacement = buildPlan(previous);
-        if (old) old.replaceWith(replacement);
-        persist();
-        return;
-      }
-      appendEntry(normalized || { type: 'plan', id: crypto.randomUUID(), entries: [] });
-    }
-    function renderPlan(entry) { conversation.append(buildPlan(entry)); }
-    function buildPlan(entry) {
-      const root = document.createElement('section');
-      root.className = 'plan';
-      nodes.set(entry.id, root);
-      const title = document.createElement('div');
-      title.className = 'message-label';
-      title.textContent = 'Plan';
-      root.append(title);
-      for (const planEntry of entry.entries || []) {
-        const item = document.createElement('div');
-        item.className = 'plan-item' + (planEntry.status === 'completed' ? ' done' : '');
-        item.textContent = (planEntry.status === 'completed' ? '✓ ' : planEntry.status === 'in_progress' ? '→ ' : '• ') + planEntry.content;
-        root.append(item);
-      }
-      return root;
-    }
-    function showError(message) {
-      appendEntry({ type: 'error', id: crypto.randomUUID(), message: String(message || '').slice(0, 16000) });
-    }
-    function renderError(entry) {
-      const item = document.createElement('div');
-      item.className = 'error';
-      item.textContent = entry.message;
-      conversation.append(item);
-    }
-    function showTurn(data) {
-      const usage = data.usage;
-      const tokens = usage && typeof usage.totalTokens === 'number'
-        ? usage.totalTokens.toLocaleString() + ' tokens'
-        : undefined;
-      const reason = String(data.stopReason || 'end_turn').replaceAll('_', ' ');
-      appendEntry({ type: 'turn', id: crypto.randomUUID(), text: [reason, tokens].filter(Boolean).join(' · ') });
-    }
-    function renderTurn(entry) {
-      const item = document.createElement('div');
-      item.className = 'run-summary';
-      item.textContent = entry.text;
-      conversation.append(item);
-    }
-    function setStatus(value, detail) {
-      const labels = { stopped: 'Stopped', connecting: 'Connecting…', ready: 'Ready', running: 'Working…', error: 'Needs attention' };
-      status.textContent = detail || labels[value] || value;
-      const running = value === 'running';
-      const unavailable = running || value === 'connecting';
-      send.disabled = unavailable;
-      mode.disabled = unavailable;
-      cancel.hidden = !running;
-    }
-    function setSession(data) {
-      const nextSession = normalizeSession(data);
-      if (!nextSession) return;
-      if (ui.sessionId && ui.sessionId !== nextSession.sessionId) resetConversation();
-      ui.sessionId = nextSession.sessionId;
-      ui.session = nextSession;
-      mode.value = nextSession.mode;
-      sessionMeta.textContent = [nextSession.title, nextSession.provider && nextSession.model ? nextSession.provider + ' / ' + nextSession.model : nextSession.provider || nextSession.model]
-        .filter(Boolean).join(' · ');
-      persist();
-    }
-    function resetConversation() {
-      ui.entries = [];
-      ui.tools = Object.create(null);
-      activeAssistantId = undefined;
-      nodes.clear();
-      conversation.replaceChildren();
-      ensureEmpty();
-      persist();
-    }
-    function submit() {
-      const text = prompt.value.trim();
-      if (!text || send.disabled) return;
-      prompt.value = '';
-      vscode.postMessage({ type: 'send', text, includeContext: includeContext.checked });
-    }
+    if (!name.endsWith('.md')) continue;
+    const bytes = await tryReadFile(child);
+    if (!bytes) continue;
+    const relative = vscode.workspace.asRelativePath(child, false);
+    documents.push(`### ${relative}\n${Buffer.from(bytes).toString('utf8').slice(0, 20_000)}`);
+  }
+  return documents;
+}
 
-    send.addEventListener('click', submit);
-    cancel.addEventListener('click', () => vscode.postMessage({ type: 'cancel' }));
-    mode.addEventListener('change', () => vscode.postMessage({ type: 'setMode', mode: mode.value }));
-    document.getElementById('sessions').addEventListener('click', () => vscode.postMessage({ type: 'showSessions' }));
-    prompt.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit(); }
-    });
-
-    conversation.replaceChildren();
-    for (const entry of ui.entries) renderEntry(entry);
-    ensureEmpty();
-    if (ui.session) setSession(ui.session);
-    scrollToEnd();
-
-    window.addEventListener('message', ({ data }) => {
-      if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
-      if (data.type === 'localUser' && typeof data.text === 'string') addMessage('user', data.text, typeof data.context === 'string' ? data.context : undefined);
-      if (data.type === 'status' && typeof data.status === 'string') setStatus(data.status, typeof data.message === 'string' ? data.message : undefined);
-      if (data.type === 'error' && typeof data.message === 'string') showError(data.message);
-      if (data.type === 'session' && typeof data.sessionId === 'string') setSession(data);
-      if (data.type === 'turn' && typeof data.stopReason === 'string') showTurn(data);
-      if (data.type === 'reset') resetConversation();
-      if (data.type !== 'update' || !data.update || typeof data.update !== 'object') return;
-      const update = data.update;
-      if (typeof update.sessionUpdate !== 'string') return;
-      if (update.sessionUpdate === 'user_message_chunk' && update.content?.type === 'text' && typeof update.content.text === 'string') addMessage('user', update.content.text, undefined, update.messageId);
-      if (update.sessionUpdate === 'agent_message_chunk' && update.content?.type === 'text' && typeof update.content.text === 'string') appendAssistant(update.content.text, update.messageId);
-      if (update.sessionUpdate === 'agent_thought_chunk' && update.content?.type === 'text' && typeof update.content.text === 'string') appendAssistant(update.content.text, update.messageId);
-      if ((update.sessionUpdate === 'tool_call' || update.sessionUpdate === 'tool_call_update') && typeof update.toolCallId === 'string') upsertTool(update);
-      if (update.sessionUpdate === 'plan' && Array.isArray(update.entries)) showPlan(update.entries);
-      if (update.sessionUpdate === 'current_mode_update' && (update.currentModeId === 'default' || update.currentModeId === 'plan')) mode.value = update.currentModeId;
-      if (update.sessionUpdate === 'usage_update' && typeof update.used === 'number' && typeof update.size === 'number') sessionMeta.textContent = 'Context: ' + update.used.toLocaleString() + ' / ' + update.size.toLocaleString();
-    });
-  </script>
-</body>
-</html>`;
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

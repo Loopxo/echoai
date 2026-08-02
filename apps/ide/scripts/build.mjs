@@ -28,11 +28,27 @@ const extensionBuild = await context({
   format: 'cjs',
   external: ['vscode'],
 });
+// The runtime is bundled as ESM, but it pulls in CommonJS dependencies
+// (commander, cosmiconfig, typescript) that call `require(...)` and read
+// `__filename`/`__dirname` at runtime. esbuild's ESM output provides none of
+// those, so its `__require` shim threw `Dynamic require of "events" is not
+// supported` and the agent died before answering `initialize`. Re-create the
+// CommonJS globals so the shim resolves through the real module loader.
+const nodeCompatBanner = [
+  "import { createRequire as __echoCreateRequire } from 'node:module';",
+  "import { fileURLToPath as __echoFileURLToPath } from 'node:url';",
+  "import { dirname as __echoDirname } from 'node:path';",
+  'const require = __echoCreateRequire(import.meta.url);',
+  'const __filename = __echoFileURLToPath(import.meta.url);',
+  'const __dirname = __echoDirname(__filename);',
+].join('\n');
+
 const acpServerBuild = await context({
   ...sharedBuildOptions,
   entryPoints: [path.join(projectRoot, 'src/acp-server.mjs')],
   outfile: path.join(outputRoot, 'acp-server.mjs'),
   format: 'esm',
+  banner: { js: nodeCompatBanner },
 });
 const builds = [extensionBuild, acpServerBuild];
 

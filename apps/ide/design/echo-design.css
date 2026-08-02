@@ -1,0 +1,779 @@
+/*
+ * Echo IDE - Monochrome Design System (structural layer)
+ * ------------------------------------------------------
+ * A VS Code color theme can only set values in a fixed palette registry. It
+ * cannot remove border radius, change a font family, resize the activity rail,
+ * or invert a band. Those are the rules that actually stop Echo reading as a
+ * recolored VS Code, so they live here.
+ *
+ * Loaded from workbench.html so it applies to every window before first paint.
+ *
+ * Section numbers track the design document.
+ */
+
+/* ==========================================================================
+   3. Typography - JetBrains Mono, bundled so it never falls back
+   ========================================================================== */
+
+@font-face {
+	font-family: 'Echo Mono';
+	src: url('./echo-fonts/JetBrainsMono-Regular.woff2') format('woff2');
+	font-weight: 400;
+	font-style: normal;
+	font-display: block;
+}
+
+@font-face {
+	font-family: 'Echo Mono';
+	src: url('./echo-fonts/JetBrainsMono-Italic.woff2') format('woff2');
+	font-weight: 400;
+	font-style: italic;
+	font-display: block;
+}
+
+@font-face {
+	font-family: 'Echo Mono';
+	src: url('./echo-fonts/JetBrainsMono-Medium.woff2') format('woff2');
+	font-weight: 500;
+	font-style: normal;
+	font-display: block;
+}
+
+@font-face {
+	font-family: 'Echo Mono';
+	src: url('./echo-fonts/JetBrainsMono-Bold.woff2') format('woff2');
+	font-weight: 700;
+	font-style: normal;
+	font-display: block;
+}
+
+@font-face {
+	font-family: 'Echo Mono';
+	src: url('./echo-fonts/JetBrainsMono-BoldItalic.woff2') format('woff2');
+	font-weight: 700;
+	font-style: italic;
+	font-display: block;
+}
+
+@font-face {
+	font-family: 'Echo Mono';
+	src: url('./echo-fonts/JetBrainsMono-ExtraBold.woff2') format('woff2');
+	font-weight: 800;
+	font-style: normal;
+	font-display: block;
+}
+
+/* ==========================================================================
+   2. Color tokens - single source of truth for this layer
+   ========================================================================== */
+
+:root {
+	--echo-bg-base: #000000;
+	--echo-bg-raised: #0a0a0a;
+	--echo-bg-inset: #050505;
+	--echo-border-hair: #1f1f1f;
+	--echo-border-mid: #2a2a2a;
+	--echo-border-strong: #5a5a5a;
+	--echo-border-full: #ffffff;
+	--echo-text-primary: #ffffff;
+	--echo-text-secondary: #8a8a8a;
+	--echo-text-muted: #5a5a5a;
+
+	--echo-font: 'Echo Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+	/* 4. Layout shell dimensions (1440x900 reference) */
+	--echo-titlebar-h: 44px;
+	--echo-rail-w: 52px;
+	--echo-explorer-w: 240px;
+	--echo-tabstrip-h: 38px;
+	--echo-statusbar-h: 28px;
+
+	/* 3. Type scale */
+	--echo-size-eyebrow: 9px;
+	--echo-size-caption: 10px;
+	--echo-size-ui: 11px;
+	--echo-size-body: 12px;
+	--echo-size-tab: 13px;
+
+	--echo-track-wide: 0.18em;
+	--echo-track-tight: -0.02em;
+}
+
+/* ==========================================================================
+   8. Hard rules - applied globally, before anything else can reintroduce them
+   Rule 2: border-radius 0 everywhere.  Rule 3: no box-shadows.
+   ========================================================================== */
+
+.monaco-workbench,
+.monaco-workbench *,
+.monaco-workbench *::before,
+.monaco-workbench *::after {
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	text-shadow: none !important;
+}
+
+/* Rule 4: JetBrains Mono only - UI, code, and headings share one family. */
+.monaco-workbench {
+	font-family: var(--echo-font) !important;
+	letter-spacing: 0 !important;
+	-webkit-font-smoothing: antialiased !important;
+}
+
+.monaco-workbench .monaco-editor,
+.monaco-workbench .monaco-editor .view-line,
+.monaco-workbench .xterm,
+.monaco-workbench .monaco-inputbox input,
+.monaco-workbench .monaco-inputbox textarea,
+.monaco-workbench input,
+.monaco-workbench textarea,
+.monaco-workbench select,
+.monaco-workbench button {
+	font-family: var(--echo-font) !important;
+}
+
+/* 3. Code: 12px / 1.7 line-height */
+.monaco-workbench .monaco-editor .view-lines {
+	font-size: var(--echo-size-body) !important;
+	line-height: 1.7 !important;
+}
+
+/* Codicons must keep their own icon font despite the blanket override above. */
+.monaco-workbench .codicon[class*='codicon-'] {
+	font-family: 'codicon' !important;
+}
+
+/* ==========================================================================
+   4. Title bar - 44px, hollow window controls, centered command palette
+   ========================================================================== */
+
+.monaco-workbench .part.titlebar {
+	height: var(--echo-titlebar-h) !important;
+	line-height: var(--echo-titlebar-h) !important;
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+	background-color: var(--echo-bg-base) !important;
+}
+
+.monaco-workbench .part.titlebar > .titlebar-container {
+	height: var(--echo-titlebar-h) !important;
+}
+
+/* Centered "Ask Echo anything" command center, ~480px, border/mid */
+.monaco-workbench .part.titlebar .command-center .action-item.command-center-center {
+	width: 480px !important;
+	max-width: 480px !important;
+	height: 26px !important;
+	border: 1px solid var(--echo-border-mid) !important;
+	background-color: var(--echo-bg-base) !important;
+}
+
+.monaco-workbench .part.titlebar .command-center .action-item.command-center-center:hover {
+	border-color: var(--echo-border-strong) !important;
+	background-color: var(--echo-bg-base) !important;
+}
+
+.monaco-workbench .part.titlebar .command-center .action-item.command-center-center .search-label {
+	font-size: var(--echo-size-ui) !important;
+	color: var(--echo-text-muted) !important;
+	letter-spacing: 0 !important;
+}
+
+/* Keybinding hint sits flush right inside the palette, muted, uppercase. */
+.monaco-workbench .part.titlebar .command-center .action-item.command-center-center .shortcut {
+	font-size: var(--echo-size-eyebrow) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	color: var(--echo-text-muted) !important;
+}
+
+/* ==========================================================================
+   4. Activity rail - 52px, inactive muted, active = inverted white square
+   with a 2px white left indicator
+   ========================================================================== */
+
+.monaco-workbench .part.activitybar {
+	width: var(--echo-rail-w) !important;
+	min-width: var(--echo-rail-w) !important;
+	max-width: var(--echo-rail-w) !important;
+	background-color: var(--echo-bg-base) !important;
+	border-right: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .activitybar .action-item {
+	width: var(--echo-rail-w) !important;
+	height: var(--echo-rail-w) !important;
+}
+
+.monaco-workbench .activitybar .action-label {
+	font-size: 16px !important;
+	color: var(--echo-text-muted) !important;
+	width: var(--echo-rail-w) !important;
+	height: var(--echo-rail-w) !important;
+	line-height: var(--echo-rail-w) !important;
+	margin: 0 !important;
+}
+
+/* Active: invert the square and mark it with a hard 2px white edge. */
+.monaco-workbench .activitybar .action-item.checked .active-item-indicator::before,
+.monaco-workbench .activitybar .action-item.active .active-item-indicator::before {
+	border-left: 2px solid var(--echo-border-full) !important;
+	left: 0 !important;
+}
+
+.monaco-workbench .activitybar .action-item.checked .action-label,
+.monaco-workbench .activitybar .action-item.active .action-label {
+	background-color: var(--echo-border-full) !important;
+	color: var(--echo-bg-base) !important;
+}
+
+.monaco-workbench .activitybar .action-item:not(.checked):hover .action-label {
+	color: var(--echo-text-primary) !important;
+	background-color: var(--echo-bg-raised) !important;
+}
+
+/* Badges are squares, never circles (section 7). */
+.monaco-workbench .activitybar .badge .badge-content {
+	background-color: var(--echo-border-full) !important;
+	color: var(--echo-bg-base) !important;
+	font-size: var(--echo-size-eyebrow) !important;
+	font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   4. Explorer - 240px, 9px uppercase muted header, 24px rows at 12px
+   ========================================================================== */
+
+.monaco-workbench .part.sidebar {
+	background-color: var(--echo-bg-inset) !important;
+	border-right: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .part.sidebar .title-label h2,
+.monaco-workbench .part.sidebar .pane-header h3.title {
+	font-size: var(--echo-size-eyebrow) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	font-weight: 700 !important;
+	color: var(--echo-text-muted) !important;
+}
+
+.monaco-workbench .part.sidebar .pane-header {
+	border-top: 1px solid var(--echo-border-hair) !important;
+	background-color: var(--echo-bg-inset) !important;
+}
+
+.monaco-workbench .explorer-folders-view .monaco-list-row {
+	height: 24px !important;
+	line-height: 24px !important;
+	font-size: var(--echo-size-body) !important;
+}
+
+.monaco-workbench .explorer-folders-view .monaco-list-row .monaco-icon-label {
+	color: var(--echo-text-secondary) !important;
+}
+
+.monaco-workbench .explorer-folders-view .monaco-list-row.focused .monaco-icon-label,
+.monaco-workbench .explorer-folders-view .monaco-list-row.selected .monaco-icon-label {
+	color: var(--echo-text-primary) !important;
+	font-weight: 500 !important;
+}
+
+/* Git badges (M / U): 9px muted, right-aligned. */
+.monaco-workbench .explorer-folders-view .monaco-list-row .monaco-icon-label .monaco-icon-label-container > .monaco-icon-description-container .label-badge,
+.monaco-workbench .explorer-item-badge {
+	font-size: var(--echo-size-eyebrow) !important;
+	color: var(--echo-text-muted) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+}
+
+/* ==========================================================================
+   4. Editor tab strip - 38px, active gets a 2px white top border
+   ========================================================================== */
+
+.monaco-workbench .part.editor > .content .editor-group-container > .title {
+	height: var(--echo-tabstrip-h) !important;
+	background-color: var(--echo-bg-inset) !important;
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .part.editor .tabs-container > .tab {
+	height: var(--echo-tabstrip-h) !important;
+	font-size: var(--echo-size-tab) !important;
+	border-right: 1px solid var(--echo-border-hair) !important;
+	background-color: var(--echo-bg-inset) !important;
+}
+
+.monaco-workbench .part.editor .tabs-container > .tab.active {
+	background-color: var(--echo-bg-base) !important;
+	border-top: 2px solid var(--echo-border-full) !important;
+}
+
+.monaco-workbench .part.editor .tabs-container > .tab .tab-label {
+	color: var(--echo-text-muted) !important;
+}
+
+.monaco-workbench .part.editor .tabs-container > .tab.active .tab-label {
+	color: var(--echo-text-primary) !important;
+	font-weight: 500 !important;
+}
+
+/* Breadcrumb row: 11px muted. */
+.monaco-workbench .part.editor .breadcrumbs-control {
+	font-size: var(--echo-size-ui) !important;
+	color: var(--echo-text-muted) !important;
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+}
+
+/* ==========================================================================
+   4. Status bar - 28px, 10px uppercase
+   NOTE: the design document specifies this band inverted (white on black),
+   while all three reference screens show it dark. The screens win here; flip
+   ECHO_STATUSBAR_INVERTED below to follow the document instead.
+   ========================================================================== */
+
+.monaco-workbench .part.statusbar {
+	height: var(--echo-statusbar-h) !important;
+	line-height: var(--echo-statusbar-h) !important;
+	font-size: var(--echo-size-caption) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	border-top: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .part.statusbar .statusbar-item {
+	height: var(--echo-statusbar-h) !important;
+	line-height: var(--echo-statusbar-h) !important;
+	font-size: var(--echo-size-caption) !important;
+}
+
+/* ==========================================================================
+   5. Buttons - primary inverted, secondary hairline, no radius
+   ========================================================================== */
+
+/*
+ * The 12px vertical padding in the design document describes the primary button
+ * inside a dialog. Applying it to every `.monaco-button` inflated inline toolbar
+ * buttons, tree action buttons and the notification affordances until the whole UI
+ * looked oversized, so the generous sizing is scoped to real call-to-action buttons
+ * (dialog footers and the welcome page) and everything else stays compact.
+ */
+.monaco-workbench .monaco-button,
+.monaco-workbench .monaco-text-button {
+	font-size: var(--echo-size-ui) !important;
+	font-weight: 700 !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	padding: 4px 12px !important;
+	border: 1px solid transparent !important;
+	line-height: 1.5 !important;
+}
+
+/* Call-to-action buttons: the full 12px band from section 5. */
+.monaco-workbench .monaco-dialog-box .dialog-buttons .monaco-button,
+.monaco-workbench .echo-welcome .echo-cta {
+	padding: 12px 18px !important;
+}
+
+.monaco-workbench .monaco-button.monaco-text-button.secondary {
+	border: 1px solid var(--echo-border-strong) !important;
+	background-color: transparent !important;
+	color: var(--echo-text-primary) !important;
+}
+
+/* ==========================================================================
+   5. Inputs - bg/base, border/mid, white border on focus
+   ========================================================================== */
+
+.monaco-workbench .monaco-inputbox {
+	border: 1px solid var(--echo-border-mid) !important;
+	background-color: var(--echo-bg-base) !important;
+}
+
+.monaco-workbench .monaco-inputbox.synthetic-focus,
+.monaco-workbench .monaco-inputbox:focus-within {
+	border-color: var(--echo-border-full) !important;
+	outline: none !important;
+}
+
+.monaco-workbench .monaco-inputbox input,
+.monaco-workbench .monaco-inputbox textarea {
+	font-size: var(--echo-size-ui) !important;
+	color: var(--echo-text-primary) !important;
+}
+
+/* 6. Focus: 1px white border, no glow or colored ring. */
+.monaco-workbench .monaco-list:focus,
+.monaco-workbench .monaco-list-row.focused,
+.monaco-workbench *:focus-visible {
+	outline-color: var(--echo-border-full) !important;
+	outline-width: 1px !important;
+	outline-style: solid !important;
+	outline-offset: -1px !important;
+}
+
+/* ==========================================================================
+   5. Dialogs - 560px card, 1px white border, hairline header divider
+   ========================================================================== */
+
+.monaco-workbench .monaco-dialog-box {
+	width: 560px !important;
+	max-width: 560px !important;
+	border: 1px solid var(--echo-border-full) !important;
+	background-color: var(--echo-bg-raised) !important;
+	padding: 0 !important;
+}
+
+.monaco-workbench .dialog-shadow-container,
+.monaco-workbench .monaco-dialog-modal-block {
+	background-color: var(--echo-bg-base) !important;
+}
+
+.monaco-workbench .monaco-dialog-box .dialog-message-row {
+	padding: 22px 26px !important;
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+}
+
+/* 36px bordered icon square instead of a colored severity glyph. */
+.monaco-workbench .monaco-dialog-box .dialog-message-row > .dialog-icon.codicon {
+	width: 36px !important;
+	height: 36px !important;
+	line-height: 36px !important;
+	border: 1px solid var(--echo-border-strong) !important;
+	color: var(--echo-text-primary) !important;
+	text-align: center !important;
+	flex: 0 0 36px !important;
+}
+
+.monaco-workbench .monaco-dialog-box .dialog-message {
+	font-size: 16px !important;
+	font-weight: 700 !important;
+	color: var(--echo-text-primary) !important;
+	letter-spacing: var(--echo-track-tight) !important;
+}
+
+.monaco-workbench .monaco-dialog-box .dialog-message-detail {
+	font-size: var(--echo-size-body) !important;
+	color: var(--echo-text-secondary) !important;
+	line-height: 1.6 !important;
+}
+
+/* Footer: two equal-width buttons. */
+.monaco-workbench .monaco-dialog-box .dialog-buttons-row {
+	padding: 20px 26px !important;
+}
+
+.monaco-workbench .monaco-dialog-box .dialog-buttons-row > .dialog-buttons {
+	display: flex !important;
+	gap: 14px !important;
+	width: 100% !important;
+}
+
+.monaco-workbench .monaco-dialog-box .dialog-buttons-row > .dialog-buttons > .monaco-button {
+	flex: 1 1 0 !important;
+	margin: 0 !important;
+}
+
+/* ==========================================================================
+   5. Quick input / command palette - hairline card, inverted active row
+   ========================================================================== */
+
+.monaco-workbench .quick-input-widget {
+	border: 1px solid var(--echo-border-mid) !important;
+	background-color: var(--echo-bg-raised) !important;
+}
+
+.monaco-workbench .quick-input-list .monaco-list-row {
+	font-size: var(--echo-size-body) !important;
+}
+
+.monaco-workbench .quick-input-list .monaco-list-row.focused {
+	background-color: var(--echo-border-full) !important;
+	color: var(--echo-bg-base) !important;
+}
+
+/* ==========================================================================
+   7. Iconography - thin stroke, monochrome, inherit text color
+   ========================================================================== */
+
+.monaco-workbench .codicon {
+	color: inherit !important;
+}
+
+.monaco-workbench .part.titlebar .window-controls-container .window-icon {
+	color: var(--echo-text-primary) !important;
+}
+
+/* ==========================================================================
+   Panels and terminal - bg/inset per the token table
+   ========================================================================== */
+
+.monaco-workbench .part.panel {
+	background-color: var(--echo-bg-inset) !important;
+	border-top: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .part.panel .pane-header .title {
+	font-size: var(--echo-size-eyebrow) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	font-weight: 700 !important;
+}
+
+.monaco-workbench .part.panel .composite-bar .action-item .action-label {
+	font-size: var(--echo-size-ui) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	color: var(--echo-text-muted) !important;
+}
+
+.monaco-workbench .part.panel .composite-bar .action-item.checked .action-label {
+	color: var(--echo-text-primary) !important;
+	border-bottom: 2px solid var(--echo-border-full) !important;
+}
+
+/* ==========================================================================
+   6. Interaction - no transition longer than 150ms, no easing flourishes
+   ========================================================================== */
+
+/*
+ * "No transitions >150ms" is a ceiling, not an instruction to animate everything.
+ * Setting transition-duration on `*` ADDED a transition to properties that had
+ * none - including the `transform` that the editor, tree and extension list use to
+ * scroll. Every scroll offset then animated over 120ms, which is why rows appeared
+ * to lag and vanish mid-scroll. Only elements that already transition are capped,
+ * and scrolling surfaces are explicitly exempt.
+ */
+.monaco-workbench .monaco-button,
+.monaco-workbench .monaco-text-button,
+.monaco-workbench .action-item,
+.monaco-workbench .monaco-inputbox,
+.monaco-workbench .tabs-container > .tab {
+	transition-duration: 120ms !important;
+	transition-timing-function: linear !important;
+}
+
+/* Never animate the transforms that virtualized scrolling depends on. */
+.monaco-workbench .monaco-scrollable-element,
+.monaco-workbench .monaco-scrollable-element > .scrollbar,
+.monaco-workbench .monaco-list-rows,
+.monaco-workbench .monaco-list-row,
+.monaco-workbench .monaco-tl-row,
+.monaco-workbench .view-lines,
+.monaco-workbench .view-line,
+.monaco-workbench .monaco-editor .lines-content,
+.monaco-workbench .monaco-editor .margin,
+.monaco-workbench .monaco-editor .minimap,
+.monaco-workbench .split-view-container,
+.monaco-workbench .monaco-pane-view {
+	transition-property: none !important;
+	animation: none !important;
+}
+
+/* The agent live dot is the one sanctioned pulse (section 7). */
+.monaco-workbench .echo-live-dot {
+	width: 6px !important;
+	height: 6px !important;
+	background-color: var(--echo-border-full) !important;
+	display: inline-block !important;
+	animation: echo-pulse 1600ms linear infinite !important;
+	animation-duration: 1600ms !important;
+}
+
+@keyframes echo-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.35;
+	}
+}
+
+/* ==========================================================================
+   4. Echo Agent panel - secondary side bar, right edge, 340px
+   The agent is a first-class surface (section 1), not a plugin panel, so it gets
+   the same treatment as the explorer rather than inheriting panel chrome.
+   ========================================================================== */
+
+.monaco-workbench .part.auxiliarybar {
+	background-color: var(--echo-bg-inset) !important;
+	border-left: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .part.auxiliarybar > .content {
+	background-color: var(--echo-bg-inset) !important;
+}
+
+.monaco-workbench .part.auxiliarybar .pane-header {
+	background-color: var(--echo-bg-inset) !important;
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .part.auxiliarybar .pane-header .title {
+	font-size: var(--echo-size-eyebrow) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	font-weight: 700 !important;
+	color: var(--echo-text-primary) !important;
+}
+
+.monaco-workbench .part.auxiliarybar .composite.title {
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+}
+
+/*
+ * The auxiliary bar composite bar renders a TEXT label ("Echo Agent"), not an icon,
+ * so the inverted-square treatment used on the left icon rail does not apply here.
+ * Inverting set the label to black while VS Code paints the active background on the
+ * parent element, leaving black text on black - the title was only legible on hover.
+ * The active item is marked with a white underline instead, and the label stays white.
+ */
+.monaco-workbench .part.auxiliarybar .composite-bar .action-item .action-label {
+	background-color: transparent !important;
+	color: var(--echo-text-secondary) !important;
+	font-size: var(--echo-size-eyebrow) !important;
+	font-weight: 700 !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	text-transform: uppercase !important;
+}
+
+.monaco-workbench .part.auxiliarybar .composite-bar .action-item .action-label:hover {
+	color: var(--echo-text-primary) !important;
+}
+
+.monaco-workbench .part.auxiliarybar .composite-bar .action-item.checked .action-label,
+.monaco-workbench .part.auxiliarybar .composite-bar .action-item.checked:hover .action-label {
+	background-color: transparent !important;
+	color: var(--echo-text-primary) !important;
+	border-bottom: 2px solid var(--echo-border-full) !important;
+}
+
+/* The container title, when VS Code shows it instead of the composite bar. */
+.monaco-workbench .part.auxiliarybar .composite.title .title-label h2 {
+	color: var(--echo-text-primary) !important;
+	font-size: var(--echo-size-eyebrow) !important;
+	font-weight: 700 !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	text-transform: uppercase !important;
+}
+
+/* Title-bar actions (new chat, history) read as secondary until hovered. */
+.monaco-workbench .part.auxiliarybar .title-actions .action-label {
+	color: var(--echo-text-secondary) !important;
+}
+
+.monaco-workbench .part.auxiliarybar .title-actions .action-label:hover {
+	color: var(--echo-text-primary) !important;
+}
+
+/* ==========================================================================
+   Welcome page - remove the empty walkthrough shells and give the page structure
+   ========================================================================== */
+
+/*
+ * With the built-in tours gone the walkthrough column has nothing to render, and an
+ * empty bordered tile was being painted in the bottom right. Collapse the container
+ * instead of leaving a hollow box.
+ */
+.monaco-workbench .gettingStartedContainer .gettingStartedSlideCategory,
+.monaco-workbench .gettingStartedContainer .categories-column-right,
+.monaco-workbench .gettingStartedContainer .header-container .icon-widget,
+.monaco-workbench .gettingStartedContainer .footer .showOnStartupCheckbox ~ .button-link {
+	display: none !important;
+}
+
+.monaco-workbench .gettingStartedContainer .gettingStartedCategoriesContainer .index-list.start-container .button-link:empty,
+.monaco-workbench .gettingStartedContainer .index-list:empty {
+	display: none !important;
+}
+
+.monaco-workbench .gettingStartedContainer {
+	background-color: var(--echo-bg-base) !important;
+}
+
+/* Section eyebrows: 9px uppercase muted, sitting on a hairline. */
+.monaco-workbench .gettingStartedContainer .index-list > h2 {
+	font-size: var(--echo-size-eyebrow) !important;
+	text-transform: uppercase !important;
+	letter-spacing: var(--echo-track-wide) !important;
+	font-weight: 700 !important;
+	color: var(--echo-text-muted) !important;
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+	padding-bottom: 10px !important;
+	margin-bottom: 4px !important;
+}
+
+/* The oversized wordmark and its rule (section 5, welcome/empty states). */
+.monaco-workbench .gettingStartedContainer .header-container .gettingStartedCategoriesContainer > .header > h1,
+.monaco-workbench .gettingStartedContainer .gettingStartedCategoriesContainer .header h1 {
+	font-size: 72px !important;
+	font-weight: 800 !important;
+	letter-spacing: -0.04em !important;
+	color: var(--echo-text-primary) !important;
+	line-height: 1 !important;
+	text-transform: uppercase !important;
+}
+
+.monaco-workbench .gettingStartedContainer .gettingStartedCategoriesContainer .header p.subtitle {
+	font-size: var(--echo-size-body) !important;
+	color: var(--echo-text-secondary) !important;
+	letter-spacing: 0 !important;
+	margin-top: 10px !important;
+	border-bottom: 2px solid var(--echo-border-full) !important;
+	padding-bottom: 18px !important;
+	max-width: 320px !important;
+}
+
+/* Bordered rows for the Start and Recent lists rather than bare text links. */
+.monaco-workbench .gettingStartedContainer .index-list li {
+	border-bottom: 1px solid var(--echo-border-hair) !important;
+}
+
+.monaco-workbench .gettingStartedContainer .index-list li .button-link,
+.monaco-workbench .gettingStartedContainer .index-list li a {
+	font-size: var(--echo-size-body) !important;
+	color: var(--echo-text-primary) !important;
+	padding: 9px 2px !important;
+	display: flex !important;
+	align-items: center !important;
+	gap: 10px !important;
+}
+
+.monaco-workbench .gettingStartedContainer .index-list li:hover {
+	background-color: var(--echo-bg-raised) !important;
+}
+
+.monaco-workbench .gettingStartedContainer .index-list .path,
+.monaco-workbench .gettingStartedContainer .index-list .description {
+	color: var(--echo-text-muted) !important;
+	font-size: var(--echo-size-caption) !important;
+}
+
+.monaco-workbench .gettingStartedContainer .footer {
+	border-top: 1px solid var(--echo-border-hair) !important;
+	color: var(--echo-text-muted) !important;
+	font-size: var(--echo-size-caption) !important;
+}
+
+/*
+ * The Echo Agent webview paints itself from the token table directly (see
+ * chat-webview.ts), so it needs no color rules here. What it does need is for the
+ * host pane to stop adding VS Code panel chrome around it, and for the iframe to
+ * fill the bar edge to edge.
+ */
+.monaco-workbench .part.auxiliarybar .webview,
+.monaco-workbench .part.auxiliarybar .webview iframe {
+	background-color: var(--echo-bg-inset) !important;
+	border: 0 !important;
+}
+
+.monaco-workbench .part.auxiliarybar .pane-body {
+	padding: 0 !important;
+	background-color: var(--echo-bg-inset) !important;
+}
+
+/* A single view fills the container, so its header is redundant chrome. */
+.monaco-workbench .part.auxiliarybar .pane:only-child > .pane-header {
+	display: none !important;
+}

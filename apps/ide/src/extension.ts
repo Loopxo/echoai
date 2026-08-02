@@ -1,10 +1,23 @@
 import * as vscode from 'vscode';
 import { EchoAcpClient } from './acp-client.js';
+import { EchoAccountPanel } from './account-view.js';
 import { EchoChatViewProvider } from './chat-view.js';
+import {
+  ECHO_AUTH_PROVIDER_ID,
+  ECHO_AUTH_PROVIDER_LABEL,
+  EchoAccountService,
+  EchoAuthenticationProvider,
+} from './echo-account.js';
+
+const agentRevealedKey = 'echoai.agentPanelRevealed';
 
 export function activate(context: vscode.ExtensionContext): void {
   const client = new EchoAcpClient(context);
-  const chat = new EchoChatViewProvider(context.extensionUri, client);
+  const account = new EchoAccountService();
+  // Registering a real authentication provider is what makes the Accounts button in
+  // the activity bar offer "Sign in with Echo AI" rather than doing nothing.
+  const authProvider = new EchoAuthenticationProvider(account);
+  const chat = new EchoChatViewProvider(context, client, account);
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 80);
   status.name = 'Echo AI';
   status.command = 'echoai.openChat';
@@ -13,6 +26,29 @@ export function activate(context: vscode.ExtensionContext): void {
   status.show();
 
   const registrations: vscode.Disposable[] = [
+    vscode.authentication.registerAuthenticationProvider(
+      ECHO_AUTH_PROVIDER_ID,
+      ECHO_AUTH_PROVIDER_LABEL,
+      authProvider,
+      { supportsMultipleAccounts: false },
+    ),
+    authProvider,
+    account,
+    vscode.commands.registerCommand('echoai.signIn', async () => {
+      // Routing through the platform means the Accounts menu and this command share
+      // one code path and one notion of the signed-in session.
+      await vscode.authentication.getSession(ECHO_AUTH_PROVIDER_ID, [], { createIfNone: true });
+    }),
+    vscode.commands.registerCommand('echoai.showAccount', () =>
+      EchoAccountPanel.show(context, account),
+    ),
+    vscode.commands.registerCommand('echoai.signOut', async () => {
+      await account.signOut();
+      void vscode.window.showInformationMessage('Signed out of Echo AI.');
+    }),
+    vscode.commands.registerCommand('echoai.showUsage', () =>
+      client.openRuntimeTerminal(['usage'], 'Echo AI Usage'),
+    ),
     vscode.window.registerWebviewViewProvider(EchoChatViewProvider.viewType, chat, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
@@ -59,6 +95,17 @@ export function activate(context: vscode.ExtensionContext): void {
   ];
 
   context.subscriptions.push(...registrations);
+
+  // The agent lives in the secondary side bar on the right and should be open the
+  // first time a user reaches the workbench, the way a chat panel is always there in
+  // Cursor. After that the panel state is theirs: if they close or collapse it, it
+  // stays closed, and the title bar toggle or the status bar item brings it back.
+  if (!context.globalState.get<boolean>(agentRevealedKey)) {
+    void context.globalState.update(agentRevealedKey, true).then(
+      () => chat.reveal(),
+      () => chat.reveal(),
+    );
+  }
 }
 
 export function deactivate(): void {

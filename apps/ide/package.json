@@ -25,6 +25,7 @@
   ],
   "main": "./dist/extension.cjs",
   "activationEvents": [
+    "onStartupFinished",
     "onView:echoai.chat",
     "onCommand:echoai.openChat",
     "onCommand:echoai.newSession",
@@ -45,10 +46,10 @@
   },
   "contributes": {
     "viewsContainers": {
-      "activitybar": [
+      "auxiliarybar": [
         {
           "id": "echoai",
-          "title": "Echo AI",
+          "title": "Echo Agent",
           "icon": "media/echoai.svg"
         }
       ]
@@ -57,7 +58,7 @@
       "echoai": [
         {
           "id": "echoai.chat",
-          "name": "Agent",
+          "name": "Echo Agent",
           "type": "webview"
         }
       ]
@@ -104,6 +105,24 @@
       {
         "command": "echoai.login",
         "title": "Echo AI: Cloud Login"
+      },
+      {
+        "command": "echoai.signIn",
+        "title": "Echo AI: Sign In",
+        "icon": "$(account)"
+      },
+      {
+        "command": "echoai.showAccount",
+        "title": "Echo AI: Account and Usage",
+        "icon": "$(account)"
+      },
+      {
+        "command": "echoai.signOut",
+        "title": "Echo AI: Sign Out"
+      },
+      {
+        "command": "echoai.showUsage",
+        "title": "Echo AI: Show Usage and Credits"
       },
       {
         "command": "echoai.manageMcp",
@@ -185,6 +204,12 @@
           "default": true,
           "description": "Start the local Echo AI ACP process when the agent view opens."
         },
+        "echoAI.apiUrl": {
+          "type": "string",
+          "scope": "machine",
+          "default": "",
+          "markdownDescription": "Echo AI service URL used for account sign in and hosted models. Leave empty to use `ECHOAI_API_URL` or the production endpoint."
+        },
         "echoAI.maxSelectionCharacters": {
           "type": "number",
           "default": 24000,
@@ -193,6 +218,17 @@
           "description": "Maximum active-editor characters embedded with open-file and diagnostic metadata in an agent prompt."
         }
       }
+    },
+    "themes": [
+      {
+        "id": "Echo AI Dark",
+        "label": "Echo AI Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/echoai-dark.json"
+      }
+    ],
+    "configurationDefaults": {
+      "workbench.colorTheme": "Echo AI Dark"
     }
   },
   "scripts": {
