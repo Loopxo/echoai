@@ -1,0 +1,296 @@
+/**
+ * Semantic design tokens for the EchoAI desktop shell.
+ *
+ * The brand ramps live in @echoai/design/tokens.css (--ec-*). This file maps
+ * them onto the semantic names the app actually styles against
+ * (--bg / --fg / --card / --border / --primary / ...), which is the same
+ * vocabulary the rest of the industry uses and keeps component CSS readable.
+ *
+ * Surfaces are deliberately NEUTRAL. The previous shell tinted every surface
+ * (warm cream in light, teal-washed in dark) which is what made it read as
+ * unfinished. Colour now appears only where it carries meaning: the accent,
+ * status, and diff tints.
+ *
+ * Dark is the default. `data-theme="light"` on :root switches; when no explicit
+ * theme is set we follow prefers-color-scheme.
+ */
+
+:root {
+  /* ---------- Typography ---------- */
+  /* System-first: the renderer runs under a CSP that blocks remote fonts, so
+     Inter is only used when the user already has it installed locally. */
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue",
+    sans-serif;
+  --font-mono: "SF Mono", SFMono-Regular, ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-13: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+
+  --leading-tight: 1.3;
+  --leading: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* ---------- Radius ---------- */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+  --r-2xl: 18px;
+  --r-3xl: 22px;
+  --r-full: 999px;
+
+  /* ---------- Motion ---------- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 110ms;
+  --dur: 180ms;
+  --dur-slow: 300ms;
+
+  /* ---------- Layout ---------- */
+  --titlebar-h: 48px;
+  --sidebar-w: 264px;
+  --sidebar-w-min: 208px;
+  --main-w-min: 560px;
+  --thread-max-w: 740px;
+  --panel-w: 540px;
+  --panel-w-min: 340px;
+  /* Overridden by the shell when macOS traffic lights are present. */
+  --traffic-inset: 0px;
+  --scrollbar-w: 8px;
+
+  /* ---------- Z layers ---------- */
+  --z-panel: 10;
+  --z-sticky: 20;
+  --z-titlebar: 30;
+  --z-overlay: 100;
+  --z-toast: 200;
+}
+
+/* ============================ DARK (default) ============================ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0a0a0b;
+  --bg-inset: #070708;
+  --card: #101012;
+  --card-raised: #16161a;
+  --popover: #17171b;
+  --sidebar: #0c0c0e;
+
+  /* Interaction surfaces are alpha so they compose over any background. */
+  --hover: rgb(255 255 255 / 5.5%);
+  --active: rgb(255 255 255 / 9%);
+  --selected: rgb(255 255 255 / 7%);
+
+  --border: rgb(255 255 255 / 7.5%);
+  --border-strong: rgb(255 255 255 / 14%);
+  --border-input: rgb(255 255 255 / 11%);
+
+  --fg: #f3f3f4;
+  --fg-muted: #a0a0a7;
+  --fg-subtle: #6e6e76;
+  --fg-faint: #4d4d54;
+
+  --primary: #34d399;
+  --primary-hover: #6ee7bf;
+  --primary-fg: #04201a;
+  --primary-soft: rgb(52 211 153 / 14%);
+  --primary-soft-strong: rgb(52 211 153 / 24%);
+
+  --ring: #34d399;
+
+  --success: #34d399;
+  --success-soft: rgb(52 211 153 / 14%);
+  --warning: #f5b74e;
+  --warning-soft: rgb(245 183 78 / 15%);
+  --danger: #f26d6d;
+  --danger-soft: rgb(242 109 109 / 14%);
+  --info: #5cb8f7;
+  --info-soft: rgb(92 184 247 / 14%);
+
+  --code-bg: #0e0e11;
+  --diff-add-bg: rgb(52 211 153 / 11%);
+  --diff-add-gutter: rgb(52 211 153 / 18%);
+  --diff-del-bg: rgb(242 109 109 / 11%);
+  --diff-del-gutter: rgb(242 109 109 / 18%);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-md: 0 8px 24px -8px rgb(0 0 0 / 65%);
+  --shadow-lg: 0 24px 64px -24px rgb(0 0 0 / 80%);
+  --shadow-pop: 0 16px 40px -18px rgb(0 0 0 / 70%), 0 0 0 1px rgb(255 255 255 / 6%);
+
+  --scrollbar-thumb: rgb(255 255 255 / 11%);
+  --scrollbar-thumb-hover: rgb(255 255 255 / 18%);
+
+  --overlay-backdrop: rgb(4 4 5 / 62%);
+}
+
+/* ============================== LIGHT ============================== */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #fbfbfc;
+  --bg-inset: #f4f4f6;
+  --card: #ffffff;
+  --card-raised: #ffffff;
+  --popover: #ffffff;
+  --sidebar: #f6f6f8;
+
+  --hover: rgb(9 9 11 / 4%);
+  --active: rgb(9 9 11 / 7.5%);
+  --selected: rgb(9 9 11 / 5.5%);
+
+  --border: rgb(9 9 11 / 9%);
+  --border-strong: rgb(9 9 11 / 16%);
+  --border-input: rgb(9 9 11 / 14%);
+
+  --fg: #18181b;
+  --fg-muted: #5f5f68;
+  --fg-subtle: #8b8b94;
+  --fg-faint: #adadb5;
+
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-fg: #ffffff;
+  --primary-soft: rgb(5 150 105 / 11%);
+  --primary-soft-strong: rgb(5 150 105 / 18%);
+
+  --ring: #059669;
+
+  --success: #059669;
+  --success-soft: rgb(5 150 105 / 11%);
+  --warning: #b45309;
+  --warning-soft: rgb(180 83 9 / 11%);
+  --danger: #dc2626;
+  --danger-soft: rgb(220 38 38 / 10%);
+  --info: #0369a1;
+  --info-soft: rgb(3 105 161 / 10%);
+
+  --code-bg: #f6f7f8;
+  --diff-add-bg: rgb(5 150 105 / 9%);
+  --diff-add-gutter: rgb(5 150 105 / 16%);
+  --diff-del-bg: rgb(220 38 38 / 8%);
+  --diff-del-gutter: rgb(220 38 38 / 15%);
+
+  --shadow-sm: 0 1px 2px rgb(9 9 11 / 7%);
+  --shadow-md: 0 8px 24px -10px rgb(9 9 11 / 16%);
+  --shadow-lg: 0 24px 64px -24px rgb(9 9 11 / 22%);
+  --shadow-pop: 0 12px 32px -14px rgb(9 9 11 / 20%), 0 0 0 1px rgb(9 9 11 / 7%);
+
+  --scrollbar-thumb: rgb(9 9 11 / 15%);
+  --scrollbar-thumb-hover: rgb(9 9 11 / 25%);
+
+  --overlay-backdrop: rgb(24 24 27 / 32%);
+}
+
+/* Follow the OS when the user has not chosen a theme explicitly. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+    color-scheme: light;
+
+    --bg: #fbfbfc;
+    --bg-inset: #f4f4f6;
+    --card: #ffffff;
+    --card-raised: #ffffff;
+    --popover: #ffffff;
+    --sidebar: #f6f6f8;
+
+    --hover: rgb(9 9 11 / 4%);
+    --active: rgb(9 9 11 / 7.5%);
+    --selected: rgb(9 9 11 / 5.5%);
+
+    --border: rgb(9 9 11 / 9%);
+    --border-strong: rgb(9 9 11 / 16%);
+    --border-input: rgb(9 9 11 / 14%);
+
+    --fg: #18181b;
+    --fg-muted: #5f5f68;
+    --fg-subtle: #8b8b94;
+    --fg-faint: #adadb5;
+
+    --primary: #059669;
+    --primary-hover: #047857;
+    --primary-fg: #ffffff;
+    --primary-soft: rgb(5 150 105 / 11%);
+    --primary-soft-strong: rgb(5 150 105 / 18%);
+
+    --ring: #059669;
+
+    --success: #059669;
+    --success-soft: rgb(5 150 105 / 11%);
+    --warning: #b45309;
+    --warning-soft: rgb(180 83 9 / 11%);
+    --danger: #dc2626;
+    --danger-soft: rgb(220 38 38 / 10%);
+    --info: #0369a1;
+    --info-soft: rgb(3 105 161 / 10%);
+
+    --code-bg: #f6f7f8;
+    --diff-add-bg: rgb(5 150 105 / 9%);
+    --diff-add-gutter: rgb(5 150 105 / 16%);
+    --diff-del-bg: rgb(220 38 38 / 8%);
+    --diff-del-gutter: rgb(220 38 38 / 15%);
+
+    --shadow-sm: 0 1px 2px rgb(9 9 11 / 7%);
+    --shadow-md: 0 8px 24px -10px rgb(9 9 11 / 16%);
+    --shadow-lg: 0 24px 64px -24px rgb(9 9 11 / 22%);
+    --shadow-pop: 0 12px 32px -14px rgb(9 9 11 / 20%), 0 0 0 1px rgb(9 9 11 / 7%);
+
+    --scrollbar-thumb: rgb(9 9 11 / 15%);
+    --scrollbar-thumb-hover: rgb(9 9 11 / 25%);
+
+    --overlay-backdrop: rgb(24 24 27 / 32%);
+  }
+}
+
+/**
+ * Bridge for @echoai/design components (Markdown, DiffView, Icon).
+ *
+ * These are defined here rather than importing the package's tokens.css: that
+ * file scopes its dark palette to `:root[data-theme="dark"]` and its light
+ * palette to `:root:not([data-theme="dark"]):not([data-theme="light"])`, both of
+ * which outrank a plain `:root` override — so a bridge layered on top lost the
+ * cascade and the package's teal-tinted surfaces bled through.
+ *
+ * Pointing each token at a semantic variable instead means theme switching is
+ * handled entirely by the blocks above, with no per-theme duplication here.
+ */
+:root {
+  --ec-dur-fast: var(--dur-fast);
+  --ec-ease: var(--ease);
+  --ec-text: var(--fg);
+  --ec-text-muted: var(--fg-muted);
+  --ec-text-subtle: var(--fg-subtle);
+  --ec-line: var(--border);
+  --ec-surface: var(--card);
+  --ec-surface-2: var(--card-raised);
+  --ec-surface-3: var(--hover);
+  --ec-accent: var(--primary);
+  --ec-accent-contrast: var(--primary-fg);
+  --ec-accent-hover: var(--primary-hover);
+  --ec-focus: var(--ring);
+  --ec-code-bg: var(--code-bg);
+  --ec-success: var(--success);
+  --ec-warning: var(--warning);
+  --ec-danger: var(--danger);
+  --ec-font-sans: var(--font-sans);
+  --ec-font-mono: var(--font-mono);
+  --ec-radius-sm: var(--r-sm);
+  --ec-radius-md: var(--r-md);
+  --ec-radius-lg: var(--r-lg);
+  --ec-radius-full: var(--r-full);
+  --ec-text-xs: var(--text-xs);
+  --ec-text-sm: var(--text-sm);
+  --ec-text-base: var(--text-13);
+  --ec-text-md: var(--text-base);
+  --ec-leading: var(--leading-relaxed);
+}
